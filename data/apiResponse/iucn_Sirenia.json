@@ -1,0 +1,959 @@
+{
+    "details": {
+        "total_entries": 50,
+        "Taxon Rank": "order",
+        "Taxon Name": "Sirenia"
+    },
+    "result": [
+        {
+            "year_published": "1965",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 10303,
+            "url": "https://www.iucnredlist.org/species/10303/3191962",
+            "taxon_scientific_name": "Hydrodamalis gigas",
+            "red_list_category_code": "N/A",
+            "assessment_id": 3191962,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1988",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 10303,
+            "url": "https://www.iucnredlist.org/species/10303/3191980",
+            "taxon_scientific_name": "Hydrodamalis gigas",
+            "red_list_category_code": "Ex",
+            "assessment_id": 3191980,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 10303,
+            "url": "https://www.iucnredlist.org/species/10303/3191997",
+            "taxon_scientific_name": "Hydrodamalis gigas",
+            "red_list_category_code": "EX",
+            "assessment_id": 3191997,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 10303,
+            "url": "https://www.iucnredlist.org/species/10303/3192067",
+            "taxon_scientific_name": "Hydrodamalis gigas",
+            "red_list_category_code": "EX",
+            "assessment_id": 3192067,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1986",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 10303,
+            "url": "https://www.iucnredlist.org/species/10303/3192111",
+            "taxon_scientific_name": "Hydrodamalis gigas",
+            "red_list_category_code": "Ex",
+            "assessment_id": 3192111,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1990",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 10303,
+            "url": "https://www.iucnredlist.org/species/10303/3192128",
+            "taxon_scientific_name": "Hydrodamalis gigas",
+            "red_list_category_code": "Ex",
+            "assessment_id": 3192128,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1994",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 10303,
+            "url": "https://www.iucnredlist.org/species/10303/3192145",
+            "taxon_scientific_name": "Hydrodamalis gigas",
+            "red_list_category_code": "Ex",
+            "assessment_id": 3192145,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356365",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "VU",
+            "assessment_id": 9356365,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1965",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356388",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "N/A",
+            "assessment_id": 9356388,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356406",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "VU",
+            "assessment_id": 9356406,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2007",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356605",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "VU",
+            "assessment_id": 9356605,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1988",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356777",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "V",
+            "assessment_id": 9356777,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1990",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356796",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "V",
+            "assessment_id": 9356796,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1982",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356815",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "V",
+            "assessment_id": 9356815,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1986",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356834",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "V",
+            "assessment_id": 9356834,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1994",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/9356853",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "V",
+            "assessment_id": 9356853,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9356876",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "VU",
+            "assessment_id": 9356876,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1965",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9356899",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "N/A",
+            "assessment_id": 9356899,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9356917",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "VU",
+            "assessment_id": 9356917,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2007",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9357464",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "VU",
+            "assessment_id": 9357464,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1988",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9358024",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "V",
+            "assessment_id": 9358024,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1990",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9358043",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "V",
+            "assessment_id": 9358043,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1982",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9358062",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "V",
+            "assessment_id": 9358062,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1986",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9358081",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "V",
+            "assessment_id": 9358081,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1994",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/9358100",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "V",
+            "assessment_id": 9358100,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/9358123",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "VU",
+            "assessment_id": 9358123,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1965",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/9358146",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "N/A",
+            "assessment_id": 9358146,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/9358164",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "VU",
+            "assessment_id": 9358164,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2006",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/9358604",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "VU",
+            "assessment_id": 9358604,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1990",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/9359064",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "V",
+            "assessment_id": 9359064,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1994",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/9359083",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "V",
+            "assessment_id": 9359083,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1986",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/9359102",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "V",
+            "assessment_id": 9359102,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1988",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/9359121",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "V",
+            "assessment_id": 9359121,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12812672",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "VU",
+            "assessment_id": 12812672,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1965",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12812693",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "N/A",
+            "assessment_id": 12812693,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12812709",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "VU",
+            "assessment_id": 12812709,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2006",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12813137",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "VU",
+            "assessment_id": 12813137,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1988",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12813594",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "V",
+            "assessment_id": 12813594,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1990",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12813611",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "V",
+            "assessment_id": 12813611,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1982",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12813628",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "V",
+            "assessment_id": 12813628,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1986",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12813645",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "V",
+            "assessment_id": 12813645,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1994",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/12813662",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "V",
+            "assessment_id": 12813662,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2015",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/43792211",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "VU",
+            "assessment_id": 43792211,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2016",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 10303,
+            "url": "https://www.iucnredlist.org/species/10303/43792683",
+            "taxon_scientific_name": "Hydrodamalis gigas",
+            "red_list_category_code": "EX",
+            "assessment_id": 43792683,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2024",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22103,
+            "url": "https://www.iucnredlist.org/species/22103/43792740",
+            "taxon_scientific_name": "Trichechus manatus",
+            "red_list_category_code": "VU",
+            "assessment_id": 43792740,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2015",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/43793312",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "VU",
+            "assessment_id": 43793312,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2016",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22102,
+            "url": "https://www.iucnredlist.org/species/22102/43793736",
+            "taxon_scientific_name": "Trichechus inunguis",
+            "red_list_category_code": "VU",
+            "assessment_id": 43793736,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2015",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/81904980",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "VU",
+            "assessment_id": 81904980,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2015",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 22104,
+            "url": "https://www.iucnredlist.org/species/22104/97168578",
+            "taxon_scientific_name": "Trichechus senegalensis",
+            "red_list_category_code": "VU",
+            "assessment_id": 97168578,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2019",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 6909,
+            "url": "https://www.iucnredlist.org/species/6909/160756767",
+            "taxon_scientific_name": "Dugong dugon",
+            "red_list_category_code": "VU",
+            "assessment_id": 160756767,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        }
+    ]
+}

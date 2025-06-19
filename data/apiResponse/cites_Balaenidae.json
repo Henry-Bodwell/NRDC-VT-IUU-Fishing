@@ -1,0 +1,416 @@
+{
+    "pagination": {
+        "total_entries": 7,
+        "pages_fetched": 1,
+        "per_page": 500,
+        "actual_entries": 7
+    },
+    "taxon_concepts": [
+        {
+            "id": 507,
+            "full_name": "Balaenidae",
+            "author_year": "Gray, 1821",
+            "rank": "FAMILY",
+            "name_status": "A",
+            "updated_at": "2018-09-25T12:59:37.174Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Cetacea",
+                "family": "Balaenidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "Baleine Du Groenland, Baleines Franches",
+                    "language": "FR"
+                },
+                {
+                    "name": "Ballenas Verdaderas O Misticetos",
+                    "language": "ES"
+                },
+                {
+                    "name": "\u9732\u810a\u9cb8\u79d1",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 4679,
+                    "taxon_concept_id": 507,
+                    "is_current": true,
+                    "appendix": "II",
+                    "change_type": "+",
+                    "effective_at": "2003-02-13",
+                    "annotation": "[ORDER listing Cetacea spp.] Included in Appendix\u00a0II, except for the species included in Appendix I. A zero annual export quota has been established for live specimens from the Black Sea population of Tursiops truncatus removed from the wild and traded for primarily commercial purposes."
+                }
+            ]
+        },
+        {
+            "id": 1676,
+            "full_name": "Balaena",
+            "author_year": "Linnaeus, 1758",
+            "rank": "GENUS",
+            "name_status": "A",
+            "updated_at": "2018-09-25T12:59:37.174Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Cetacea",
+                "family": "Balaenidae"
+            },
+            "synonyms": [],
+            "common_names": [],
+            "cites_listings": [
+                {
+                    "id": 4679,
+                    "taxon_concept_id": 1676,
+                    "is_current": true,
+                    "appendix": "II",
+                    "change_type": "+",
+                    "effective_at": "2003-02-13",
+                    "annotation": "[ORDER listing Cetacea spp.] Included in Appendix\u00a0II, except for the species included in Appendix I. A zero annual export quota has been established for live specimens from the Black Sea population of Tursiops truncatus removed from the wild and traded for primarily commercial purposes."
+                }
+            ]
+        },
+        {
+            "id": 7903,
+            "full_name": "Balaena mysticetus",
+            "author_year": "Linnaeus, 1758",
+            "rank": "SPECIES",
+            "name_status": "A",
+            "updated_at": "2019-01-23T10:52:22.893Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Cetacea",
+                "family": "Balaenidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "Ballena boreal",
+                    "language": "ES"
+                },
+                {
+                    "name": "gr\u00f6nlandsval",
+                    "language": "SV"
+                },
+                {
+                    "name": "Greenland Right Whale",
+                    "language": "EN"
+                },
+                {
+                    "name": "Gr\u00f8nlandshval",
+                    "language": "NO"
+                },
+                {
+                    "name": "Baleine de grande baie",
+                    "language": "FR"
+                },
+                {
+                    "name": "Baleine du Groenland",
+                    "language": "FR"
+                },
+                {
+                    "name": "Bowhead Whale",
+                    "language": "EN"
+                },
+                {
+                    "name": "Groenlandse Walvis",
+                    "language": "NL"
+                },
+                {
+                    "name": "Ballena de groenlandia",
+                    "language": "ES"
+                },
+                {
+                    "name": "Arviq",
+                    "language": "IU"
+                },
+                {
+                    "name": "\u5317\u6781\u9732\u810a\u9cb8",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 2286,
+                    "taxon_concept_id": 7903,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "1975-07-01",
+                    "annotation": "Formerly included in Balaena spp."
+                }
+            ]
+        },
+        {
+            "id": 923,
+            "full_name": "Eubalaena",
+            "author_year": "Gray, 1864",
+            "rank": "GENUS",
+            "name_status": "A",
+            "updated_at": "2018-09-25T12:59:37.174Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Cetacea",
+                "family": "Balaenidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "\u9732\u810a\u9cb8\u5c5e",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 4554,
+                    "taxon_concept_id": 923,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "1975-07-01",
+                    "annotation": "Formerly included in Balaena spp."
+                }
+            ]
+        },
+        {
+            "id": 6659,
+            "full_name": "Eubalaena australis",
+            "author_year": "(Desmoulins, 1822)",
+            "rank": "SPECIES",
+            "name_status": "A",
+            "updated_at": "2024-05-13T10:02:31.561Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Cetacea",
+                "family": "Balaenidae"
+            },
+            "synonyms": [
+                {
+                    "id": 38857,
+                    "full_name": "Balaena glacialis australis",
+                    "author_year": "(P. L. S. M\u00fcller, 1776)",
+                    "rank": "SUBSPECIES"
+                }
+            ],
+            "common_names": [
+                {
+                    "name": "Southern Right Whale",
+                    "language": "EN"
+                },
+                {
+                    "name": "sydkapare",
+                    "language": "SV"
+                },
+                {
+                    "name": "Ballena franca",
+                    "language": "ES"
+                },
+                {
+                    "name": "Baleine australe",
+                    "language": "FR"
+                },
+                {
+                    "name": "sydval",
+                    "language": "SV"
+                },
+                {
+                    "name": "Ballena franca austral",
+                    "language": "ES"
+                },
+                {
+                    "name": "Baleia franca austral",
+                    "language": "PT"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 4554,
+                    "taxon_concept_id": 6659,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "1975-07-01",
+                    "annotation": "[GENUS listing Eubalaena spp.] Formerly included in Balaena spp."
+                }
+            ]
+        },
+        {
+            "id": 11020,
+            "full_name": "Eubalaena glacialis",
+            "author_year": "(P. L. S. M\u00fcller, 1776)",
+            "rank": "SPECIES",
+            "name_status": "A",
+            "updated_at": "2019-01-23T10:52:22.893Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Cetacea",
+                "family": "Balaenidae"
+            },
+            "synonyms": [
+                {
+                    "id": 30926,
+                    "full_name": "Balaena glacialis",
+                    "author_year": "(P. L. S. M\u00fcller, 1776)",
+                    "rank": "SPECIES"
+                },
+                {
+                    "id": 31364,
+                    "full_name": "Eubalaena sieboldi",
+                    "author_year": "Gray, 1864",
+                    "rank": "SPECIES"
+                }
+            ],
+            "common_names": [
+                {
+                    "name": "Nordkaper",
+                    "language": "NO"
+                },
+                {
+                    "name": "Ballena franca del Norte",
+                    "language": "ES"
+                },
+                {
+                    "name": "Ballena",
+                    "language": "ES"
+                },
+                {
+                    "name": "stillahavsr\u00e4tval",
+                    "language": "SV"
+                },
+                {
+                    "name": "Black Right Whale",
+                    "language": "EN"
+                },
+                {
+                    "name": "nordv\u00e4stkapare",
+                    "language": "SV"
+                },
+                {
+                    "name": "Baleine franche",
+                    "language": "FR"
+                },
+                {
+                    "name": "Right Whale",
+                    "language": "EN"
+                },
+                {
+                    "name": "biskayaval",
+                    "language": "SV"
+                },
+                {
+                    "name": "Northern Right Whale",
+                    "language": "EN"
+                },
+                {
+                    "name": "nordkapare",
+                    "language": "SV"
+                },
+                {
+                    "name": "Baleine de Biscaye",
+                    "language": "FR"
+                },
+                {
+                    "name": "Ballenga",
+                    "language": "ES"
+                },
+                {
+                    "name": "Baleine des Basques",
+                    "language": "FR"
+                },
+                {
+                    "name": "Atlantischer nordkaper",
+                    "language": "DE"
+                },
+                {
+                    "name": "North Atlantic right whale",
+                    "language": "EN"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 4554,
+                    "taxon_concept_id": 11020,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "1975-07-01",
+                    "annotation": "[GENUS listing Eubalaena spp.] Formerly included in Balaena spp."
+                }
+            ]
+        },
+        {
+            "id": 4989,
+            "full_name": "Eubalaena japonica",
+            "author_year": "(Lac\u00e9p\u00e8de, 1818)",
+            "rank": "SPECIES",
+            "name_status": "A",
+            "updated_at": "2023-04-14T14:47:49.349Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Cetacea",
+                "family": "Balaenidae"
+            },
+            "synonyms": [
+                {
+                    "id": 38682,
+                    "full_name": "Eubalaena glacialis japonica",
+                    "author_year": "P. L. S. M\u00fcller, 1776",
+                    "rank": "SUBSPECIES"
+                }
+            ],
+            "common_names": [
+                {
+                    "name": "North Pacific Right Whale",
+                    "language": "EN"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 4554,
+                    "taxon_concept_id": 4989,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "1975-07-01",
+                    "annotation": "[GENUS listing Eubalaena spp.] Formerly included in Balaena spp."
+                }
+            ]
+        }
+    ]
+}

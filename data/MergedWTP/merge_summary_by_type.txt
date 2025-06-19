@@ -1,0 +1,298 @@
+Wildlife Trade Portal Data Merge Summary (By File Type)
+============================================================
+
+INCIDENT-DATA
+-------------
+Source Files:
+  Actinopterygii/incident-data-2820.csv: 1536 rows, 30 columns
+  Annelida/incident-data-2806.csv: 103 rows, 30 columns
+  Balaenoptera/incident-data-2831.csv: 3 rows, 30 columns
+  Bivalvia/incident-data-2813.csv: 389 rows, 30 columns
+  Brachyura/incident-data-2817.csv: 35 rows, 30 columns
+  Cephalopoda/incident-data-2812.csv: 39 rows, 30 columns
+  Cheloniidae/incident-data-2821.csv: 531 rows, 30 columns
+  Cnidaria/incident-data-2809.csv: 1214 rows, 30 columns
+  Delphindidae/incident-data-2829.csv: 35 rows, 30 columns
+  Dermochelys Coriacea/incident-data-2822.csv: 12 rows, 30 columns
+  Echinodermata/incident-data-2807.csv: 338 rows, 30 columns
+  Elasmobranchii/incident-data-2818.csv: 472 rows, 30 columns
+  Gastropoda/incident-data-2811.csv: 795 rows, 30 columns
+  Monodontidae/incident-data-2827.csv: 12 rows, 30 columns
+  Nephropidae/incident-data-2816.csv: 52 rows, 30 columns
+  Odobenus Rosmarus/incident-data-2825.csv: 24 rows, 30 columns
+  Otariidae/incident-data-2824.csv: 7 rows, 30 columns
+  Palinuridae/incident-data-2814.csv: 56 rows, 30 columns
+  Phocidae/incident-data-2823.csv: 8 rows, 30 columns
+  Phocoendidae/incident-data-2826.csv: 3 rows, 30 columns
+  Physeteridae/incident-data-2828.csv: 57 rows, 30 columns
+  Polyplacophora/incident-data-2810.csv: 1 rows, 30 columns
+  Porifera/incident-data-2808.csv: 4 rows, 30 columns
+  Trichechidae/incident-data-2832.csv: 7 rows, 30 columns
+
+Files processed: 24
+Initial merged rows: 5733
+Duplicates removed: 544
+Final rows: 5189
+Final columns: 32
+Output file: merged_incident_data.csv
+
+Column names:
+   1. Report ID
+   2. Category of Incident
+   3. Country of Incident
+   4. Date of Incident
+   5. Subject
+   6. Primary Source
+   7. Source Type
+   8. Additional Sources
+   9. Name of Organisation Providing Information
+  10. Transport Mode
+  11. Where Found
+  12. Method of Concealment
+  13. Methods - Details
+  14. Detection
+  15. Outcome
+  16. Number of People Arrested
+  17. Number of People Charged
+  18. Number of People Fined
+  19. Number of People Imprisoned
+  20. Amount of Fine
+  21. Currency of Fine
+  22. Fine in USD
+  23. Length of Imprisonment
+  24. Unit of Time
+  25. Links to Corruption
+  26. Latest Known Stage of Corruption
+  27. Form of Corruption
+  28. Bribe Accepted / Refused?
+  29. Potential Corruption?
+  30. Links to Serious or Organised Crime
+  31. source_folder
+  32. source_file
+
+============================================================
+
+INCIDENT-SUMMARY-AND-LOCATIONS
+------------------------------
+Source Files:
+  Actinopterygii/incident-summary-and-locations-2820.csv: 2726 rows, 19 columns
+  Annelida/incident-summary-and-locations-2806.csv: 202 rows, 19 columns
+  Balaenoptera/incident-summary-and-locations-2831.csv: 8 rows, 19 columns
+  Bivalvia/incident-summary-and-locations-2813.csv: 621 rows, 19 columns
+  Brachyura/incident-summary-and-locations-2817.csv: 57 rows, 19 columns
+  Cephalopoda/incident-summary-and-locations-2812.csv: 63 rows, 19 columns
+  Cheloniidae/incident-summary-and-locations-2821.csv: 739 rows, 19 columns
+  Cnidaria/incident-summary-and-locations-2809.csv: 2344 rows, 19 columns
+  Delphindidae/incident-summary-and-locations-2829.csv: 47 rows, 19 columns
+  Dermochelys Coriacea/incident-summary-and-locations-2822.csv: 16 rows, 19 columns
+  Echinodermata/incident-summary-and-locations-2807.csv: 522 rows, 19 columns
+  Elasmobranchii/incident-summary-and-locations-2819.csv: 770 rows, 19 columns
+  Gastropoda/incident-summary-and-locations-2811.csv: 1485 rows, 19 columns
+  Monodontidae/incident-summary-and-locations-2827.csv: 32 rows, 19 columns
+  Nephropidae/incident-summary-and-locations-2816.csv: 89 rows, 19 columns
+  Odobenus Rosmarus/incident-summary-and-locations-2825.csv: 47 rows, 19 columns
+  Otariidae/incident-summary-and-locations-2824.csv: 15 rows, 19 columns
+  Palinuridae/incident-summary-and-locations-2814.csv: 124 rows, 19 columns
+  Phocidae/incident-summary-and-locations-2823.csv: 21 rows, 19 columns
+  Phocoendidae/incident-summary-and-locations-2826.csv: 3 rows, 19 columns
+  Physeteridae/incident-summary-and-locations-2828.csv: 91 rows, 19 columns
+  Polyplacophora/incident-summary-and-locations-2810.csv: 4 rows, 19 columns
+  Porifera/incident-summary-and-locations-2808.csv: 8 rows, 19 columns
+  Trichechidae/incident-summary-and-locations-2832.csv: 8 rows, 19 columns
+
+Files processed: 24
+Initial merged rows: 10042
+Duplicates removed: 1015
+Final rows: 9027
+Final columns: 21
+Output file: merged_incident_summary_and_locations.csv
+
+Column names:
+   1. Report ID
+   2. Category of Incident
+   3. Country of Incident
+   4. Date of Incident
+   5. Subject
+   6. Role
+   7. Order in Trade Route
+   8. Comments
+   9. Building/Place Name
+  10. Building Place/Name Alias
+  11. Street Address
+  12. Village/Commune/Ward
+  13. City/Town/Sub-district/Municipality
+  14. County/District/Prefecture/Department
+  15. State/Province/Region
+  16. Country
+  17. Latitude
+  18. Longitude
+  19. Transit Type
+  20. source_folder
+  21. source_file
+
+============================================================
+
+INCIDENT-SUMMARY-AND-SPECIES
+----------------------------
+Source Files:
+  Actinopterygii/incident-summary-and-species-2820.csv: 2748 rows, 32 columns
+  Annelida/incident-summary-and-species-2806.csv: 152 rows, 32 columns
+  Balaenoptera/incident-summary-and-species-2831.csv: 3 rows, 32 columns
+  Bivalvia/incident-summary-and-species-2813.csv: 817 rows, 32 columns
+  Brachyura/incident-summary-and-species-2817.csv: 81 rows, 32 columns
+  Cephalopoda/incident-summary-and-species-2812.csv: 152 rows, 32 columns
+  Cheloniidae/incident-summary-and-species-2821.csv: 1229 rows, 32 columns
+  Cnidaria/incident-summary-and-species-2809.csv: 1985 rows, 32 columns
+  Delphindidae/incident-summary-and-species-2830.csv: 75 rows, 32 columns
+  Dermochelys Coriacea/incident-summary-and-species-2822.csv: 31 rows, 32 columns
+  Echinodermata/incident-summary-and-species-2807.csv: 575 rows, 32 columns
+  Elasmobranchii/incident-summary-and-species-2818.csv: 1271 rows, 32 columns
+  Gastropoda/incident-summary-and-species-2811.csv: 1253 rows, 32 columns
+  Monodontidae/incident-summary-and-species-2827.csv: 129 rows, 32 columns
+  Nephropidae/incident-summary-and-species-2816.csv: 85 rows, 32 columns
+  Odobenus Rosmarus/incident-summary-and-species-2825.csv: 147 rows, 32 columns
+  Otariidae/incident-summary-and-species-2824.csv: 92 rows, 32 columns
+  Palinuridae/incident-summary-and-species-2815.csv: 87 rows, 32 columns
+  Phocidae/incident-summary-and-species-2823.csv: 86 rows, 32 columns
+  Phocoendidae/incident-summary-and-species-2826.csv: 10 rows, 32 columns
+  Physeteridae/incident-summary-and-species-2828.csv: 229 rows, 32 columns
+  Polyplacophora/incident-summary-and-species-2810.csv: 9 rows, 32 columns
+  Porifera/incident-summary-and-species-2808.csv: 20 rows, 32 columns
+  Trichechidae/incident-summary-and-species-2833.csv: 18 rows, 32 columns
+
+Files processed: 24
+Initial merged rows: 11284
+Duplicates removed: 2917
+Final rows: 8367
+Final columns: 34
+Output file: merged_incident_summary_and_species.csv
+
+Column names:
+   1. Report ID
+   2. Category of Incident
+   3. Country of Incident
+   4. Date of Incident
+   5. Subject
+   6. Full Scientific Name
+   7. Item / Commodity Type
+   8. Worked Product Type
+   9. Sex
+  10. Life Stage
+  11. Description Notes
+  12. Accumulated Count/Weight?
+  13. Count
+  14. Weight
+  15. Unit of Weight
+  16. Unit of Weight (If Other)
+  17. Size
+  18. Unit of Size
+  19. Unit of Size (If Other)
+  20. Estimated Value
+  21. Currency
+  22. Value in USD
+  23. Kingdom
+  24. Phylum
+  25. Class
+  26. Order
+  27. Family
+  28. Genus
+  29. Species
+  30. Sub-species / Variety
+  31. Common Name
+  32. Synonyms
+  33. source_folder
+  34. source_file
+
+============================================================
+
+JOINED DATASET
+---------------
+Final joined rows: 15404
+Final joined columns: 79
+Output file: joined_all_incident_data.csv
+
+Join details:
+  incident-data: 5189 rows, joined on 'Report ID'
+  incident-summary-and-locations: 9027 rows, joined on 'Report ID'
+  incident-summary-and-species: 8367 rows, joined on 'Report ID'
+
+Joined column names:
+   1. Report_ID
+   2. Category of Incident
+   3. Country of Incident
+   4. Date of Incident
+   5. Subject
+   6. Primary Source
+   7. Source Type
+   8. Additional Sources
+   9. Name of Organisation Providing Information
+  10. Transport Mode
+  11. Where Found
+  12. Method of Concealment
+  13. Methods - Details
+  14. Detection
+  15. Outcome
+  16. Number of People Arrested
+  17. Number of People Charged
+  18. Number of People Fined
+  19. Number of People Imprisoned
+  20. Amount of Fine
+  21. Currency of Fine
+  22. Fine in USD
+  23. Length of Imprisonment
+  24. Unit of Time
+  25. Links to Corruption
+  26. Latest Known Stage of Corruption
+  27. Form of Corruption
+  28. Bribe Accepted / Refused?
+  29. Potential Corruption?
+  30. Links to Serious or Organised Crime
+  31. Category of Incident_incident_summary_and_locations
+  32. Country of Incident_incident_summary_and_locations
+  33. Date of Incident_incident_summary_and_locations
+  34. Subject_incident_summary_and_locations
+  35. Role
+  36. Order in Trade Route
+  37. Comments
+  38. Building/Place Name
+  39. Building Place/Name Alias
+  40. Street Address
+  41. Village/Commune/Ward
+  42. City/Town/Sub-district/Municipality
+  43. County/District/Prefecture/Department
+  44. State/Province/Region
+  45. Country
+  46. Latitude
+  47. Longitude
+  48. Transit Type
+  49. Category of Incident_incident_summary_and_species
+  50. Country of Incident_incident_summary_and_species
+  51. Date of Incident_incident_summary_and_species
+  52. Subject_incident_summary_and_species
+  53. Full Scientific Name
+  54. Item / Commodity Type
+  55. Worked Product Type
+  56. Sex
+  57. Life Stage
+  58. Description Notes
+  59. Accumulated Count/Weight?
+  60. Count
+  61. Weight
+  62. Unit of Weight
+  63. Unit of Weight (If Other)
+  64. Size
+  65. Unit of Size
+  66. Unit of Size (If Other)
+  67. Estimated Value
+  68. Currency
+  69. Value in USD
+  70. Kingdom
+  71. Phylum
+  72. Class
+  73. Order
+  74. Family
+  75. Genus
+  76. Species
+  77. Sub-species / Variety
+  78. Common Name
+  79. Synonyms

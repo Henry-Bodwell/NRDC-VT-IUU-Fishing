@@ -1,0 +1,690 @@
+{
+    "pagination": {
+        "total_entries": 10,
+        "pages_fetched": 1,
+        "per_page": 500,
+        "actual_entries": 10
+    },
+    "taxon_concepts": [
+        {
+            "id": 143,
+            "full_name": "Sirenia",
+            "author_year": null,
+            "rank": "ORDER",
+            "name_status": "A",
+            "updated_at": "2013-09-27T00:00:00.000Z",
+            "active": true,
+            "cites_listing": "I/NC",
+            "eu_listing": "A/NC",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": null
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "\u6d77\u725b\u76ee",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": []
+        },
+        {
+            "id": 414,
+            "full_name": "Dugongidae",
+            "author_year": "Gray, 1821",
+            "rank": "FAMILY",
+            "name_status": "A",
+            "updated_at": "2013-09-27T00:00:00.000Z",
+            "active": true,
+            "cites_listing": "I/NC",
+            "eu_listing": "A/NC",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Dugongidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "Dugong",
+                    "language": "FR"
+                },
+                {
+                    "name": "Dugongo",
+                    "language": "ES"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "DA"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "ES"
+                },
+                {
+                    "name": "dugong",
+                    "language": "SV"
+                },
+                {
+                    "name": "Dugongo",
+                    "language": "IT"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "EN"
+                },
+                {
+                    "name": "\u5112\u826e\u79d1",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": []
+        },
+        {
+            "id": 1662,
+            "full_name": "Dugong",
+            "author_year": null,
+            "rank": "GENUS",
+            "name_status": "A",
+            "updated_at": "2013-09-27T00:00:00.000Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Dugongidae"
+            },
+            "synonyms": [],
+            "common_names": [],
+            "cites_listings": []
+        },
+        {
+            "id": 3515,
+            "full_name": "Dugong dugon",
+            "author_year": "(P. L. S. M\u00fcller, 1776)",
+            "rank": "SPECIES",
+            "name_status": "A",
+            "updated_at": "2024-02-27T16:11:06.323Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Dugongidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "Dugongi",
+                    "language": "FI"
+                },
+                {
+                    "name": "Dugongo",
+                    "language": "IT"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "EN"
+                },
+                {
+                    "name": "Dugong oder Pazifische Seekuh",
+                    "language": "DE"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "DA"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "ES"
+                },
+                {
+                    "name": "Sea Cow",
+                    "language": "EN"
+                },
+                {
+                    "name": "dugong",
+                    "language": "SV"
+                },
+                {
+                    "name": "sj\u00f6ko",
+                    "language": "SV"
+                },
+                {
+                    "name": "Dugon",
+                    "language": "ES"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "FR"
+                },
+                {
+                    "name": "Dugongo",
+                    "language": "ES"
+                },
+                {
+                    "name": "Seekuh",
+                    "language": "DE"
+                },
+                {
+                    "name": "Duyong",
+                    "language": "ID"
+                },
+                {
+                    "name": "Baghr al-bahr",
+                    "language": "AR"
+                },
+                {
+                    "name": "Babi laut",
+                    "language": "MS"
+                },
+                {
+                    "name": "Dugang",
+                    "language": "GA"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "RO"
+                },
+                {
+                    "name": "dugong",
+                    "language": "SL"
+                },
+                {
+                    "name": "Dugongo",
+                    "language": "PT"
+                },
+                {
+                    "name": "\u0414\u044e\u0433\u043e\u043d",
+                    "language": "BG"
+                },
+                {
+                    "name": "\u03b8\u03b1\u03bb\u03ac\u03c3\u03c3\u03b9\u03b5\u03c2 \u03b1\u03b3\u03b5\u03bb\u03ac\u03b4\u03b5\u03c2",
+                    "language": "EL"
+                },
+                {
+                    "name": "dugong morsk\u00fd",
+                    "language": "SK"
+                },
+                {
+                    "name": "dugong indick\u00fd",
+                    "language": "CS"
+                },
+                {
+                    "name": "moronj",
+                    "language": "HR"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "HU"
+                },
+                {
+                    "name": "Diugo\u0144",
+                    "language": "PL"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "MT"
+                },
+                {
+                    "name": "Dugongs",
+                    "language": "LV"
+                },
+                {
+                    "name": "Diugonis",
+                    "language": "LT"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "HR"
+                },
+                {
+                    "name": "Doejong",
+                    "language": "NL"
+                },
+                {
+                    "name": "\u039d\u03c4\u03bf\u03c5\u03b3\u03ba\u03cc\u03bd\u03b3\u03ba",
+                    "language": "EL"
+                },
+                {
+                    "name": "Dugong",
+                    "language": "ET"
+                },
+                {
+                    "name": "\u5112\u826e",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 4073,
+                    "taxon_concept_id": 3515,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "2000-07-19",
+                    "annotation": "All populations."
+                }
+            ]
+        },
+        {
+            "id": 2383,
+            "full_name": "Hydrodamalis",
+            "author_year": null,
+            "rank": "GENUS",
+            "name_status": "A",
+            "updated_at": "2021-12-23T16:42:24.409Z",
+            "active": true,
+            "cites_listing": "NC",
+            "eu_listing": "NC",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Dugongidae"
+            },
+            "synonyms": [
+                {
+                    "id": 32306,
+                    "full_name": "Hydrodamalis stelleri",
+                    "author_year": "Retzius, 1794",
+                    "rank": "SPECIES"
+                }
+            ],
+            "common_names": [],
+            "cites_listings": []
+        },
+        {
+            "id": 536,
+            "full_name": "Trichechidae",
+            "author_year": "Gill, 1872",
+            "rank": "FAMILY",
+            "name_status": "A",
+            "updated_at": "2013-09-27T00:00:00.000Z",
+            "active": true,
+            "cites_listing": "I/NC",
+            "eu_listing": "A/NC",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Trichechidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "Manaties",
+                    "language": "ES"
+                },
+                {
+                    "name": "Lamantins",
+                    "language": "FR"
+                },
+                {
+                    "name": "Manatees",
+                    "language": "EN"
+                },
+                {
+                    "name": "\u6d77\u725b\u79d1",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": []
+        },
+        {
+            "id": 2386,
+            "full_name": "Trichechus",
+            "author_year": null,
+            "rank": "GENUS",
+            "name_status": "A",
+            "updated_at": "2013-09-27T00:00:00.000Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Trichechidae"
+            },
+            "synonyms": [],
+            "common_names": [],
+            "cites_listings": []
+        },
+        {
+            "id": 9454,
+            "full_name": "Trichechus inunguis",
+            "author_year": "(Natterer, 1883)",
+            "rank": "SPECIES",
+            "name_status": "A",
+            "updated_at": "2017-01-31T10:26:02.129Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Trichechidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "Amazonas-Seekuh",
+                    "language": "DE"
+                },
+                {
+                    "name": "sydamerikansk manat",
+                    "language": "SV"
+                },
+                {
+                    "name": "Amazonian Manatee",
+                    "language": "EN"
+                },
+                {
+                    "name": "Lamantino amaz\u00f3nico",
+                    "language": "ES"
+                },
+                {
+                    "name": "Lamantin de l'Amazone",
+                    "language": "FR"
+                },
+                {
+                    "name": "Amazone Lamantijn",
+                    "language": "NL"
+                },
+                {
+                    "name": "Manat\u00ed amaz\u00f3nico",
+                    "language": "ES"
+                },
+                {
+                    "name": "Vaca marina amaz\u00f3nica",
+                    "language": "ES"
+                },
+                {
+                    "name": "South American Manatee",
+                    "language": "EN"
+                },
+                {
+                    "name": "amazonmanat",
+                    "language": "SV"
+                },
+                {
+                    "name": "Lamantin d'Am\u00e9rique du sud",
+                    "language": "FR"
+                },
+                {
+                    "name": "Vaca marina",
+                    "language": "ES"
+                },
+                {
+                    "name": "kapust\u0148\u00e1k jihoamerick\u00fd",
+                    "language": "CS"
+                },
+                {
+                    "name": "Lamantino delle Amazzoni",
+                    "language": "IT"
+                },
+                {
+                    "name": "D\u00e9l-amerikai man\u00e1ti",
+                    "language": "HU"
+                },
+                {
+                    "name": "amazonianmanaatti",
+                    "language": "FI"
+                },
+                {
+                    "name": "\u4e9a\u9a6c\u5b59\u6d77\u725b",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 1641,
+                    "taxon_concept_id": 9454,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "1975-07-01",
+                    "annotation": null
+                }
+            ]
+        },
+        {
+            "id": 4548,
+            "full_name": "Trichechus manatus",
+            "author_year": "Linnaeus, 1758",
+            "rank": "SPECIES",
+            "name_status": "A",
+            "updated_at": "2023-05-09T09:52:24.917Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Trichechidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "Lamantino norteamericano",
+                    "language": "ES"
+                },
+                {
+                    "name": "Caribbean Manatee",
+                    "language": "EN"
+                },
+                {
+                    "name": "Manat\u00ed norteamericano",
+                    "language": "ES"
+                },
+                {
+                    "name": "Lamantin d'Am\u00e9rique du nord",
+                    "language": "FR"
+                },
+                {
+                    "name": "West Indian Manatee",
+                    "language": "EN"
+                },
+                {
+                    "name": "Lamantin des Cara\u00efbes",
+                    "language": "FR"
+                },
+                {
+                    "name": "North American Manatee",
+                    "language": "EN"
+                },
+                {
+                    "name": "v\u00e4stindisk manat",
+                    "language": "SV"
+                },
+                {
+                    "name": "amerikansk manat",
+                    "language": "SV"
+                },
+                {
+                    "name": "lamantin",
+                    "language": "SV"
+                },
+                {
+                    "name": "American Manatee",
+                    "language": "EN"
+                },
+                {
+                    "name": "floridamanat",
+                    "language": "SV"
+                },
+                {
+                    "name": "Lamantin des Antilles",
+                    "language": "FR"
+                },
+                {
+                    "name": "Peixi-boi",
+                    "language": "PT"
+                },
+                {
+                    "name": "Manati",
+                    "language": "ES"
+                },
+                {
+                    "name": "lamantiini",
+                    "language": "FI"
+                },
+                {
+                    "name": "Karibi man\u00e1ti",
+                    "language": "HU"
+                },
+                {
+                    "name": "kapust\u0148\u00e1k \u0161irokonos\u00fd",
+                    "language": "CS"
+                },
+                {
+                    "name": "Lamantino dei Caraibi",
+                    "language": "IT"
+                },
+                {
+                    "name": "\u7f8e\u6d32\u6d77\u725b",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 3624,
+                    "taxon_concept_id": 4548,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "1975-07-01",
+                    "annotation": null
+                }
+            ]
+        },
+        {
+            "id": 4306,
+            "full_name": "Trichechus senegalensis",
+            "author_year": "Link, 1795",
+            "rank": "SPECIES",
+            "name_status": "A",
+            "updated_at": "2024-05-13T10:02:31.561Z",
+            "active": true,
+            "cites_listing": "I",
+            "eu_listing": "A",
+            "higher_taxa": {
+                "kingdom": "Animalia",
+                "phylum": "Chordata",
+                "class": "Mammalia",
+                "order": "Sirenia",
+                "family": "Trichechidae"
+            },
+            "synonyms": [],
+            "common_names": [
+                {
+                    "name": "African Manatee",
+                    "language": "EN"
+                },
+                {
+                    "name": "Lamantin du S\u00e9n\u00e9gal",
+                    "language": "FR"
+                },
+                {
+                    "name": "Westafikaanse Lamantijn",
+                    "language": "NL"
+                },
+                {
+                    "name": "senegalmanat",
+                    "language": "SV"
+                },
+                {
+                    "name": "Lamantin d'Afrique",
+                    "language": "FR"
+                },
+                {
+                    "name": "Manat\u00ed de Senegal",
+                    "language": "ES"
+                },
+                {
+                    "name": "Westafrikanische Seekuh",
+                    "language": "DE"
+                },
+                {
+                    "name": "Lamantin ouest-africain",
+                    "language": "FR"
+                },
+                {
+                    "name": "afrikansk manat",
+                    "language": "SV"
+                },
+                {
+                    "name": "West African Manatee",
+                    "language": "EN"
+                },
+                {
+                    "name": "Manati de Africa",
+                    "language": "ES"
+                },
+                {
+                    "name": "Peixe-boi Africano",
+                    "language": "PT"
+                },
+                {
+                    "name": "Seacow",
+                    "language": "EN"
+                },
+                {
+                    "name": "Manatim Africana",
+                    "language": "PT"
+                },
+                {
+                    "name": "afrikanmanaatti",
+                    "language": "FI"
+                },
+                {
+                    "name": "Lamantino africano",
+                    "language": "IT"
+                },
+                {
+                    "name": "Afrikai man\u00e1ti",
+                    "language": "HU"
+                },
+                {
+                    "name": "kapust\u0148\u00e1k senegalsk\u00fd",
+                    "language": "CS"
+                },
+                {
+                    "name": "\u975e\u6d32\u6d77\u725b",
+                    "language": "ZH"
+                }
+            ],
+            "cites_listings": [
+                {
+                    "id": 3733,
+                    "taxon_concept_id": 4306,
+                    "is_current": true,
+                    "appendix": "I",
+                    "change_type": "+",
+                    "effective_at": "2013-06-12",
+                    "annotation": null
+                }
+            ]
+        }
+    ]
+}

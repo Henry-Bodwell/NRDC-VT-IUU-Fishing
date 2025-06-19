@@ -1,0 +1,579 @@
+{
+    "details": {
+        "total_entries": 30,
+        "Taxon Rank": "family",
+        "Taxon Name": "Balaenidae"
+    },
+    "result": [
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/9442153",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "LR/cd",
+            "assessment_id": 9442153,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1965",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/9442284",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "N/A",
+            "assessment_id": 9442284,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2007",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/9442304",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "NA",
+            "assessment_id": 9442304,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Europe"
+                    },
+                    "code": "2"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/9442437",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "LC",
+            "assessment_id": 9442437,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1990",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/9442718",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "V",
+            "assessment_id": 9442718,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1994",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/9442735",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "V",
+            "assessment_id": 9442735,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1986",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/9442752",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "E",
+            "assessment_id": 9442752,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1988",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/9442769",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "E",
+            "assessment_id": 9442769,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41711,
+            "url": "https://www.iucnredlist.org/species/41711/10540442",
+            "taxon_scientific_name": "Eubalaena japonica",
+            "red_list_category_code": "EN",
+            "assessment_id": 10540442,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41711,
+            "url": "https://www.iucnredlist.org/species/41711/10540463",
+            "taxon_scientific_name": "Eubalaena japonica",
+            "red_list_category_code": "EN",
+            "assessment_id": 10540463,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41711,
+            "url": "https://www.iucnredlist.org/species/41711/10540674",
+            "taxon_scientific_name": "Eubalaena japonica",
+            "red_list_category_code": "EN",
+            "assessment_id": 10540674,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2007",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41712,
+            "url": "https://www.iucnredlist.org/species/41712/10541234",
+            "taxon_scientific_name": "Eubalaena glacialis",
+            "red_list_category_code": "CR",
+            "assessment_id": 10541234,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Europe"
+                    },
+                    "code": "2"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41712,
+            "url": "https://www.iucnredlist.org/species/41712/10541390",
+            "taxon_scientific_name": "Eubalaena glacialis",
+            "red_list_category_code": "EN",
+            "assessment_id": 10541390,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1965",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 8153,
+            "url": "https://www.iucnredlist.org/species/8153/12893352",
+            "taxon_scientific_name": "Eubalaena australis",
+            "red_list_category_code": "N/A",
+            "assessment_id": 12893352,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1988",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 8153,
+            "url": "https://www.iucnredlist.org/species/8153/12893370",
+            "taxon_scientific_name": "Eubalaena australis",
+            "red_list_category_code": "V",
+            "assessment_id": 12893370,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2008",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 8153,
+            "url": "https://www.iucnredlist.org/species/8153/12893389",
+            "taxon_scientific_name": "Eubalaena australis",
+            "red_list_category_code": "LC",
+            "assessment_id": 12893389,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1996",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 8153,
+            "url": "https://www.iucnredlist.org/species/8153/12893638",
+            "taxon_scientific_name": "Eubalaena australis",
+            "red_list_category_code": "LR/cd",
+            "assessment_id": 12893638,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1990",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 8153,
+            "url": "https://www.iucnredlist.org/species/8153/12893779",
+            "taxon_scientific_name": "Eubalaena australis",
+            "red_list_category_code": "V",
+            "assessment_id": 12893779,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "1994",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 8153,
+            "url": "https://www.iucnredlist.org/species/8153/12893798",
+            "taxon_scientific_name": "Eubalaena australis",
+            "red_list_category_code": "V",
+            "assessment_id": 12893798,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2012",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41712,
+            "url": "https://www.iucnredlist.org/species/41712/17084065",
+            "taxon_scientific_name": "Eubalaena glacialis",
+            "red_list_category_code": "EN",
+            "assessment_id": 17084065,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2012",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/17879018",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "LC",
+            "assessment_id": 17879018,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2013",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 8153,
+            "url": "https://www.iucnredlist.org/species/8153/44230386",
+            "taxon_scientific_name": "Eubalaena australis",
+            "red_list_category_code": "LC",
+            "assessment_id": 44230386,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2018",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/50347659",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "LC",
+            "assessment_id": 50347659,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2018",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 8153,
+            "url": "https://www.iucnredlist.org/species/8153/50354147",
+            "taxon_scientific_name": "Eubalaena australis",
+            "red_list_category_code": "LC",
+            "assessment_id": 50354147,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2018",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41711,
+            "url": "https://www.iucnredlist.org/species/41711/50380694",
+            "taxon_scientific_name": "Eubalaena japonica",
+            "red_list_category_code": "EN",
+            "assessment_id": 50380694,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2018",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41712,
+            "url": "https://www.iucnredlist.org/species/41712/50380891",
+            "taxon_scientific_name": "Eubalaena glacialis",
+            "red_list_category_code": "EN",
+            "assessment_id": 50380891,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2020",
+            "latest": false,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41712,
+            "url": "https://www.iucnredlist.org/species/41712/162001243",
+            "taxon_scientific_name": "Eubalaena glacialis",
+            "red_list_category_code": "CR",
+            "assessment_id": 162001243,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2020",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41712,
+            "url": "https://www.iucnredlist.org/species/41712/178589687",
+            "taxon_scientific_name": "Eubalaena glacialis",
+            "red_list_category_code": "CR",
+            "assessment_id": 178589687,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Global"
+                    },
+                    "code": "1"
+                }
+            ]
+        },
+        {
+            "year_published": "2023",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 2467,
+            "url": "https://www.iucnredlist.org/species/2467/221069826",
+            "taxon_scientific_name": "Balaena mysticetus",
+            "red_list_category_code": "VU",
+            "assessment_id": 221069826,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Europe"
+                    },
+                    "code": "2"
+                }
+            ]
+        },
+        {
+            "year_published": "2023",
+            "latest": true,
+            "possibly_extinct": false,
+            "possibly_extinct_in_the_wild": false,
+            "sis_taxon_id": 41712,
+            "url": "https://www.iucnredlist.org/species/41712/221073107",
+            "taxon_scientific_name": "Eubalaena glacialis",
+            "red_list_category_code": "CR",
+            "assessment_id": 221073107,
+            "scopes": [
+                {
+                    "description": {
+                        "en": "Europe"
+                    },
+                    "code": "2"
+                }
+            ]
+        }
+    ]
+}
