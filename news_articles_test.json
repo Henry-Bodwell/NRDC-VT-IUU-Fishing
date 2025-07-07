@@ -1,0 +1,1232 @@
+{
+    "pagination": {
+        "total_results": 421,
+        "pages_fetched": 1,
+        "per_page": 100,
+        "actual_entries": 94
+    },
+    "articles": [
+        {
+            "source": {
+                "id": null,
+                "name": "BBC News"
+            },
+            "author": null,
+            "title": "Sharks and oysters set to thrive in warmer UK waters",
+            "description": "Climate change will benefit basking sharks in the UK but creatures like the longest living animal may struggle.",
+            "url": "https://www.bbc.com/news/articles/cx2gn5e9y33o",
+            "urlToImage": "https://ichef.bbci.co.uk/news/1024/branded_news/fdfc/live/720defc0-4ad9-11f0-86d5-3b52b53af158.jpg",
+            "publishedAt": "2025-06-18T01:57:55Z",
+            "content": "Georgina RannardClimate and science correspondent\r\nBasking shark is one of the species that could find a home in new parts of the UK\r\nThe UK could see a boom in endangered sharks, rays and native oys\u2026 [+3515 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Slashdot.org"
+            },
+            "author": "BeauHD",
+            "title": "Denmark Tests Unmanned Robotic Sailboat Fleet",
+            "description": "Denmark has deployed four uncrewed robotic sailboats (known as \"Voyagers\") for a three-month trial to boost maritime surveillance amid rising tensions in the Baltic region. The Associated Press reports: Built by Alameda, California-based company Saildrone, th\u2026",
+            "url": "https://tech.slashdot.org/story/25/06/17/018252/denmark-tests-unmanned-robotic-sailboat-fleet",
+            "urlToImage": "https://a.fsdn.com/sd/topics/military_64.png",
+            "publishedAt": "2025-06-17T07:00:00Z",
+            "content": "Built by Alameda, California-based company Saildrone, the vessels will patrol Danish and NATO waters in the Baltic and North Seas, where maritime tensions and suspected sabotage have escalated sharpl\u2026 [+1254 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Slashdot.org"
+            },
+            "author": "EditorDavid",
+            "title": "How a Crewless, AI-Enhanced Vessel Will Patrol Denmark's and NATO's Waters",
+            "description": "After past damage to undersea cables, Denmark will boost their surveillance of Baltic Sea/North Sea waters by deploying four uncrewed surface vessels \u2014 about 10 meters long \u2014 that are equipped with drones and also AI, reports Euronews. \n\nThe founder/CEO of th\u2026",
+            "url": "https://tech.slashdot.org/story/25/06/28/047250/how-a-crewless-ai-enhanced-vessel-will-patrol-denmarks-and-natos-waters",
+            "urlToImage": "https://a.fsdn.com/sd/topics/eu_64.png",
+            "publishedAt": "2025-06-28T15:34:00Z",
+            "content": "After past damage to undersea cables, Denmark will boost their surveillance of Baltic Sea/North Sea waters by deploying four uncrewed surface vessels \u2014 about 10 meters long \u2014 that are equipped with d\u2026 [+858 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "/FILM"
+            },
+            "author": "staff@slashfilm.com (Akos Peterbencze)",
+            "title": "The Jenna Ortega Crime Thriller That You Didn't Realize Taylor Sheridan Produced",
+            "description": "Taylor Sheridan is best known as a TV show creator, but he has also produced some projects that he didn't create, including this 2023 crime thriller.",
+            "url": "https://www.slashfilm.com/1890993/jenna-ortega-crime-thriller-finestkind-taylor-sheridan-producer/",
+            "urlToImage": "https://www.slashfilm.com/img/gallery/the-jenna-ortega-crime-thriller-that-you-didnt-realize-taylor-sheridan-produced/l-intro-1750397168.jpg",
+            "publishedAt": "2025-06-24T18:00:00Z",
+            "content": "To Brian Helgeland's credit, his film, which he also wrote, at least aims to portray a community we don't see that often in movies. Set in New Bedford, Massachusetts, \"Finestkind\" follows the Eldridg\u2026 [+1914 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Yahoo Entertainment"
+            },
+            "author": "Associated Press",
+            "title": "Brazilian prosecutors charge man accused of ordering high-profile killing in Amazon region",
+            "description": "Brazilian prosecutors filed criminal charges Thursday against the man accused of ordering the 2022 killings of Indigenous peoples advocate Bruno Pereira and ...",
+            "url": "https://www.yahoo.com/news/brazilian-prosecutors-charge-man-accused-180824457.html",
+            "urlToImage": "https://s.yimg.com/ny/api/res/1.2/EnwfbwsUUpbGx.vg4E5D9w--/YXBwaWQ9aGlnaGxhbmRlcjt3PTEyMDA7aD04MDA-/https://media.zenfs.com/en/ap.org/6ecc9b60e6262e1de0fa2524ef2a991d",
+            "publishedAt": "2025-06-05T18:08:24Z",
+            "content": "SAO PAULO (AP) Brazilian prosecutors filed criminal charges Thursday against the man accused of ordering the 2022 killings of Indigenous peoples advocate Bruno Pereira and British journalist Dom Phil\u2026 [+1355 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Yahoo Entertainment"
+            },
+            "author": "Associated Press",
+            "title": "Trump pardons 2 divers who freed 19 sharks off the coast of Florida",
+            "description": "Two South Florida shark divers convicted of theft for freeing 19 sharks and a giant grouper from a fisherman's longline several miles from shore have been...",
+            "url": "https://www.yahoo.com/news/trump-pardons-2-divers-freed-221527544.html",
+            "urlToImage": "https://s.yimg.com/ny/api/res/1.2/avprkbcdxXv7z7lDjI5FLQ--/YXBwaWQ9aGlnaGxhbmRlcjt3PTEyMDA7aD04MDA-/https://media.zenfs.com/en/ap.org/74205549183c66306b171da8fb8791a8",
+            "publishedAt": "2025-06-02T22:15:27Z",
+            "content": "MIAMI (AP) Two South Florida shark divers convicted of theft for freeing 19 sharks and a giant grouper from a fisherman's longline several miles from shore have been pardoned by President Donald Trum\u2026 [+1662 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "IndieWire"
+            },
+            "author": "Ben Travers",
+            "title": "\u2018The Waterfront\u2019 Review: Netflix\u2019s Sludgy Family Crime Drama Is a Shallow Reflection of Better Shows",
+            "description": "Like a surface-level blend of \"Ozark\" and \"Yellowstone,\" Kevin Williamson's first Netflix series follows a North Carolina family who keeps their seaside fishing empire afloat by ferrying drugs.",
+            "url": "https://www.indiewire.com/criticism/shows/the-waterfront-review-ozark-yellowstone-netflix-series-1235132871/",
+            "urlToImage": "https://www.indiewire.com/wp-content/uploads/2025/06/The-Waterfront-Netflix-release-date-Holt-McCallany-1-e1750281402168.jpg?w=650",
+            "publishedAt": "2025-06-19T17:00:00Z",
+            "content": "\u201cThe Waterfront,\u201d a new Netflix series about a family-run fishery off the North Carolina coast, officially stems from \u201cDawson\u2019s Creek\u201d and \u201cScream\u201d scribe Kevin Williamson, but given the first season\u2026 [+9514 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "/FILM"
+            },
+            "author": "staff@slashfilm.com (Rusteen Honardoost)",
+            "title": "A Crime Thriller Series From The Creator Of Scream Is Blowing Up On Netflix",
+            "description": "Netflix subscribers are flocking in large numbers to this soapy crime thriller series, which was developed by Scream co-creator Kevin Williamson.",
+            "url": "https://www.slashfilm.com/1895677/scream-creator-crime-thriller-series-the-waterfront-streaming-netflix/",
+            "urlToImage": "https://www.slashfilm.com/img/gallery/a-crime-thriller-series-from-the-creator-of-scream-is-blowing-up-on-netflix/l-intro-1750874146.jpg",
+            "publishedAt": "2025-06-26T03:00:00Z",
+            "content": "\"The Waterfront\" follows the Buckley family, as led by patriarch Harlan Buckley (played by a scenery-chewing Holt McCallany, who previously\u00a0tore through David Fincher's \"Mindhunter\"). Harlan would ra\u2026 [+1563 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "BBC News"
+            },
+            "author": null,
+            "title": "'Glimmer of hope' for marine life at UN Ocean conference",
+            "description": "Environmental groups have praised government's progress made on marine protection at the UN meeting",
+            "url": "https://www.bbc.com/news/articles/cq69e4j6jz8o",
+            "urlToImage": "https://ichef.bbci.co.uk/news/1024/branded_news/4eff/live/ce5f97d0-4820-11f0-b3bf-c9f452e3175b.jpg",
+            "publishedAt": "2025-06-13T16:17:17Z",
+            "content": "Esme StallardClimate and science correspondent\r\nReporting from\r\nUN Oceans Conference, Nice, France\r\nThe UN Ocean conference has been heralded a success, with more countries ratifying a key treaty to \u2026 [+8154 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Monica Mercuri, Contributor, \n Monica Mercuri, Contributor\n https://www.forbes.com/sites/monicamercuri/",
+            "title": "Is \u2018The Waterfront\u2019 Based On A True Story? Meet The Family Who Inspired The Buckleys",
+            "description": "What inspired Netflix\u2019s new crime series \"The Waterfront\"? The hit show is based on shocking real events. Here\u2019s the true story behind the Buckleys.",
+            "url": "https://www.forbes.com/sites/monicamercuri/2025/06/23/is-the-waterfront-based-on-a-true-story-meet-the-family-who-inspired-the-buckleys/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/6859763ba075aa3e25bbe25d/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-23T15:55:15Z",
+            "content": "The Waterfront. (L to R) Holt McCallany as Harlan Buckley, Jake Weary as Cane Buckley in episode 105 ... More of The Waterfront.\r\nDANA HAWLEY/NETFLIX\r\nNetflixs new southern crime drama The Waterfront\u2026 [+5380 chars]"
+        },
+        {
+            "source": {
+                "id": "time",
+                "name": "Time"
+            },
+            "author": "Vivienne Walt / Nice, France",
+            "title": "How AI Can Help Save Our Oceans",
+            "description": "Startups are using AI to tackle everything from pollution to overfishing.",
+            "url": "https://time.com/7293216/how-ai-can-help-save-our-oceans/",
+            "urlToImage": "https://api.time.com/wp-content/uploads/2025/06/ai-ocean-conservation-marine-plastic-pollution-overfishing-solutions-climate-change.jpg?quality=85&w=1024&h=628&crop=1",
+            "publishedAt": "2025-06-11T16:11:17Z",
+            "content": "At this weeks U.N. Oceans Conference in the south of France, delegates need only glance outside the conference hall at the glittering Mediterranean for a stark reminder of the problem they are trying\u2026 [+5582 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "BBC News"
+            },
+            "author": null,
+            "title": "China is cracking down on young women who write gay erotica",
+            "description": "\"Every word I once wrote has come back to haunt me,\" posted a writer who says she was arrested for \"obscene\" work.",
+            "url": "https://www.bbc.com/news/articles/c056nle2drno",
+            "urlToImage": "https://ichef.bbci.co.uk/news/1024/branded_news/1155/live/37193570-530b-11f0-8753-c5d333c91c9a.jpg",
+            "publishedAt": "2025-06-29T22:28:50Z",
+            "content": "Yi Ma\r\nEunice Yang\r\nSeveral women say they have been arrested for writing gay erotica, or \"danmei\" \r\n\"I've been warned not to talk about it,\" the woman wrote, before revealing snippets of the day she\u2026 [+10565 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Deadline"
+            },
+            "author": "Katie Campione",
+            "title": "\u2018The Waterfront\u2019 Debuts At No. 1 On Netflix\u2019s Weekly TV Charts; \u2018Fubar\u2019 Season 2 Gets Slight Viewership Uptick",
+            "description": "Kevin Williamson\u2019s The Waterfront debuted atop Netflix\u2019s weekly TV list with 8.3M views in its first few days on the streamer. The crime drama about a family\u2019s attempts to save their fishing empire premiered with half its episode on June 19. The rest of the e\u2026",
+            "url": "http://deadline.com/2025/06/the-waterfront-premiere-fubar-season-2-ratings-netflix-1236441259/",
+            "urlToImage": "https://deadline.com/wp-content/uploads/2025/06/Untitled-design-2025-06-24T121635.442.png?w=1000",
+            "publishedAt": "2025-06-24T19:18:32Z",
+            "content": "Kevin Williamson\u2018s The Waterfrontdebuted atop Netflix\u2018s weekly TV list with 8.3M views in its first few days on the streamer.\r\nThe crime drama about a family\u2019s attempts to save their fishing empire p\u2026 [+1451 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Slate Magazine"
+            },
+            "author": "Emily Yoffe and Danny M. Lavery",
+            "title": "Help! My Best Friend Betrayed Me in the Most Shocking Way Imaginable. What She\u2019s Trying Now Is Even Worse.",
+            "description": "This feels truly insidious.",
+            "url": "https://slate.com/advice/2025/06/relationship-advice-best-friend-slept-with-my-husband-money-manipulation.html",
+            "urlToImage": "https://compote.slate.com/images/f8bdd056-a79a-4475-8776-47b46f7be04b.jpeg?crop=1560%2C1040%2Cx0%2Cy0&width=1560",
+            "publishedAt": "2025-06-02T10:00:00Z",
+            "content": "Our advice columnists have heard it all over the yearsso were diving into the Dear Prudence archives to share classic letters with our readers.Submit your own questions to Prudie here.\r\nDear Prudence\u2026 [+7863 chars]"
+        },
+        {
+            "source": {
+                "id": "polygon",
+                "name": "Polygon"
+            },
+            "author": "Russ Frushtick",
+            "title": "I\u2019m gaming on a MacBook Air and you can\u2019t stop me",
+            "description": "MacBook Airs aren\u2019t designed to be gaming machines. And yet, many of you reading this are likely carrying some model of the Air with you at all times as a dedicated work/movie streaming machine. I know I am, which made me wonder whether I could also sneak in \u2026",
+            "url": "https://www.polygon.com/gaming/603615/best-games-for-macbook-air-m4",
+            "urlToImage": "https://platform.polygon.com/wp-content/uploads/sites/2/2025/06/Apple-MacBook-Air-hero-250305_big.jpg.large_2x.jpg?quality=90&strip=all&crop=0%2C3.4401991619236%2C100%2C93.119601676153&w=1200",
+            "publishedAt": "2025-06-10T15:09:39Z",
+            "content": "MacBook Airs aren\u2019t designed to be gaming machines. And yet, many of you reading this are likely carrying some model of the Air with you at all times as a dedicated work/movie streaming machine. I kn\u2026 [+4538 chars]"
+        },
+        {
+            "source": {
+                "id": "time",
+                "name": "Time"
+            },
+            "author": "Vivienne Walt / Nice, France",
+            "title": "How Jaws Wreaked Havoc on Marine Conservation",
+            "description": "50 years after the film's release, swimmer and ocean advocate Lewis Pugh reflects on the impact Jaws had on shark conservation.",
+            "url": "https://time.com/7294556/how-jaws-wreaked-havoc-on-marine-conservation/",
+            "urlToImage": "https://api.time.com/wp-content/uploads/2025/06/movie-jaws-impact-shark-marine-conservation.jpg?quality=85&w=1024&h=628&crop=1",
+            "publishedAt": "2025-06-16T14:19:26Z",
+            "content": "Jaws was one of Hollywoods first viral summer blockbustersa global, collective event from the moment it opened in theaters exactly 50 years ago this week. To mark the date on June 20, Steven Spielber\u2026 [+8656 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Simi Thambi\u200b, Contributor, \n Simi Thambi\u200b, Contributor\n https://www.forbes.com/sites/simithambi/",
+            "title": "Ocean Jargon, Made Simple: 3 Words You Need To Know This Week",
+            "description": "World leaders have gathered this week for the United Nations Ocean Conference. To simplify your understanding of the conference's outcomes, here are three words to know.",
+            "url": "https://www.forbes.com/sites/simithambi/2025/06/12/ocean-jargon-made-simple-3-words-you-need-to-know-this-week/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/684a6380918b33b3e5fca6e3/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-12T10:00:32Z",
+            "content": "France's Preside Macron delivers a speech ahead the third United Nations Ocean Conference (UNOC3), ... More which gathers leaders, researchers and activists to discuss how to protect marine life, in \u2026 [+6439 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Cracked.com"
+            },
+            "author": "Amanda Mannen",
+            "title": "The \u2018Andy Griffith Show\u2019 Theme Song Has Lyrics?",
+            "description": "By\n Amanda Mannen\n Published: June 28th, 2025",
+            "url": "https://www.cracked.com/article_47168_the-andy-griffith-show-theme-song-has-lyrics.html",
+            "urlToImage": "https://s3.crackedcdn.com/phpimages/article/4/0/0/1324400.jpg",
+            "publishedAt": "2025-06-28T12:00:00Z",
+            "content": "If you showed a time traveler (or, lets be honest, anyone who is 22 in 2025) the opening sequence of\u00a0The Andy Griffith Show with the sound off, theyd be like, Why are you showing me this? Also, when \u2026 [+2408 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Tim Lammers, Contributor, \n Tim Lammers, Contributor\n https://www.forbes.com/sites/timlammers/",
+            "title": "\u2018The Waterfront\u2019: Here\u2019s A List Of All The Songs In Hit Netflix Series",
+            "description": "The new Netflix crime drama \"The Waterfront\" features songs from several nobable country music and rock artists throughout the series' eight episodes.",
+            "url": "https://www.forbes.com/sites/timlammers/2025/06/24/the-waterfront-heres-a-list-of-all-the-songs-in-hit-netflix-series/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/685b0390fe217e03295104ed/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-24T20:41:36Z",
+            "content": "\"The Waterfront\" stars Melissa Benoist, Maria Bello, Holt McCallany and Jake Weary.\r\nNetflix\r\nThe new Netflix crime drama The Waterfront not only features a compelling story, but songs from several n\u2026 [+4255 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Techdirt"
+            },
+            "author": "Mike Masnick",
+            "title": "DOJ Discovers It CAN Actually Bring Abrego Garcia Back\u2026 To Face Sketchy, Trumped Up Criminal Charges",
+            "description": "The most telling detail in the Kilmar Abrego Garcia saga isn\u2019t what the DOJ is claiming \u2014 it\u2019s what a federal prosecutor refused to do. Ben Schrader, a 15-year veteran of the U.S. Attorney\u2019s Office in Nashville and chief of the criminal division, abruptly res\u2026",
+            "url": "https://www.techdirt.com/2025/06/06/doj-discovers-it-can-actually-bring-abrego-garcia-back-to-face-sketchy-trumped-up-criminal-charges/",
+            "urlToImage": "https://www.techdirt.com/wp-content/themes/techdirt/assets/images/td-rect-logo-white.png",
+            "publishedAt": "2025-06-06T22:43:13Z",
+            "content": "from the trumped-up-charges dept\r\nThe most telling detail in the Kilmar Abrego Garcia saga isn\u2019t what the DOJ is claiming it\u2019s what a federal prosecutor refused to do. Ben Schrader, a 15-year veteran\u2026 [+6574 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Phys.Org"
+            },
+            "author": "Carissa Klein, Amelia Wenger, James Watson",
+            "title": "Australia's government is pledging better protection for our vulnerable seas\u2014but will it work?",
+            "description": "Ahead of this week's crucial United Nations ocean conference, federal Environment Minister Murray Watt promised that by 2030, 30% of Australian waters would be \"highly protected.\"",
+            "url": "https://phys.org/news/2025-06-australia-pledging-vulnerable-seas.html",
+            "urlToImage": "https://scx2.b-cdn.net/gfx/news/hires/2025/kelp-forest.jpg",
+            "publishedAt": "2025-06-10T15:29:21Z",
+            "content": "Ahead of this week's crucial United Nations ocean conference, federal Environment Minister Murray Watt promised that by 2030, 30% of Australian waters would be \"highly protected.\"\r\nThis is a telling \u2026 [+6475 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Andrew Wimer, Contributor, \n Andrew Wimer, Contributor\n https://www.forbes.com/sites/instituteforjustice/people/andrewwimer/",
+            "title": "California County Uses Blanket Drone Searches To Dole Out Fines",
+            "description": "A lawsuit is challenging warrantless drone inspections that Sonoma County regulators are using to hand down fines. With so many rules, violations are easy to find.",
+            "url": "https://www.forbes.com/sites/instituteforjustice/2025/06/30/california-county-uses-blanket-drone-searches-to-dole-out-fines/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/6862851a4b5682469894ae5b/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-30T12:43:46Z",
+            "content": "Sunset in the vineyards of Sonoma County, CA\r\ngetty\r\nNichola Schmitz has paid $25,000 in fines to Sonoma County and may owe another $10,000 for violations that were only discovered because code enfor\u2026 [+5476 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Bleeding Cool News"
+            },
+            "author": "Adi Tantimedh",
+            "title": "The Waterfront: Yellowstone Wannabe with Boats Lacks Sheridan Vibe",
+            "description": "A lot of new TV series want their own Yellowstone, and Kevin Williamson's The Waterfront is Netflix's latest attempt, a kind of \"Yellowstone with fishing boats\" as it were, and, well, it's really dumb. The soapy saga of a fishing family that dabbles in crime \u2026",
+            "url": "https://bleedingcool.com/tv/the-waterfront-yellowstone-wannabe-with-boats-lacks-sheridan-vibe/",
+            "urlToImage": "https://bleedingcool.com/wp-content/uploads/2025/06/The-Waterfront-1.jpg",
+            "publishedAt": "2025-06-22T13:37:03Z",
+            "content": "Posted in: Review, TV | Tagged: The Waterfront\r\nKevin Williamson's The Waterfront is Netflix's effort to have its own Yellowstone (with fishing boats), but it's lacking on several levels.\r\nA lot of n\u2026 [+4512 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "SFGate"
+            },
+            "author": "Olivia Hebert",
+            "title": "Black market caviar trafficking operations busted along Bay Area river",
+            "description": "Wildlife officers have ramped up enforcement along the Sacramento River in an effort to curb a caviar traffickers' illegal sturgeon and salmon poaching.",
+            "url": "https://www.sfgate.com/bayarea/article/black-market-caviar-trafficking-bay-area-20362740.php",
+            "urlToImage": "https://s.hdnux.com/photos/01/50/45/64/27417865/3/rawImage.jpg",
+            "publishedAt": "2025-06-05T16:39:00Z",
+            "content": "Officers from the California Department of Fish and Wildlife shut down suspected caviar trafficking operations along the Sacramento River.\u00a0\r\nEric Leslie/Getty Images\r\nCaviar traffickers operating alo\u2026 [+2432 chars]"
+        },
+        {
+            "source": {
+                "id": "cbs-news",
+                "name": "CBS News"
+            },
+            "author": null,
+            "title": "More than $130 million in cocaine recovered from ship in London port",
+            "description": "The drugs \u2014 valued at about $132 million \u2014 were found under containers on a vessel at London Gateway port.",
+            "url": "https://www.cbsnews.com/news/cocaine-bust-united-kingdom-london-port/",
+            "urlToImage": "https://assets3.cbsnewsstatic.com/hub/i/r/2023/02/16/aae10fea-3017-4952-a62c-3bcea0fa2ab6/thumbnail/1200x630/3ee19055eaaa2bd0cafb0b6cbc476544/gettyimages-1270019735.jpg",
+            "publishedAt": "2025-06-28T14:00:17Z",
+            "content": "British authorities seized 2.4 metric tons of cocaine in a ship arriving in England from Panama, authorities said Saturday, calling it one of the U.K.'s biggest drug busts in years.\r\nThe drugs, value\u2026 [+1276 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Dana Feldman, Senior Contributor, \n Dana Feldman, Senior Contributor\n https://www.forbes.com/sites/danafeldman/",
+            "title": "Netflix\u2019s Crime Drama \u2018The Waterfront\u2019 Was Inspired By Real Life Events",
+            "description": "Series creator Kevin Williamson opens up about the mistakes his father made and how they inspired the Netflix crime drama \"The Waterfront.\"",
+            "url": "https://www.forbes.com/sites/danafeldman/2025/06/20/netflixs-the-waterfront-was-inspired-by-real-life-events/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/6854d797832c116f9256a236/0x0.jpg?format=jpg&crop=1280,721,x0,y31,safe&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-20T04:01:08Z",
+            "content": "Holt McCallany and Maria Bello in 'The Waterfront' on Netflix.\r\nPHOTO BY DANA HAWLEY/NETFLIX.\r\nSeries creator and showrunner Kevin Williamson drew inspiration from his fathers past mistakes while wri\u2026 [+7303 chars]"
+        },
+        {
+            "source": {
+                "id": "al-jazeera-english",
+                "name": "Al Jazeera English"
+            },
+            "author": "Yara Hawari",
+            "title": "The Freedom Flotilla achieved its mission",
+            "description": "The Madleen sent a strong message that the struggle to stop Israeli crimes continues.",
+            "url": "https://www.aljazeera.com/opinions/2025/6/9/the-freedom-flotilla-achieved-its-mission",
+            "urlToImage": "https://www.aljazeera.com/wp-content/uploads/2025/06/13114032-1749457795.jpg?resize=1920%2C1080&quality=80",
+            "publishedAt": "2025-06-09T11:14:32Z",
+            "content": "In the early hours of June 9, Israeli forces intercepted the Madleen ship in international waters, near the coast of the Gaza Strip. The yacht, carrying 12 activists from seven countries and humanita\u2026 [+5401 chars]"
+        },
+        {
+            "source": {
+                "id": "techradar",
+                "name": "TechRadar"
+            },
+            "author": "Carrie Marshall",
+            "title": "Is this Netflix\u2019s new Virgin River? The Waterfront is this week\u2019s most-watched TV show that everyone\u2019s talking about",
+            "description": "The Waterfront is making a splash with Netflix subscribers but the critics aren't convinced.",
+            "url": "https://www.techradar.com/streaming/netflix/is-this-netflixs-new-virgin-river-the-waterfront-is-this-weeks-most-watched-tv-show-that-everyones-talking-about",
+            "urlToImage": "https://cdn.mos.cms.futurecdn.net/S6fkQYwQi5kUXWoJArZmBD.jpg",
+            "publishedAt": "2025-06-23T17:00:00Z",
+            "content": "There's a new show at the top of the Netflix streaming charts, and whether you'll love it or not depends very much on whether you like shows such as Virgin River,Yellowstone or Dawson's Creek.\r\nThe W\u2026 [+3254 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "The Star Online"
+            },
+            "author": "STEPHANIE LEE",
+            "title": "Rogue fishers still blast the depths",
+            "description": "KOTA KINABALU: Fish bombing. A mere two-word term but the destructive act, which began decades ago in Sabah, has yet to be stopped. Read full story",
+            "url": "https://www.thestar.com.my/news/nation/2025/06/08/rogue-fishers-still-blast-the-depths",
+            "urlToImage": "https://apicms.thestar.com.my/uploads/images/2025/06/08/3355908.jpeg",
+            "publishedAt": "2025-06-07T16:00:00Z",
+            "content": "KOTA KINABALU: Fish bombing. A mere two-word term but the destructive act, which began decades ago in Sabah, has yet to be stopped.\r\nIt is still happening despite the increased patrols and awareness \u2026 [+2727 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Tim Lammers, Contributor, \n Tim Lammers, Contributor\n https://www.forbes.com/sites/timlammers/",
+            "title": "Why Does Jenna From \u2018The Waterfront\u2019 Look So Familiar?",
+            "description": "The cast of Netflix\u2019s hit crime drama \"The Waterfront\" includes Humberly Gonz\u00e1lez as Jenna Tate, the ex-high-school girlfriend of Jake Weary\u2019s Cane Buckley. What else has Gonz\u00e1lez starred in?",
+            "url": "https://www.forbes.com/sites/timlammers/2025/06/26/why-does-jenna-from-the-waterfront-look-so-familiar/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/685cbfaa94ff96b011fe181b/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-26T04:50:34Z",
+            "content": "Humberly Gonz\u00e1lez in \"The Waterfront.\"\r\nNETFLIX/DANA HAWLEY\r\nThe cast of Netflixs hit crime drama The Waterfront includes Humberly Gonz\u00e1lez as Jenna Tate, the ex-high-school girlfriend of Jake Wearys\u2026 [+4384 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Eurogamer.net"
+            },
+            "author": "Matt Wales",
+            "title": "Day of the Devs 2025 - everything announced in the big indie showcase",
+            "description": "In developer No Goblin's Snap and Grab, high fashion meets high stakes crime. It's the 1980s and no-one suspects that you, a famous fashion photography, also happens to be an infamous master thief - using your cover, as well as your camera, to identify high v\u2026",
+            "url": "https://www.eurogamer.net/day-of-the-devs-2025-everything-announced-in-the-big-indie-showcase",
+            "urlToImage": "https://assetsio.gnwcdn.com/day-of-the-devs-summer-game-fest.jpg?width=1200&height=630&fit=crop&enable=upscale&auto=webp",
+            "publishedAt": "2025-06-07T00:38:29Z",
+            "content": "Geoff Keighley's Summer Game Fest might have brought the glitz, glamour, and bombastic reveals, but we're not done yet. Indie enjoyers also have plenty to look forward to, thanks to another strong sh\u2026 [+16417 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "gcaptain.com"
+            },
+            "author": "Mike Schuler",
+            "title": "Mexican Fishing Crew Faces First Federal Charges for Illegal Red Snapper Fishing in U.S. Waters",
+            "description": "Four Mexican fishermen have pleaded guilty to illegally harvesting red snapper from U.S. waters, marking a significant shift in enforcement policy for marine resource protection. The crew, consisting of Jose...",
+            "url": "https://gcaptain.com/mexican-fishing-crew-faces-first-federal-charges-for-illegal-red-snapper-fishing-in-u-s-waters/",
+            "urlToImage": "https://gcaptain.com/wp-content/uploads/2025/06/8345737.jpg",
+            "publishedAt": "2025-06-10T16:35:26Z",
+            "content": "Four Mexican fishermen have pleaded guilty to illegally harvesting red snapper from U.S. waters, marking a significant shift in enforcement policy for marine resource protection.\r\nThe crew, consistin\u2026 [+2300 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Monica Mercuri, Contributor, \n Monica Mercuri, Contributor\n https://www.forbes.com/sites/monicamercuri/",
+            "title": "Is \u2018The Waterfront\u2019 Coming Back For Season 2? Here\u2019s The Promising News",
+            "description": "Netflix\u2019s \"The Waterfront\" is now the No. 1 series on the platform. After that explosive finale, will the crime drama return for Season 2? Here's the latest update.",
+            "url": "https://www.forbes.com/sites/monicamercuri/2025/06/21/is-the-waterfront-coming-back-for-season-2-heres-the-promising-news/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/68559c46ef11fe9a41246ad2/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-21T15:15:35Z",
+            "content": "The Waterfront. Holt McCallany as Harlan Buckley in episode 101 of The Waterfront.\r\nDANA HAWLEY/NETFLIX\r\nNetflixs latest Southern crime drama is already climbing the platforms charts shortly after it\u2026 [+6377 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Rogerebert.com"
+            },
+            "author": "Sherin Nicole",
+            "title": "Blood and Soap Bubbles on the Surface of Netflix\u2019s \u201cThe Waterfront\u201d",
+            "description": "\u201cMelrose Place\u201d on the seas.",
+            "url": "https://www.rogerebert.com/streaming/the-waterfront-netflix-tv-review-2025",
+            "urlToImage": "https://www.rogerebert.com/wp-content/uploads/2025/06/WATERFRONT_104_Unit_00149RC.jpg",
+            "publishedAt": "2025-06-19T13:06:10Z",
+            "content": "Theres something about a crime family saga wrapped up in betrayal and recklessness that makes it hard to look away. Netflix\u2019s The Waterfront capitalizes on it. Premiering June 19, the eight-episode s\u2026 [+5817 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Boredpanda.com"
+            },
+            "author": "Lei RV",
+            "title": "\u201cDevastated\u201d: Teen Mourner Chases After Hearse At Pheobe Bishop\u2019s Funeral",
+            "description": "The late teenager's housemates were charged with her homicide earlier this month.",
+            "url": "https://www.boredpanda.com/heart-wrenching-moment-mourner-chases-after-hearse-pheobe-bishops-funeral/",
+            "urlToImage": "https://www.boredpanda.com/blog/wp-content/uploads/2025/06/fb_image_6862c3e29f016.png",
+            "publishedAt": "2025-06-30T18:08:49Z",
+            "content": "A group of mourners gathered for the funeral service of teenager Pheobe Bishop, held before a private cremation at the Springfield Crematorium in Queensland, Australia.\r\nBishop\u2019s housemates, 33-year-\u2026 [+6870 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "The Atlantic"
+            },
+            "author": "Jeremy Gordon",
+            "title": "The Real Reason Men Should Read Fiction",
+            "description": "Literature is often pushed on allegedly reluctant men as a machine for empathy. I read it for a different reason.",
+            "url": "https://www.theatlantic.com/books/archive/2025/06/real-reason-men-should-read-fiction/683301/",
+            "urlToImage": "https://cdn.theatlantic.com/thumbor/acq5IXTrSXXaA8iBJc50MmDL_gA=/0x43:2000x1085/1200x625/media/img/mt/2025/06/2025_6_28_Why_Men_Should_Read_Fiction/original.jpg",
+            "publishedAt": "2025-06-24T11:30:00Z",
+            "content": "There\u2019s always something going on with men. They can\u2019t make friends; they\u2019re very lonely; they\u2019re \u201closing\u201d to women; they listen to Andrew Tate. And, we are told, they do not read. Over the past few \u2026 [+9956 chars]"
+        },
+        {
+            "source": {
+                "id": "abc-news-au",
+                "name": "ABC News (AU)"
+            },
+            "author": "Anton Rose",
+            "title": "Three arrested, boat seized over alleged plot to import 1.5 tonnes cocaine",
+            "description": "Dramatic vision showed the moment police arrested one of the alleged \"catching crew\", cornering him on a suburban street on Thursday morning.",
+            "url": "https://www.abc.net.au/news/2025-06-27/nsw-police-three-arrested-cocaine-import-plot-boat-seized-hunter/105467120",
+            "urlToImage": "https://live-production.wcms.abc-cdn.net.au/f55e7e215b44ba71d9674d3710db3602?impolicy=wcms_watermark_news&cropH=491&cropW=872&xPos=0&yPos=39&width=862&height=485&imformat=generic",
+            "publishedAt": "2025-06-26T21:39:49Z",
+            "content": "Three men have been charged over an alleged plot to smuggle more than a tonne of cocaine into New South Wales worth close to half a billion dollars.\r\nPolice said the trio arrested on Thursday each st\u2026 [+1882 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "IndieWire"
+            },
+            "author": "Kate Erbland",
+            "title": "Everything Is Personal for Kevin Williamson, from \u2018The Waterfront\u2019 and \u2018Vampire Diaries\u2019 to His Return to the \u2018Scream\u2019 Franchise",
+            "description": "As the iconic TV hitmaker brings \"The Waterfront\" to Netflix, he also looks back on classics like \"Dawson's Creek\" and \"Vampire Diaries,\" and gives IndieWire a taste of what \"Scream 7\" may hold.",
+            "url": "https://www.indiewire.com/features/interviews/kevin-williamson-interview-the-waterfront-scream-7-1235133914/",
+            "urlToImage": "https://www.indiewire.com/wp-content/uploads/2025/06/P115QNBX.jpg?w=650",
+            "publishedAt": "2025-06-20T17:00:00Z",
+            "content": "[The following interview contains some spoilers for \u201cThe Waterfront.\u201d]\r\nKevin Williamson was ready to put down his pen. In late 2019, following the cancellation of his CBS crime thriller \u201cThe Followi\u2026 [+18525 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "New York Post"
+            },
+            "author": "Fox News",
+            "title": "Cocky fugitive\u2019s social media challenge to sheriff backfires in spectacular fashion",
+            "description": "A wanted\u00a0Florida\u00a0man has been arrested after a series of social media posts taunting the Polk County Sheriff\u2019s Office and Sheriff Grady Judd for not being able to catch him.",
+            "url": "https://nypost.com/2025/06/20/us-news/florida-fugitive-aaron-donta-johnson-mocks-polk-county-sheriff-grady-judd-in-facebook-post-before-arrest/",
+            "urlToImage": "https://nypost.com/wp-content/uploads/sites/2/2025/06/newspress-collage-oqweb5aq2-1750397354977.jpg?quality=75&strip=all&1750382992&w=1024",
+            "publishedAt": "2025-06-20T05:38:51Z",
+            "content": "A wanted\u00a0Florida\u00a0man has been arrested after a series of social media posts taunting the Polk County Sheriffs Office and Sheriff Grady Judd for not being able to catch him.\r\nThe\u00a0Polk County Sheriffs \u2026 [+3460 chars]"
+        },
+        {
+            "source": {
+                "id": "newsweek",
+                "name": "Newsweek"
+            },
+            "author": "Micah McCartney",
+            "title": "China Dominates 'Dark' Network Behind Global Fishing Crisis",
+            "description": "Support networks\u2014at sea and ashore\u2014keep illegal squid fishing operations running deep in South American waters, new report finds.",
+            "url": "https://www.newsweek.com/china-dominates-asia-network-global-squid-fishing-crisis-south-america-2076823",
+            "urlToImage": "https://d.newsweek.com/en/full/2654851/fishing-trawlers-hong-kong.jpg",
+            "publishedAt": "2025-06-03T14:00:01Z",
+            "content": "A new report exposes the sophisticated networks propping up Chinese squid fleets accused of illegal fishing off South America.\r\nThese activities\u2014often carried out with Automatic Identification System\u2026 [+5859 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Screen Rant"
+            },
+            "author": "Greg MacArthur",
+            "title": "The Waterfront's Buckley Family Tree Explained: How Each Character Connects In Netflix's Crime Drama",
+            "description": "Netflix's family crime drama series\u00a0The Waterfront centers on the Buckley family, and most of its main cast members are connected by blood or history.",
+            "url": "https://screenrant.com/the-waterfront-buckley-family-tree-explained/",
+            "urlToImage": "https://static1.srcdn.com/wordpress/wp-content/uploads/2025/06/the-waterfront-still-6.jpg",
+            "publishedAt": "2025-06-19T11:20:19Z",
+            "content": "WARNING: MAJOR SPOILERS ahead for The Waterfront.\r\nNetflix's family crime drama series The Waterfrontcenters on the Buckley family, and most of its main cast members are connected by either blood or \u2026 [+7073 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Yale.edu"
+            },
+            "author": null,
+            "title": "Cambodian Forest Defenders at Risk for Exposing Illegal Logging",
+            "description": "The lush forests that have long sustained Cambodia\u2019s Indigenous people have steadily fallen to illicit logging. Now, community members face intimidation and risk arrest as they patrol their forests to document the losses and try to push the government to stop\u2026",
+            "url": "https://e360.yale.edu/features/preah-roka-prey-lang-logging",
+            "urlToImage": "https://yale-threesixty.transforms.svdcdn.com/production/Khim_Lovgren-HEADER.jpg?w=1200&q=60&auto=format&fit=max&dm=1748885498&s=eef70b12138086068db5079b2e0eb892",
+            "publishedAt": "2025-06-02T17:33:00Z",
+            "content": "Foreign journalists rarely venture into Cambodias imperiled forests. Before I was allowed to enter the Preah Roka Wildlife Sanctuary\u00a0last month\u00a0with a community patrol monitoring illegal logging, two\u2026 [+10194 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "The Star Online"
+            },
+            "author": "STEPHANIE LEE",
+            "title": "Vessel seized, crew held in Sabah for fishing too close to shore",
+            "description": "KOTA KINABALU: A fishing vessel operating too close to shore has been seized for breaching maritime regulations, along with its catch of almost a tonne. Read full story",
+            "url": "https://www.thestar.com.my/news/nation/2025/06/04/vessel-seized-crew-held-in-sabah-for-fishing-too-close-to-shore",
+            "urlToImage": "https://apicms.thestar.com.my/uploads/images/2025/06/04/3350486.jpeg",
+            "publishedAt": "2025-06-04T03:40:00Z",
+            "content": "KOTA KINABALU: A fishing vessel operating too close to shore has been seized for breaching maritime regulations, along with its catch of almost a tonne.\r\nIts captain and five crew members, all Indone\u2026 [+1053 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Frandroid"
+            },
+            "author": "Axel Savoye",
+            "title": "Nvidia GeForce Now en juin 2025 : voici les 25 jeux pr\u00e9vus avec le MMO le plus attendu de l\u2019ann\u00e9e, Dune Awakening",
+            "description": "25 jeux pr\u00e9vus ce mois-ci et la moiti\u00e9 est d\u00e9j\u00e0 disponible \u00e0 l'heure o\u00f9 sont \u00e9crites ces lignes. Le service GeForce Now de Nvidia promet un mois riche, notamment avec un nouveau jeu tr\u00e8s attendu autour d'une franchise phare de la SF : Dune Awakening.",
+            "url": "https://www.frandroid.com/actualites-generales/2643047_nvidia-geforce-now-en-juin-2025-voici-les-25-jeux-prevus-avec-le-mmo-le-plus-attendu-de-lannee-dune-awakening",
+            "urlToImage": "https://c0.lestechnophiles.com/images.frandroid.com/wp-content/uploads/2025/06/illustres-catalogue-game-pass-juin-2025-2.jpg?resize=1600,900&key=9416e431&watermark",
+            "publishedAt": "2025-06-10T10:35:30Z",
+            "content": "25 jeux pr\u00e9vus ce mois-ci et la moiti\u00e9 est d\u00e9j\u00e0 disponible \u00e0 l\u2019heure o\u00f9 sont \u00e9crites ces lignes. Le service GeForce Now de Nvidia promet un mois riche, notamment avec un nouveau jeu tr\u00e8s attendu auto\u2026 [+4318 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Screen Rant"
+            },
+            "author": "Mary Kassel",
+            "title": "Netflix's 8-Year-Old Crime Show With 82% On RT Is A Must-Watch Once You're Done With The Waterfront",
+            "description": "The Waterfront has quickly climbed Netflix's streaming charts, but it's far from the only great crime drama that audiences can dive into today.",
+            "url": "https://screenrant.com/ozark-must-watch-after-waterfront-netflix-recommendation/",
+            "urlToImage": "https://static1.srcdn.com/wordpress/wp-content/uploads/2025/06/netflix-s-8-year-old-crime-show-with-82-on-rt-is-a-must-watch-once-you-re-done-with-the-waterfront-v2.jpg",
+            "publishedAt": "2025-06-23T20:00:18Z",
+            "content": "Netflix's new crime drama, The Waterfront, has quickly proven itself to be a must-watch summer series. However, the streamer is known for producing some of the most tense and mysterious shows within \u2026 [+4750 chars]"
+        },
+        {
+            "source": {
+                "id": "abc-news-au",
+                "name": "ABC News (AU)"
+            },
+            "author": "Sandy Powell",
+            "title": "Tasmanian MP pleads guilty to a drug-driving charge",
+            "description": "Craig Garland, who is standing for re-election next month for Tasmania's parliament, pleads guilty to a drug-driving charge.",
+            "url": "https://www.abc.net.au/news/2025-06-26/craig-garland-pleads-guilty-to-a-drug-driving-charge/105463102",
+            "urlToImage": "https://live-production.wcms.abc-cdn.net.au/54cd9bbff49cefe5109844ffe23bfe2b?impolicy=wcms_watermark_news&cropH=3942&cropW=7008&xPos=0&yPos=235&width=862&height=485&imformat=generic",
+            "publishedAt": "2025-06-26T02:45:50Z",
+            "content": "A member of Tasmanian parliament, who is standing for re-election next month, has pleaded guilty to a drug-driving charge.\r\nCraig Garland, who was elected as an independent for Braddon at the 2024 st\u2026 [+2072 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "The Conversation Africa"
+            },
+            "author": "Adriana Marin, Lecturer in International Relations, Coventry University",
+            "title": "Mexico\u2019s cartels use violence against women as a means of social control",
+            "description": "Violence against women is central to how criminal sovereignty in Mexico is exercised and reproduced.",
+            "url": "https://theconversation.com/mexicos-cartels-use-violence-against-women-as-a-means-of-social-control-257915",
+            "urlToImage": "https://images.theconversation.com/files/671517/original/file-20250602-62-p397er.jpg?ixlib=rb-4.1.0&rect=5%2C44%2C3099%2C1549&q=45&auto=format&w=1356&h=668&fit=crop",
+            "publishedAt": "2025-06-02T16:26:48Z",
+            "content": "Mexico\u2019s drug cartels are often described as powerful rivals to the state, with their influence measured in weapons, money and murdered officials. But this framing misses a fundamental truth. Organis\u2026 [+6504 chars]"
+        },
+        {
+            "source": {
+                "id": "abc-news-au",
+                "name": "ABC News (AU)"
+            },
+            "author": "Stephen Dziedzic",
+            "title": "Australia to unveil $20m package for Solomon Islands ahead of key forum",
+            "description": "Australia will provide sweeping support for Solomon Islands ahead of a key leaders meeting in September.",
+            "url": "https://www.abc.net.au/news/2025-06-26/australia-to-support-solomon-islands-pacific-islands-forum/105461512",
+            "urlToImage": "https://live-production.wcms.abc-cdn.net.au/c56684b1a20b3a3e59cc9be6817ef369?impolicy=wcms_watermark_news&cropH=1152&cropW=2048&xPos=0&yPos=78&width=862&height=485&imformat=generic",
+            "publishedAt": "2025-06-25T19:19:47Z",
+            "content": "Australia will provide Solomon Islands with dozens of vehicles and cyber security support to help it host a high-profile meeting of Pacific leaders in September, as well as ramping up funding for aer\u2026 [+4132 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "TheWrap"
+            },
+            "author": "Jose Alejandro Bastidas",
+            "title": "The True Story Behind Netflix\u2019s \u2018The Waterfront\u2019",
+            "description": "Creator Kevin Williamson tells TheWrap he based the crime drama on a tough moment in his own family\u2019s history\nThe post The True Story Behind Netflix\u2019s \u2018The Waterfront\u2019 appeared first on TheWrap.",
+            "url": "https://www.thewrap.com/the-waterfront-netflix-true-story-kevin-williamson/",
+            "urlToImage": "https://i0.wp.com/www.thewrap.com/wp-content/uploads/2025/06/CMS_WATERFRONT_104_Unit_00787RC.jpg?fit=1200%2C675&quality=89&ssl=1",
+            "publishedAt": "2025-06-19T17:00:00Z",
+            "content": "The Waterfront is the latest crime drama to premiere on Netflix, one that was inspired by creator Kevin Williamsons real life.\r\nThe eight-episode drama follows the Buckley family, who see their busin\u2026 [+1506 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Crooksandliars.com"
+            },
+            "author": "NewsHound Ellen",
+            "title": "Trump Is Making Our Most Dangerous Jobs More Dangerous",
+            "description": "While the drug-addled world\u2019s richest man and shadow president whines about how unfairly he\u2019s being treated, he and his presidential puppet seem just fine with making the lives of Americans already doing the country\u2019s most dangerous work even riskier.\nReuters\u2026",
+            "url": "https://crooksandliars.com/2025/05/trump-making-our-most-dangerous-jobs-more",
+            "urlToImage": "https://crooksandliars.com/files/primary_image/25/05/trump_for_053125.jpeg",
+            "publishedAt": "2025-06-01T14:08:40Z",
+            "content": "While the drug-addled worlds richest man and shadow president whines about how unfairly hes being treated, he and his presidential puppet seem just fine with making the lives of Americans already doi\u2026 [+2329 chars]"
+        },
+        {
+            "source": {
+                "id": "cbc-news",
+                "name": "CBC News"
+            },
+            "author": null,
+            "title": "UN treaty aims to protect international waters and their inhabitants",
+            "description": "UN\u00a0Secretary-General Antonio Guterres on Monday is urging world leaders to ratify a treaty that would allow nations to establish protected marine areas in international waters, warning that human activity was destroying ocean ecosystems.",
+            "url": "https://www.cbc.ca/news/science/oceans-treaty-1.7555981",
+            "urlToImage": "https://i.cbc.ca/1.7555998.1749476955!/cpImage/httpImage/image.jpg_gen/derivatives/16x9_1180/aptopix-climate-france-un-ocean-conference.jpg?im=Resize%3D620",
+            "publishedAt": "2025-06-09T14:22:52Z",
+            "content": "UN\u00a0Secretary General Ant\u00f3nio Guterres on Monday urged world leaders to ratify a treaty that would allow nations to establish protected marine areas in international waters, warning that human activit\u2026 [+3070 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Erik Kain, Senior Contributor, \n Erik Kain, Senior Contributor\n https://www.forbes.com/sites/erikkain/",
+            "title": "What To Watch This Weekend: New Shows And Movies To Stream On Netflix, Hulu, Prime Video, Apple TV And More",
+            "description": "Everything new to stream this weekend on all your favorite streaming services from Netflix to Apple TV to Hulu and more.",
+            "url": "https://www.forbes.com/sites/erikkain/2025/06/20/what-to-watch-this-weekend-new-shows-and-movies-to-stream-on-netflix-hulu-prime-video-apple-tv-and-more/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/6855bebfa9a3d7fe0fcde5e4/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-20T21:00:53Z",
+            "content": "What to watch this weekend.\r\nCredit: HBO / Sony / Netflix\r\nLast week, I posted this guide on Friday the 13th. I was worried about dark omens and ill tidings and all manner of bad luck. But hey, nothi\u2026 [+7181 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Solhsa.com"
+            },
+            "author": null,
+            "title": "Windows 10 EOL",
+            "description": "Comments",
+            "url": "https://solhsa.com/oldernews2025.html#WINDOWS-10-EOL",
+            "urlToImage": null,
+            "publishedAt": "2025-06-17T15:46:59Z",
+            "content": "Blog\r\nWindows 10 EOL\r\nSo Microsoft decided to produce tons of e-waste for no obvious reason. There's a lot of capable hardware out there, and it would be of software company's interest to support as \u2026 [+30878 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Kelly Phillips Erb, Forbes Staff, \n Kelly Phillips Erb, Forbes Staff\n https://www.forbes.com/sites/kellyphillipserb/",
+            "title": "Four Charged In Scheme To Steal Tens Of Millions Of Dollars In Treasury Checks From The Post Office",
+            "description": "The federal government alleges that USPS mail processing clerks in Philadelphia stole thousands of envelopes containing U.S. Treasury checks from mail sorting machines to sell on the internet.",
+            "url": "https://www.forbes.com/sites/kellyphillipserb/2025/06/17/four-charged-in-scheme-to-steal-tens-of-millions-of-dollars-in-treasury-checks-from-the-post-office/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/685178308bffcfd7cd9ebfbb/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-17T14:17:19Z",
+            "content": "MIAMI, FL - DECEMBER 14: A City Carrier Assistant to the United States Postal Service works to unload her mail truck at the Processing and Distribution Center after collecting mail for the U.S. Posta\u2026 [+6667 chars]"
+        },
+        {
+            "source": {
+                "id": "al-jazeera-english",
+                "name": "Al Jazeera English"
+            },
+            "author": "Al Jazeera",
+            "title": "Why Iran conflict has raised new questions about IAEA\u2019s credibility",
+            "description": "Despite claiming that Tehran does not have the capacity to make nuclear bombs, the IAEA may have ratcheted up tensions.",
+            "url": "https://www.aljazeera.com/news/2025/6/25/why-iran-conflict-has-raised-new-questions-about-iaeas-credibility",
+            "urlToImage": "https://www.aljazeera.com/wp-content/uploads/2025/06/2025-06-23T084548Z_818756033_RC288FASDRE1_RTRMADP_3_IRAN-NUCLEAR-IAEA-1750676118.jpg?resize=1920%2C1440",
+            "publishedAt": "2025-06-25T15:03:23Z",
+            "content": "Israel launched an unprecedented strike on Irans military and nuclear sites on June 13, a day after the International Atomic Energy Agency (IAEA) board passed a resolution saying Tehran was not compl\u2026 [+7932 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Irunfar.com"
+            },
+            "author": "Bryon Powell",
+            "title": "iFishFar: Fly Fishing for Trail Runners",
+            "description": "The post iFishFar: Fly Fishing for Trail Runners appeared first on iRunFar.\nHow to combine fly fishing with trail running.\niFishFar: Fly Fishing for Trail Runners by Bryon Powell.",
+            "url": "https://www.irunfar.com/ifishfar-fly-fishing-for-trail-runners",
+            "urlToImage": "https://s3.amazonaws.com/www.irunfar.com/wp-content/uploads/2020/10/11040154/Bryon-Powell-Wrights-Lake-feature.jpg",
+            "publishedAt": "2025-06-11T09:00:23Z",
+            "content": "Over the past decade, I\u2019ve increasingly taken up fly fishing. Whether I\u2019m catching small native cutthroat trout above my Colorado home, looking for lunker brown trout in the New Zealand backcountry, \u2026 [+41095 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Hdblog.it"
+            },
+            "author": "HDblog.it",
+            "title": "La danza cosmica dell'aurora: uno sguardo mozzafiato dalla ISS",
+            "description": "Il time-lapse\u00e8 davvero incredibile",
+            "url": "https://www.hdblog.it/curiosita/articoli/n621749/aurora-spazio-iss-video-time-lapse/",
+            "urlToImage": "https://hd2.tudocdn.net/1266458?w=1920",
+            "publishedAt": "2025-06-13T16:50:00Z",
+            "content": "Un astronauta della NASA, Jonny Kim, ha realizzato un incredibile video mozzafiato in time-lapse, catturato a bordo della Stazione Spaziale Internazionale (ISS). Le immagini rivelano la superficie te\u2026 [+2713 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "GameSpot"
+            },
+            "author": "Joey Carr",
+            "title": "Best GTA 5 Mods To Download In 2025",
+            "description": "Grand Theft Auto 5 is still going strong in 2025, and so is its modding community, which has added hundreds of mods to download that alter the experience of the game. You can download mods that add completely new game modes or ways to play GTA 5, and there ar\u2026",
+            "url": "https://www.gamespot.com/gallery/best-gta-5-mods/2900-6604/",
+            "urlToImage": "https://www.gamespot.com/a/uploads/screen_kubrick/1745/17457013/4498706-5e6f14bf3b02e6f5342632d1dc08e5a7.jpg",
+            "publishedAt": "2025-06-02T20:00:00Z",
+            "content": "GameSpot may receive revenue from affiliate and advertising partnerships for sharing this content and from purchases through links."
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Conjur.com.br"
+            },
+            "author": "Danilo Vital",
+            "title": "Ministro do STJ critica uso de \u2018fishing recurso\u2019 contra texto de lei",
+            "description": "O ministro Ricardo Villas B\u00f4as Cueva, do Superior Tribunal de Justi\u00e7a, criticou o uso dos \u201cfishing recursos\u201d que chegam \u00e0 corte apenas para obrigar seus colegiados a dizer que a lei deve ser cumprida, sem necessidade de interpreta\u00e7\u00e3o. A cr\u00edtica faz refer\u00eancia\u2026",
+            "url": "https://www.conjur.com.br/2025-jun-26/ministro-do-stj-critica-uso-de-fishing-recurso-contra-texto-de-lei/",
+            "urlToImage": "https://www.conjur.com.br/wp-content/uploads/2025/03/54381306220_7b6a0211d0_k.jpg",
+            "publishedAt": "2025-06-26T20:51:38Z",
+            "content": "O ministro Ricardo Villas B\u00f4as Cueva, do Superior Tribunal de Justi\u00e7a, criticou o uso dos fishing recursos que chegam \u00e0 corte apenas para obrigar seus colegiados a dizer que a lei deve ser cumprida, \u2026 [+2046 chars]"
+        },
+        {
+            "source": {
+                "id": "cbc-news",
+                "name": "CBC News"
+            },
+            "author": null,
+            "title": "Millions of seahorses worth $29M smuggled illegally, study finds",
+            "description": "A Canadian-led study found nearly 300 instances of seahorse smuggling in 62 countries over a decade \u2014 and researchers say the findings highlight only part of the true scale of the illegal trade.",
+            "url": "https://www.cbc.ca/news/science/seahorse-smuggling-study-1.7554840",
+            "urlToImage": "https://i.cbc.ca/1.7554975.1749242586!/fileImage/httpImage/image.jpg_gen/derivatives/16x9_1180/150642481.jpg?im=Resize%3D620",
+            "publishedAt": "2025-06-08T08:00:00Z",
+            "content": "Nearly five million smuggled seahorses were seized globally by authorities over a 10-year period, Canadian researchers found, warning it's only the \"tip of the iceberg\" in an illegal trade that is li\u2026 [+5015 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "PetaPixel"
+            },
+            "author": "Matt Growcoot",
+            "title": "15 Stunning Underwater Photos from the United Nations World Oceans Day Contest",
+            "description": "The winners of the twelfth annual photo competition for United Nations World Oceans Day were announced this week, celebrating stunning ocean photography.\n[Read More]",
+            "url": "https://petapixel.com/2025/06/11/15-stunning-underwater-photos-from-the-united-nations-world-oceans-day-contest/",
+            "urlToImage": "https://petapixel.com/assets/uploads/2025/06/United-Nations-World-Oceans-Day.jpg",
+            "publishedAt": "2025-06-11T13:20:08Z",
+            "content": "Photo credit: Ollie Clarke and Ritter Zahony / www.unworldoceansday.org\r\nThe winners of the twelfth annual photo competition for United Nations World Oceans Day were announced this week, celebrating \u2026 [+10104 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "TVLine"
+            },
+            "author": "Dave Nemetz",
+            "title": "Dave Nemetz Reviews The Waterfront: Netflix\u2019s Soggy Soap Drowns in Dumb Clich\u00e9s \u2014\u00a0Now, YOU Grade It!",
+            "description": "As a TV critic, it is my duty to watch as many episodes of a show as I can before reviewing it. In the case of Netflix\u2019s new drama The Waterfront (now streaming), I watched three\u2026 but if I weren\u2019t reviewing it, I don\u2019t think I would\u2019ve made it through a singl\u2026",
+            "url": "https://tvline.com/reviews/the-waterfront-review-netflix-melissa-benoist-1235459693/",
+            "urlToImage": "https://tvline.com/wp-content/uploads/2025/06/the-waterfront-netflix-review-melissa-benoist.jpg?w=650",
+            "publishedAt": "2025-06-19T16:00:00Z",
+            "content": "As a TV critic, it is my duty to watch as many episodes of a show as I can before reviewing it. In the case of Netflix\u2019s new drama The Waterfront (now streaming), I watched three\u2026 but if I weren\u2019t re\u2026 [+2987 chars]"
+        },
+        {
+            "source": {
+                "id": "cbs-news",
+                "name": "CBS News"
+            },
+            "author": null,
+            "title": "Trump pardons 2 divers who freed 19 sharks but were charged with theft",
+            "description": "Two South Florida shark divers convicted of theft for freeing 19 sharks and a giant grouper from a fisherman's longline several miles from shore have been pardoned by President Trump.",
+            "url": "https://www.cbsnews.com/news/trump-pardons-2-divers-freed-19-sharks-florida-theft/",
+            "urlToImage": "https://assets1.cbsnewsstatic.com/hub/i/r/2025/02/10/7b33e64e-8c40-4515-8f8e-3db378fe91b5/thumbnail/1200x630/4163974930bbb823c1fba554fb9485fc/sharks-bahamas.jpg?v=56a3e14bdf9c98ad3b2e8fa3a2dc5f66",
+            "publishedAt": "2025-06-03T09:18:17Z",
+            "content": "Miami \u2014 Two South Florida shark divers convicted of theft for freeing 19 sharks and a giant grouper from a fisherman's longline several miles from shore have been pardoned by President Trump.\r\nPardon\u2026 [+1651 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Cosmopolitan.com"
+            },
+            "author": "Mehera  Bonner",
+            "title": "'The Waterfront' Creator Reveals Peyton's Ominous Plans for Cane After [SPOILER]",
+            "description": "'The Waterfront' creator revealed Peyton's ominous plans for Cane in the hit Netflix show's second season after he cheated.",
+            "url": "https://www.cosmopolitan.com/entertainment/celebs/a65154184/the-waterfront-peyton-cane-spoilers/",
+            "urlToImage": "https://hips.hearstapps.com/hmg-prod/images/waterfront-108-unit-01152rc-68594b10e37da.jpg?crop=1.00xw:0.753xh;0,0.0153xh&resize=1200:*",
+            "publishedAt": "2025-06-23T12:57:00Z",
+            "content": "A new addictive Netflix show just landed in our laps for summer. And by \"summer\" I mean literally one day because that's all it takes to binge the entire thing. Welcome to The Waterfront, which is ba\u2026 [+1153 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Finewoodworking.com"
+            },
+            "author": null,
+            "title": "Clear a Clogged Vacuum Hose Using an Electricians Fishing Tool",
+            "description": "To quickly clear jams in a shop vac hose, use an electrician\u2019s wire-fishing tape, which is often sold as \u201cfish tape.\" After a few pokes with the end of the tape, the clog will fall out of the hose.",
+            "url": "https://www.finewoodworking.com/2025/06/03/clear-a-clogged-vacuum-hose-using-an-electricians-fishing-tool",
+            "urlToImage": "https://images.finewoodworking.com/app/uploads/2025/05/28152502/shopvacsmall.png",
+            "publishedAt": "2025-06-03T14:10:29Z",
+            "content": "How many times has your shop-vac hose become clogged with debris? When that happens deep inside a long vac hose, the jam can be tough to clear. I use an electricians wire-fishing tape to quickly clea\u2026 [+291 chars]"
+        },
+        {
+            "source": {
+                "id": "abc-news-au",
+                "name": "ABC News (AU)"
+            },
+            "author": "Anton Rose",
+            "title": "Australian tech whiz spared US jail, deported over AN0M",
+            "description": "Edwin Kumar was named alongside Australia's most wanted man as a tech master involved in unwittingly giving criminals bugged phones. Now he is free and back in Sydney.",
+            "url": "https://www.abc.net.au/news/2025-06-12/australian-man-edwin-kumar-deported-us-sentencing-anom-case/105402742",
+            "urlToImage": "https://live-production.wcms.abc-cdn.net.au/493b63626c8137a07a505b4702f594e6?impolicy=wcms_watermark_news&cropH=576&cropW=1024&xPos=0&yPos=107&width=862&height=485&imformat=generic",
+            "publishedAt": "2025-06-11T20:25:42Z",
+            "content": "A tech whiz caught up in what the Australian Federal Police (AFP) dubbed the biggest organised crime sting in its history has avoided prison in the United States and is back free in Sydney.\r\nEdwin Ha\u2026 [+3363 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Tanya Benedicto Klich, Contributor, \n Tanya Benedicto Klich, Contributor\n https://www.forbes.com/sites/tanyabenedictoklich/",
+            "title": "The Ultimate Father\u2019s Day Gift Guide For Ocean-Loving And Outdoorsy Dads",
+            "description": "Discover thoughtful Father\u2019s Day gifts from top active-lifestyle brands, luxury beachwear and loungewear, and everything he needs for a relaxing coastal retreat.",
+            "url": "https://www.forbes.com/sites/tanyabenedictoklich/2025/06/04/the-ultimate-fathers-day-gift-guide-for-ocean-loving-and-outdoorsy-dads/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/68401e4a09dc589908754ce7/0x0.jpg?format=jpg&crop=2132,1199,x0,y103,safe&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-04T11:45:04Z",
+            "content": "Retrospec's Chatham is a simple-to-use, low-maintenance coaster for any dad who likes to spend hours cruising along the beach.\r\nRetrospec\r\nWhether hes paddling over the waves, cycling along the shore\u2026 [+7520 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Snopes.com"
+            },
+            "author": "Joey Esposito",
+            "title": "DoorDash isn't sharing data with ICE to deport drivers",
+            "description": "Food delivery app DoorDash is sharing data with U.S. Immigration and Customs Enforcement to facilitate the deportation of its delivery drivers.",
+            "url": "https://www.snopes.com//fact-check/doordash-shares-data-with-ice-to-deport-drivers/",
+            "urlToImage": "https://mediaproxy.snopes.com/width/1200/https://media.snopes.com/2025/06/dd_1.png",
+            "publishedAt": "2025-06-18T21:02:00Z",
+            "content": "Claim:\r\nFood delivery app DoorDash is sharing data with U.S. Immigration and Customs Enforcement to facilitate the deportation of its delivery drivers. \r\nA viral rumor that food delivery app\u00a0DoorDash\u2026 [+6327 chars]"
+        },
+        {
+            "source": {
+                "id": "techradar",
+                "name": "TechRadar"
+            },
+            "author": "Becca Caddy",
+            "title": "I stream movies for work \u2013 and these 5 Netflix and Disney+ Originals are my 2025 standouts (so far)",
+            "description": "Streaming originals can be hit or miss, but these are the genuine standouts from 2025 so far.",
+            "url": "https://www.techradar.com/streaming/i-stream-movies-for-work-and-these-5-netflix-and-disney-originals-are-my-2025-standouts-so-far",
+            "urlToImage": "https://cdn.mos.cms.futurecdn.net/dF5bCSE2YWPSaN9CxRzuTn.png",
+            "publishedAt": "2025-06-25T12:13:39Z",
+            "content": "Some brilliant movies have landed on streaming platforms this year but many come with a catch. They\u2019re only available to rent or they disappear from one service just as they pop up on another, which \u2026 [+7208 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "CNA"
+            },
+            "author": null,
+            "title": "Philippine Navy seizes US$175 million meth haul at sea",
+            "description": "MANILA: The Philippine Navy seized an illegal drug shipment worth 10 billion pesos (US$175 million) on Friday (Jun 20) in one of the country's biggest narcotics hauls on record, officials said. A pair of naval gunboats intercepted a fishing vessel carrying 1.\u2026",
+            "url": "https://www.channelnewsasia.com/asia/philippines-meth-seized-fishing-boat-drugs-four-arrested-5194091",
+            "urlToImage": "https://dam.mediacorp.sg/image/upload/s--jploqXKd--/fl_relative,g_south_east,l_mediacorp:cna:watermark:2023-11:afp_watermark_14112023,w_0.1/f_auto,q_auto/c_fill,g_auto,h_676,w_1200/v1/mediacorp/cna/image/2025/06/20/000_634q2wd.jpg?itok=cDYEei6_",
+            "publishedAt": "2025-06-20T10:36:00Z",
+            "content": "MANILA: The Philippine Navy seized an illegal drug shipment worth 10 billion pesos (US$175 million) on Friday (Jun 20) in one of the country's biggest narcotics hauls on record, officials said.\r\nA pa\u2026 [+1460 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Josh Weiss, Contributor, \n Josh Weiss, Contributor\n https://www.forbes.com/sites/joshweiss/",
+            "title": "Holt McCallany Talks Partying With Tom Cruise, Returning To Netflix For \u2018The Waterfront\u2019 & Gearing Up For His Directorial Debut",
+            "description": "To say Holt McCallany\u2019s career exploded following his breakout role in Netflix\u2019s 'Mindhunter' would be an understatement.",
+            "url": "https://www.forbes.com/sites/joshweiss/2025/06/23/holt-mccallany-talks-partying-with-tom-cruise-returning-to-netflix-for-the-waterfront--gearing-up-for-his-directorial-debut/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/68532482b184c4068912f272/0x0.jpg?format=jpg&crop=2695,1516,x822,y86,safe&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-23T14:03:27Z",
+            "content": "The Waterfront. Holt McCallany as Harlan Buckley in episode 102 of The Waterfront. Cr. Dana ... More Hawley/Netflix \u00a9 2025\r\nDANA HAWLEY/NETFLIX\r\nTo say Holt McCallanys career exploded following his b\u2026 [+7197 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Screen Rant"
+            },
+            "author": "Nathan Graham-Lowery",
+            "title": "The True Story Behind Netflix's Cocaine Air: Smugglers At 30000 Ft Is Even More Unbelievable",
+            "description": "Netflix's Cocaine Air: Smugglers at 30000 Ft explores a remarkable 2013 drug smuggling bust, but how much of the case does the documentary unpack?",
+            "url": "https://screenrant.com/cocaine-air-smugglers-at-30000-ft-documentary-true-story/",
+            "urlToImage": "https://static1.srcdn.com/wordpress/wp-content/uploads/2025/06/cocaine-air-smugglers-at-30000-ft-alain-castany.jpg",
+            "publishedAt": "2025-06-19T02:30:18Z",
+            "content": "As Netflix dives into the tale of four apprehended drug smugglers in Cocaine Air: Smugglers at 30000 Ft, here is the truth about the remarkable case and what happened to those involved in the afterma\u2026 [+9985 chars]"
+        },
+        {
+            "source": {
+                "id": "cbc-news",
+                "name": "CBC News"
+            },
+            "author": null,
+            "title": "Funding to protect oceans falls far short of what UN says is needed",
+            "description": "A UN\u00a0push for investment to protect the world's oceans yielded around $10 billion US in deals at a conference last week, way below the estimated annual need.",
+            "url": "https://www.cbc.ca/news/science/un-oceans-funding-1.7563266",
+            "urlToImage": "https://i.cbc.ca/1.7563366.1750174490!/cpImage/httpImage/image.jpg_gen/derivatives/16x9_1180/aptopix-climate-france-world-oceans-day.jpg?im=Resize%3D620",
+            "publishedAt": "2025-06-17T16:49:40Z",
+            "content": "A UN\u00a0push for investment to protect the world's oceans yielded around $10 billion US ($13.6 billion Cdn)\u00a0in deals at a conference last week, way below the estimated annual need as many investors soug\u2026 [+4286 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "BBC News"
+            },
+            "author": null,
+            "title": "Minnesota shootings suspect was a 'prepper', FBI says",
+            "description": "After shooting two local politicians, Vance Boelter texted his wife \"prepare for war\", say investigators.",
+            "url": "https://www.bbc.com/news/articles/c89ev9j955ko",
+            "urlToImage": "https://ichef.bbci.co.uk/news/1024/branded_news/03c7/live/e7930150-4a9c-11f0-9471-e380f647874e.jpg",
+            "publishedAt": "2025-06-21T17:33:54Z",
+            "content": "Robin Levinson King\r\nPolice said suspect Vance Luther Boelter was armed at the time of his arrest\r\nThe suspect accused of fatally shooting a Minnesota lawmaker and her husband in a gun rampage last w\u2026 [+2622 chars]"
+        },
+        {
+            "source": {
+                "id": "cbs-news",
+                "name": "CBS News"
+            },
+            "author": "Jim  Axelrod, Ruth  Chenetz, Dena  Goldstein",
+            "title": "Kansas woman convicted of double murder after three trials",
+            "description": "Mike Sisco and his girlfriend Karen Harkness were gunned down in her Topeka, Kansas, home in 2002. Authorities believed it was a crime of passion. Sisco's daughter set out to help prove it was her mother, Dana Chandler, who was responsible.",
+            "url": "https://www.cbsnews.com/news/dana-chandler-mike-sisco-karen-harkness-topeka-kansas-double-murder-trials/",
+            "urlToImage": "https://assets1.cbsnewsstatic.com/hub/i/r/2025/05/31/d28ae301-0285-4f6a-a6df-b9cb3c5906c9/thumbnail/1200x630/2411ad7898198c722a5d39d5720e1daa/chandler-dana-crop.jpg?v=15603985a4508c8e7bc83d8e4e73c5d0",
+            "publishedAt": "2025-06-01T03:04:39Z",
+            "content": "Dana Chandler has spent decades maintaining her innocence against allegations she was responsible for the 2002 murders of her ex-husband, Mike Sisco, and his girlfriend, Karen Harkness.\u00a0\r\nIn 2025, Ch\u2026 [+65591 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Bleeding Cool News"
+            },
+            "author": "Gavin Sheehan",
+            "title": "Luma\u00a0Island Releases New Major Update Bringing With It Pirates",
+            "description": "Indie game developer and publisher Feel Free Games have released a new content update for Luma Island, as they bring about Pirates to the mix. This update is the biggest they have released for the game since November, bringing with it the ability for you to b\u2026",
+            "url": "https://bleedingcool.com/games/luma-island-releases-new-major-update-bringing-with-it-pirates/",
+            "urlToImage": "https://bleedingcool.com/wp-content/uploads/2025/06/Luma-Island-Pirates-art.jpg",
+            "publishedAt": "2025-06-20T16:12:04Z",
+            "content": "Posted in: Games, Indie Games, Video Games | Tagged: Feel Free Games, Luma Island, Luma Island Pirates\r\nLuma\u00a0Island has released the first major update in months, as Pirates are now a part of the gam\u2026 [+2544 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Twistedsifter.com"
+            },
+            "author": "Ben Auxier",
+            "title": "She Wanted To See A Friend On Her Husband\u2019s Birthday, So He Saw A Friend Too And Now They\u2019re Both Mad",
+            "description": "I told her that she could go after my birthday as well but she did not listen and just went to a sleepover at her friend's place.",
+            "url": "http://twistedsifter.com/2025/06/she-wanted-to-see-a-friend-on-her-husbands-birthday-so-he-saw-a-friend-too-and-now-theyre-both-mad/",
+            "urlToImage": "https://twistedsifter.com/wp-content/uploads/2025/05/fightcouple.jpg",
+            "publishedAt": "2025-06-22T08:24:22Z",
+            "content": "Shutterstock/Reddit\r\nMarriage seems awesome and not complicated at all.\r\nMaybe the key is just to not take things too seriously.\r\nOr to forgive and forget.\r\nI\u2019m not sure either of those options are g\u2026 [+2389 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "New York Post"
+            },
+            "author": "Lauren Sarner",
+            "title": "Kevin Williamson reveals how his dad\u2019s sordid past inspired new crime drama \u2018The Waterfront\u2019: \u2018He paid the price\u2019",
+            "description": "He explained that his dad was \u201ca fisherman who got into a little trouble smuggling some drugs on his fishing boat.\"",
+            "url": "https://nypost.com/2025/06/18/entertainment/kevin-williamsons-the-waterfront-inspired-by-dads-sordid-past/",
+            "urlToImage": "https://nypost.com/wp-content/uploads/sites/2/2025/06/the-waterfront.jpg?quality=75&strip=all&w=1024",
+            "publishedAt": "2025-06-18T17:51:56Z",
+            "content": "Hes back to his roots.\u00a0\r\nKevin Williamson, who first rose to fame creating Dawsons Creek, is heading back to a waterside small town community with his new Netflix drama, The Waterfront.\u00a0\r\nIt was sort\u2026 [+3589 chars]"
+        },
+        {
+            "source": {
+                "id": "abc-news-au",
+                "name": "ABC News (AU)"
+            },
+            "author": "Iris Zhao",
+            "title": "Crackdown on 'boys love' fiction writers triggers backlash in China",
+            "description": "Police in China are arresting female authors of homosexual romance novels, in a widespread crackdown on the \"boys love\" fiction genre.",
+            "url": "https://www.abc.net.au/news/2025-06-12/police-in-china-arrest-female-writers-over-homosexual-novels/105403258",
+            "urlToImage": "https://live-production.wcms.abc-cdn.net.au/05d4d204a0bc69d8dc5d4afb43dee7b1?impolicy=wcms_watermark_news&cropH=563&cropW=1000&xPos=0&yPos=74&width=862&height=485&imformat=generic",
+            "publishedAt": "2025-06-11T19:03:44Z",
+            "content": "Female writers have been summoned by police for posting and sharing homosexual romance stories online, in a widespread crackdown on the 'boys love' genre in China.\r\nIf convicted, they could be subjec\u2026 [+7526 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Taryn White, Contributor, \n Taryn White, Contributor\n https://www.forbes.com/sites/tarynwhite/",
+            "title": "This City Outside Vancouver Is Canada\u2019s Hidden Foodie Hotspot",
+            "description": "Hungry? Richmond, BC is just south of Vancouver and packed with incredible eats. You\u2019ll find everything from hand-pulled noodles to mouthwatering donuts and dessert caf\u00e9s that are totally worth the trip.",
+            "url": "https://www.forbes.com/sites/tarynwhite/2025/06/20/this-city-outside-vancouver-is-canadas-hidden-foodie-hotspot/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/684d6a956f63145ea8a1f311/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-20T12:15:00Z",
+            "content": "Fisherman's Wharf in Steveston \r\nTourism Richmond\r\nRichmond, British Columbiasituated just south of Vancouveris home to one of Canadas most dynamic food scenes. Owing to its large Asian population, t\u2026 [+5435 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Blizzardwatch.com"
+            },
+            "author": "Chris Chesno",
+            "title": "Didn\u2019t get a Switch 2? That\u2019s OK! We\u2019ve got some new games for you to play instead!",
+            "description": "Let's go fishing with the Viva La Dirt League crew in\u00a0Nice Day for Fishing, become the legally distinct not!Avatar and farm in Rune Factory: Guardians of Azuma,\u00a0finally get to play the next two chapters in\u00a0DELTARUNE, and cap it all off with a favorite of mine\u2026",
+            "url": "https://blizzardwatch.com/?p=201152",
+            "urlToImage": "https://cdn.blizzardwatch.com/wp-content/uploads/2025/06/Nice-Day-For-Fishing.jpg",
+            "publishedAt": "2025-06-06T20:00:38Z",
+            "content": "Yesterday was the official launch of the Nintendo Switch 2 wait, what do you mean you didnt get one? I was going to ask you to play Mario Kart later! Well, thats perfectly fine as we have some nice n\u2026 [+3433 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Reason"
+            },
+            "author": "Tosin Akintola",
+            "title": "Missouri Town Wants To Seize Local Businesses Over Chipped Paint and Cracked Sidewalks",
+            "description": "Brentwood business owners are challenging the city\u2019s definition of 'blight' in an ongoing lawsuit against city officials' use of the dubious designation to invoke eminent domain.",
+            "url": "https://reason.com/2025/06/10/missouri-town-wants-to-seize-local-businesses-over-chipped-paint-and-cracked-sidewalks/",
+            "urlToImage": "https://d2eehagpk5cl65.cloudfront.net/img/q60/uploads/2025/06/9-9-25-v1-b.jpg",
+            "publishedAt": "2025-06-10T16:05:25Z",
+            "content": "For 20 years, Amy Stanford and her sister Carolyn Wilson have run Time for Dinner, a family-oriented meal prep business that has served generations of local families in Brentwood, Missouri. Now she's\u2026 [+6230 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Globalsecurity.org"
+            },
+            "author": "John Pike",
+            "title": "INS TEG ON OPERATIONAL DEPLOYMENT TO THE SOUTH WEST IOR CONCLUDES VISIT TO PORT LOUIS, MAURITIUS",
+            "description": "INS Teg, a frontline stealth frigate of the Western Naval Command, concluded her port call at Port Louis, Mauritius on 22 Jun 2025.",
+            "url": "https://www.globalsecurity.org/wmd/library/news/india/2025/india-250623-india-pib01.htm",
+            "urlToImage": null,
+            "publishedAt": "2025-06-24T06:27:59Z",
+            "content": "India - Press Information Bureau\r\nMinistry of Defence\r\nPosted On: 23 JUN 2025 3:53PM by PIB Delhi \r\nINS Teg, a frontline stealth frigate of the Western Naval Command, concluded her port call at Port \u2026 [+2685 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "International Business Times"
+            },
+            "author": "Paola LOPEZ",
+            "title": "Ecuador's Most-wanted Gang Leader 'Fito' Captured",
+            "description": "Ecuador's president announced Wednesday that the country's most-wanted fugitive, Los Choneros gang leader \"Fito,\" had been recaptured over a year after his escape from prison triggered a wave of violence.",
+            "url": "https://www.ibtimes.com/ecuadors-most-wanted-gang-leader-fito-captured-3776846",
+            "urlToImage": "https://d.ibtimes.com/en/full/4607309/drug-lord-jose-adolfo-macias-villamar-known-fito-escaped-custody-ecuador-early-2024.jpg",
+            "publishedAt": "2025-06-26T02:42:24Z",
+            "content": "Ecuador's president announced Wednesday that the country's most-wanted fugitive, Los Choneros gang leader \"Fito,\" had been recaptured over a year after his escape from prison triggered a wave of viol\u2026 [+2545 chars]"
+        },
+        {
+            "source": {
+                "id": "breitbart-news",
+                "name": "Breitbart News"
+            },
+            "author": "John Hayward, John Hayward",
+            "title": "China Attacks Philippine Ship in Philippine Waters with Water Cannon",
+            "description": "A Chinese Coast Guard ship attacked a Philippine government vessel near the Scarborough Shoal on Friday, using a water cannon to drive the Philippine ship out of waters claimed by China.\nThe post China Attacks Philippine Ship in Philippine Waters with Water C\u2026",
+            "url": "https://www.breitbart.com/asia/2025/06/20/china-attacks-philippine-ship-in-philippine-waters-with-water-cannon/",
+            "urlToImage": "https://media.breitbart.com/media/2025/06/china-coast-guard-ship-640x335.jpg",
+            "publishedAt": "2025-06-20T22:36:11Z",
+            "content": "A Chinese Coast Guard ship attacked a Philippine government vessel near the Scarborough Shoal on Friday, using a water cannon to drive the Philippine ship out of waters claimed by China.\r\nThe Scarbor\u2026 [+4225 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Globalsecurity.org"
+            },
+            "author": "John Pike",
+            "title": "INS TEG ARRIVES AT PORT VICTORIA, SEYCHELLES",
+            "description": "As part of her ongoing operational deployment to the South West Indian Ocean Region, INS Teg, a stealth frigate of the Indian Navy, has entered Port Victoria, Seychelles, for a port call scheduled from 26 to 30 Jun 2025 .",
+            "url": "https://www.globalsecurity.org/wmd/library/news/india/2025/india-250627-india-pib02.htm",
+            "urlToImage": null,
+            "publishedAt": "2025-06-28T09:19:22Z",
+            "content": "India - Press Information Bureau\r\nMinistry of Defence\r\n Posted On: 27 JUN 2025 3:40PM by PIB Delhi \r\nAs part of her ongoing operational deployment to the South West Indian Ocean Region, INS Teg, a st\u2026 [+2306 chars]"
+        },
+        {
+            "source": {
+                "id": "the-irish-times",
+                "name": "The Irish Times"
+            },
+            "author": "Kevin O'Sullivan",
+            "title": "World on verge of ratifying key treaty to protect oceans",
+            "description": "Failure to significantly scale up protection of oceans from deep sea mining and sea beds from 'bottom trawling' was widely criticised",
+            "url": "https://www.irishtimes.com/environment/climate-crisis/2025/06/13/world-on-verge-of-ratifying-key-treaty-to-protect-oceans/",
+            "urlToImage": "https://www.irishtimes.com/resizer/v2/A55VNWWAKNHMZHPVV3GWY246CQ.jpg?smart=true&auth=4e42820404a88497976bb1188538c74e4e49a1be237e6ff45278beaec7c6824f&width=1200&height=630",
+            "publishedAt": "2025-06-13T15:51:11Z",
+            "content": "The world is on the verge of ratifying a historic high seas treaty following progress made at the UN Oceans Conference that concluded in Nice, France, on Friday. \r\nFifty countries, including the EU, \u2026 [+4138 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Davey Winder, Senior Contributor, \n Davey Winder, Senior Contributor\n https://www.forbes.com/sites/daveywinder/",
+            "title": "Do Not Answer These Calls \u2014 Google Issues New Smartphone Warning",
+            "description": "You have been warned \u2014 Google's Threat Intelligence Group says users must not answer these calls.",
+            "url": "https://www.forbes.com/sites/daveywinder/2025/06/08/never-answer-these-calls-on-your-smartphone-google-warns/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/6841920a7b47ce397d0eab0b/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-08T12:50:59Z",
+            "content": "Beware the UNC6040 smartphone threat.\r\ngetty\r\nUpdate, June 8, 2025: This story, originally published on June 6, has been updated with further warnings from the FBI regarding dangerous phone calls, as\u2026 [+7454 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Space.com"
+            },
+            "author": "Jeff Maysh",
+            "title": "How a fake astronaut fooled the world, broke women\u2019s hearts, and landed in jail",
+            "description": "For years, Robert Hunt convinced everyone he could that he was a NASA astronaut. The truth was anything but.",
+            "url": "https://www.space.com/astronaut-imposter-how-a-con-man-fooled-the-world",
+            "urlToImage": "https://cdn.mos.cms.futurecdn.net/RCiq7zjLEp8rjVjiQDnJDE.jpg",
+            "publishedAt": "2025-06-27T10:00:00Z",
+            "content": "On a chill January evening in 1989, members of the Experimental Aircraft Association of Boston gathered for a special event.\r\nAt 7 p.m., the group's president introduced a guest speaker as a \"master \u2026 [+31092 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "The Atlantic"
+            },
+            "author": "Helen Schulman",
+            "title": "Fools for Love",
+            "description": "A short story",
+            "url": "https://www.theatlantic.com/culture/archive/2025/06/helen-schulman-fools-for-love/683328/",
+            "urlToImage": "https://cdn.theatlantic.com/thumbor/MnkhjRnHSuyyIKnPev0lQ_C7vfo=/8x1148:3558x2997/1200x625/media/img/mt/2025/06/Fools_For_Love_2/original.jpg",
+            "publishedAt": "2025-06-26T15:57:00Z",
+            "content": "Many moons ago, my beloved husband, Miguel Herrerahave you heard of him?gave an earthshaking performance in an event space in the East Village, Henderson Square (actually our friend Hattie Hendersons\u2026 [+32026 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Reason"
+            },
+            "author": "Jeff Luse",
+            "title": "North Carolina Lawmakers Are Trying To Kill the State's Booming Shrimp Industry",
+            "description": "For some restaurants in the state, local shrimp sales account for 90 percent of their revenue.",
+            "url": "https://reason.com/2025/06/23/north-carolina-lawmakers-are-trying-to-kill-the-states-booming-shrimp-industry/",
+            "urlToImage": "https://d2eehagpk5cl65.cloudfront.net/img/q60/uploads/2025/06/dreamstime_l_50066006-scaled.jpg",
+            "publishedAt": "2025-06-23T17:20:46Z",
+            "content": "North Carolina lawmakers are advancing a bill that would kill the state's shrimping industry.\nOn Thursday, the state Senate voted on House Bill 442, which had recently been passed by the state's Hous\u2026 [+5134 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "MobileSyrup"
+            },
+            "author": "Bradly Shankar",
+            "title": "Streaming in Canada on Crave, Netflix and Prime Video [June 16-22]",
+            "description": "Wondering what to watch on streaming? Every week,\u00a0MobileSyrup\u00a0outlines some of the most notable new movies and TV shows. We typically focus on new content from Amazon\u2019s Prime Video, Crave, Disney+ and Netflix, but other services like Apple TV+ and Paramount+ \u2026",
+            "url": "https://mobilesyrup.com/2025/06/15/streaming-in-canada-crave-netflix-prime-video-trainwreck-mayor-of-mayhem-rob-ford/",
+            "urlToImage": "https://prod-static.mobilesyrup.com/uploads/2025/06/trainwreck-rob-ford-netflix-scaled.jpg",
+            "publishedAt": "2025-06-15T18:03:27Z",
+            "content": "Wondering what to watch on streaming?\r\nEvery week,\u00a0MobileSyrup\u00a0outlines some of the most notable new movies and TV shows. We typically focus on new content from Amazons Prime Video, Crave, Disney+ an\u2026 [+3810 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Felicia Jackson, Contributor, \n Felicia Jackson, Contributor\n https://www.forbes.com/sites/feliciajackson/",
+            "title": "Tuna's Hidden Catch: A Risk Investors Can\u2019t Afford To Ignore",
+            "description": "New report reveals nearly half the global tuna catch is untraceable. This poses major legal, financial, and ESG risks for investors in the $40 billion tuna industry.",
+            "url": "https://www.forbes.com/sites/feliciajackson/2025/06/12/tunas-hidden-catch-a-risk-investors-cant-afford-to-ignore/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/684a997cd245dc4bf01b9df7/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-12T09:21:51Z",
+            "content": "Shrimper's catch from shrimp drag net on the beach showing shrimps, crabs and fish like sole, lesser ... More weever, mackerel caught along the North Sea coast. (Photo by: Philippe Clement/Arterra/Un\u2026 [+8763 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Forbes"
+            },
+            "author": "Paula Conway, Contributor, \n Paula Conway, Contributor\n https://www.forbes.com/sites/paulaconway/",
+            "title": "Father\u2019s Day Gift Guide 2025 : The Best Luxury Resort Vacations Based On Bestselling Books",
+            "description": "Readers in search of inspiration from Ian Fleming\u2019s Jane Bond Series, Lewis Carol\u2019s Alice in Wonderland, Diana Gabalon\u2019s Outlander and other best-selling literary icons can find them in these luxury resort vacations",
+            "url": "https://www.forbes.com/sites/paulaconway/2025/06/03/fathers-day-gift-guide-2025--the-best-luxury-resort-vacations-based-on-bestselling-books/",
+            "urlToImage": "https://imageio.forbes.com/specials-images/imageserve/683df7607ec0810fbb3b1dcb/0x0.jpg?format=jpg&height=900&width=1600&fit=bounds",
+            "publishedAt": "2025-06-03T13:30:00Z",
+            "content": "Actor Sean Connery poses as James Bond next to his Aston Martin DB5 during the filming of 'Goldfinger', Switzerland, 1964.\r\nGetty Images\r\nReading and travel: This Fathers Day, why not combine the two\u2026 [+14888 chars]"
+        }
+    ]
+}

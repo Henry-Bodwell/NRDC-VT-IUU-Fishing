@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import json
-import functions as fn
+import apis as fn
 import pandas as pd
 
 load_dotenv()

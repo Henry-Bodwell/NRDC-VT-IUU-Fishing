@@ -1,0 +1,42 @@
+{
+    "extracted_information": {
+        "scopeOfArticle": "Single incident",
+        "vesselName": "N/A",
+        "vesselUniqueID": "N/A",
+        "vesselFlag": "N/A",
+        "internationalRadioCallSign": null,
+        "informationOnExporter": null,
+        "importCompany": null,
+        "transshipmentDeclaration": null,
+        "eventDate": "N/A",
+        "catchArea": "Beijing Capital Airport",
+        "authoristionToFish": null,
+        "portOfLanding": null,
+        "processingLocation": null,
+        "countryOfIncident": "China",
+        "latitude": null,
+        "longitude": null,
+        "fishingMethod": null,
+        "transitMode": null,
+        "speciesInvolved": [
+            {
+                "commonName": "Oahu tree snail",
+                "scientificName": "Achatinella spp.",
+                "productType": "Shells",
+                "liveWeight": null,
+                "processedWeight": null
+            }
+        ],
+        "description": "Customs discovered 2,292 Oahu tree snail shells during inspections of inbound express mail, highlighting illegal wildlife trade."
+    },
+    "incident_classification": {
+        "eventCategory": "Seizure",
+        "resolution": "Shells confiscated by customs",
+        "iuuClassifications": [
+            {
+                "IUUType": "Fraud or Mislabeling of Species",
+                "IUUTypeReason": "Illegal wildlife trade involving protected species"
+            }
+        ]
+    }
+}

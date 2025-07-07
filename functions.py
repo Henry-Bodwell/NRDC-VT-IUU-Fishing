@@ -1,155 +1,19 @@
-import requests
-from urllib.parse import quote
+from apis import get_name_pairs
 
-def fetch_taxon_cites(taxon_name: str, page: int, api_key: str) -> dict:
-    """Fetch CITES data for a given taxon name using the CITES API."""
-    url = "https://api.speciesplus.net/api/v1/taxon_concepts"
-    headers = {
-        "X-Authentication-Token": api_key,  # Removed f-string (unnecessary)
-        "Accept": "application/json"
-    }
+
+def verify_sci_name(common_name: str, predicted_sci_name: str) -> bool:
+    """
+    Verify if the predicted scientific name matches any scientific name for the given common name.
     
-    params = {
-        "name": taxon_name.lower().strip(),
-        "with_descendants": "true",
-        "page": page,
-    }
-    try:
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error fetching data for {taxon_name}: {e}")
-        return {}
-    
-def fetch_all_cites_pages(taxon_name: str, api_key: str) -> dict:
-    """Fetch all CITES pages for a given taxon name."""
-    CITES_ENTRIES_PER_PAGE = 500
-    all_taxon_concepts = []
-    total_entries = 0
-    current_page = 1
-
-    while True:
-        data = fetch_taxon_cites(taxon_name, current_page, api_key)
+    Args:
+        common_name (str): The common name of the species.
+        predicted_sci_name (str): The predicted scientific name to verify.
         
-        if not data or "taxon_concepts" not in data:
-            print(f"No data returned for page {current_page}")
-            break
-        
-        if current_page == 1:
-            total_entries = data.get("pagination", {}).get("total_entries", 0)
-            if total_entries == 0:
-                print(f"No entries found for {taxon_name}.")
-                break
-            print(f"Total entries to fetch: {total_entries}")
-
-        page_taxa = data.get("taxon_concepts", [])
-        all_taxon_concepts.extend(page_taxa)
-        print(f"Fetched page {current_page} with {len(page_taxa)} entries.")
-
-
-        if len(page_taxa) < CITES_ENTRIES_PER_PAGE or len(all_taxon_concepts) >= total_entries:
-            break
-        current_page += 1
-
-    merged_response = {
-        "pagination": {
-            "total_entries": total_entries,
-            "pages_fetched": current_page,
-            "per_page": CITES_ENTRIES_PER_PAGE,
-            "actual_entries": len(all_taxon_concepts)  # Added for verification
-        },
-        "taxon_concepts": all_taxon_concepts,
-    }
-    print(f"Successfully merged {len(all_taxon_concepts)} taxon concepts from {current_page} pages")
-    return merged_response
-
-def fetch_iucn_red_list(taxon_rank: str, taxon_name: str, page:int, api_key: str, latest=True) -> dict:
-    """Fetch IUCN Red List data for a given taxon name using the IUCN API."""
-    taxon_name = taxon_name.lower().strip()
-    taxon_rank = taxon_rank.lower().strip()
-    url = f"https://api.iucnredlist.org/api/v4/taxa/{taxon_rank}/{taxon_name}"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/json"
-    }
-    params = {
-        "page": page,
-        "latest": str(latest).lower(), 
-    }
-    try:
-        response = requests.get(url, params=params, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error fetching data for {taxon_name}: {e}")
-        return {}
-    
-def fetch_all_iucn_pages(taxon_rank: str, taxon_name: str, api_key: str) -> dict:
-    """Fetch all IUCN Red List pages for a given taxon name."""
-    IUCN_ENTRIES_PER_PAGE = 100
-    all_assessments = []
-    current_page = 1
-
-    while True:
-        data = fetch_iucn_red_list(taxon_rank, taxon_name, current_page, api_key)
-        
-        if not data or "assessments" not in data:
-            print(f"No data returned for page {current_page}")
-            break
-
-        page_assements = data.get("assessments", [])
-        all_assessments.extend(page_assements)
-        print(f"Fetched page {current_page} with {len(page_assements)} entries.")
-
-        if len(page_assements) < IUCN_ENTRIES_PER_PAGE:
-            break
-        current_page += 1
-
-    merged_response = {
-        "details": {
-            "total_entries": len(all_assessments),
-            "Taxon Rank": taxon_rank,
-            "Taxon Name": taxon_name,
-        },
-        "result": all_assessments,
-    }
-    print(f"Successfully merged {len(all_assessments)} taxa from {current_page} pages")
-    return merged_response
-
-def fetch_cites_by_scientific_name(scientific_name: str, api_key: str) -> dict:
-    """Fetch CITES data for a given scientific name using the CITES API."""
-    scientific_name_encoded = quote(scientific_name.lower().strip())
-
-def fetch_IUCN_by_scientific_name(scientific_name: str, api_key: str) -> dict:
-    """Fetch IUCN Red List data for a given scientific name using the IUCN API."""
-    scientific_name_encoded = quote(scientific_name.lower().strip())
-    url = f"https://api.iucnredlist.org/api/v4/taxa/scientific_name/{scientific_name_encoded}"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/json"
-    }
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error fetching data for {scientific_name}: {e}")
-        return {}
-
-
-def fetch_scientific_name(common_name: str, api_key: str) -> dict:
-    """Fetch scientific name for a given common name or common name fragment."""
-    common_name_encoded = quote(common_name.lower().strip())
-    url = f"https://api.ncbi.nlm.nih.gov/datasets/v2/taxonomy/taxon_suggest/{common_name_encoded}"
-    headers = {
-        "Accept": "application/json",
-        "api-key": api_key 
-    }
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error fetching scientific name for {common_name}: {e}")
-        return {}
+    Returns:
+        bool: True if the predicted scientific name matches any known scientific names, False otherwise.
+    """
+    name_pairs = get_name_pairs(common_name)
+    for sci_name, _ in name_pairs:
+        if sci_name.lower() == predicted_sci_name.lower():
+            return True
+    return False

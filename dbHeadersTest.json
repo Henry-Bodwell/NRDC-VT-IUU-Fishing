@@ -1,0 +1,43 @@
+{
+    "category": "Arrest",
+    "resolution": "The customs department is likely to take legal action against the individuals or entities involved in the illegal importation of the Oahu tree snail shells.",
+    "IUUType": "Illegal Fishing",
+    "IUUTypeReason": "Illegal trade of endangered species",
+    "IUUTypeSecondary": "None",
+    "vesselName": "None",
+    "vesselUniqueID": "None",
+    "vesselFlag": "None",
+    "internationalRadioCallSign": "None",
+    "informationOnExporter": "None",
+    "importCompany": "None",
+    "transshipmentDeclaration": "None",
+    "eventDate": "Not specified",
+    "catchArea": "Not applicable",
+    "authoristionToFish": "Not applicable",
+    "portOfLanding": "Beijing Capital Airport",
+    "processingLocation": "Not applicable",
+    "countryOfIncident": "China",
+    "latitude": "Not specified",
+    "longitude": "Not specified",
+    "fishingMethod": "Not applicable",
+    "transitMode": "Express mail",
+    "speciesInvolved": [
+        {
+            "commonName": "Oahu tree snail",
+            "scientificName": "Achatinella spp.",
+            "kingdom": "Animalia",
+            "phylum": "Mollusca",
+            "order": "Stylommatophora",
+            "genus": "Achatinella",
+            "synonyms": [
+                "Hawaiian tree snails"
+            ],
+            "productType": "shells",
+            "lifeStage": "adult",
+            "liveWeight": "N/A",
+            "processedWeight": "N/A"
+        }
+    ],
+    "description": "Customs officials at Beijing Capital Airport discovered 2,292 pieces of Oahu tree snail shells during an inspection of express mail, which are illegal to import due to their endangered status.",
+    "comments": "This incident underscores the importance of protecting endangered species and the need for strict enforcement of wildlife trade regulations."
+}
