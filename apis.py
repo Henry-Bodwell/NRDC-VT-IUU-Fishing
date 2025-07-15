@@ -137,7 +137,6 @@ def fetch_IUCN_by_scientific_name(scientific_name: str, api_key: str) -> dict:
         print(f"Error fetching data for {scientific_name}: {e}")
         return {}
 
-
 def fetch_scientific_name(common_name: str) -> dict:
     """Fetch scientific name for a given common name or common name fragment."""
     common_name_encoded = quote(common_name.lower().strip())
@@ -223,6 +222,10 @@ def get_all_articles_by_date(api_key: str, keywords: str, from_date: str, to_dat
 
         if len(page_articles) < 100 or len(all_articles) >= total_results:
             break
+
+        with open('data/newsapi/news_articles_page_{}.json'.format(current_page), 'w') as f:
+            f.write(data.get("articles", []))
+            
         current_page += 1
 
     merged_response = {
