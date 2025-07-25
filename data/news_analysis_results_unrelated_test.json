@@ -1,0 +1,66 @@
+{
+    "source": {
+        "url": "https://cbcgdf.wordpress.com/2024/08/07/beijing-customs-intercepted-at-the-capital-airport-a-box-of-oahu-tree-snail-shells-cbcgdf-expert-shen-yihang-reports/",
+        "article_text": "**Customs Seizes Endangered Oahu Tree Snail Shells at Beijing Capital Airport**\n\nRecently, during routine inspections of inbound express mail, Beijing Capital Airport Customs detected a suspicious package using an X-ray machine. The images revealed abnormal dense light spots, prompting the staff to unpack the express mail for further inspection. Upon opening the box, they discovered it was filled with colorful and shiny Oahu tree snail shells.\n\nThe customs department subsequently sent the shells to a professional organization for identification. This batch contained a total of 2,292 pieces, all belonging to the Oahu tree snail (Achatinella spp.). These snails are a rare species found exclusively on Oahu Island, Hawaii, and are commonly referred to as \u201cHawaiian tree snails.\u201d Currently, all 41 known species of Oahu tree snails are either endangered or extinct, and they are listed in Appendix I of the Convention on International Trade in Endangered Species of Wild Fauna and Flora (CITES). They have also been designated as national first-class protected animals.\n\nAccording to China\u2019s Customs Law and Regulations on the Import and Export of Endangered Wild Animals and Plants, any unit or individual that illegally imports, exports, carries, or mails endangered wild animals and plants and their products without permission will face severe legal penalties. This case serves as a reminder that not everything can be brought into the country. Protecting endangered species is a collective responsibility, and each of us should consciously resist the illegal trade of wildlife products to help build a global community that values all forms of life.\n\n**Original article:** [Link](https://mp.weixin.qq.com/s/UWt7QSaak20R9AwwBweFUg)  \n**Translator:** Daisy  \n**Checked by:** Sara  \n**Editor:** Daisy  \n**Contact:** v10@cbcgdf.org; +8617319454776  \n\n**Contribution**  \nDo you know? We rely on crowd-funding and donations. You have the opportunity to help an international movement to advance biodiversity conservation. Donate TODAY to power up the movement to make it a better world for all life.  \n**Donation (501C3) Paypal:** intl@wbag.org  \n[Donate Here](https://www.paypal.com/donate?hosted_button_id=2EYYJJZ8CGPLE)"
+    },
+    "extracted_information": {
+        "scopeOfArticle": "Single Incident",
+        "catchSourceInformation": null,
+        "aquactureInformation": null,
+        "transshipmentInformation": null,
+        "aggregationInformation": null,
+        "landingInformation": null,
+        "tradeInformation": null,
+        "distributionInformation": null,
+        "eventData": {
+            "eventCategory": "Seizure",
+            "eventDate": "2024-08-07",
+            "eventLocation": "Beijing Capital Airport",
+            "resolution": "Shells confiscated and sent for identification."
+        },
+        "speciesInvolved": [
+            {
+                "commonName": "Oahu tree snail",
+                "scientificName": "Achatinella spp.",
+                "ASFISCode": null,
+                "productType": null,
+                "liveWeight": null,
+                "verified": false
+            }
+        ],
+        "productsInvolved": [
+            {
+                "productType": "Shells",
+                "species": [
+                    {
+                        "commonName": "Oahu tree snail",
+                        "scientificName": "Achatinella spp.",
+                        "ASFISCode": null,
+                        "productType": null,
+                        "liveWeight": null
+                    }
+                ],
+                "HSCode": null,
+                "SKU": null,
+                "processedWeight": null,
+                "processingLocation": null,
+                "additivesUsed": null,
+                "source": null,
+                "destination": null,
+                "receptionDate": null
+            }
+        ],
+        "chainOfCustody": null,
+        "sanitaryLicenseID": null,
+        "description": "Customs seized 2,292 pieces of endangered Oahu tree snail shells at Beijing Capital Airport during routine inspections of inbound express mail."
+    },
+    "incident_classification": {
+        "iuuClassifications": [
+            {
+                "IUUType": "Seafood Fraud or Mislabeling",
+                "IUUSubType": null,
+                "IUUTypeReason": "Illegal trade of endangered species"
+            }
+        ]
+    }
+}

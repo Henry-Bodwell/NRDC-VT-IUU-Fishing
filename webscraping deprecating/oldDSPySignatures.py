@@ -1,6 +1,7 @@
 from dspy import Signature, InputField, OutputField
 from typing import List
-from webscraping.schemas import Species
+from extraction_schemas import Species
+
 
 class ExtractIncidentTrafficHeaders(Signature):
     """Extracts Structured Information from text. Do not imput data only extract from source text."""

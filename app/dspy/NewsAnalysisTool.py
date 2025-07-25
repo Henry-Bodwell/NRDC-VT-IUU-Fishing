@@ -1,108 +1,117 @@
 import dspy
-from bs4 import BeautifulSoup
-import requests
 import json
 from dotenv import load_dotenv
 import os
-from webscraping.schemas import BaseIntake, IncidentAnalysisModule, ArticleClassificationSignature, IndustryOverviewModule
+from ..models.article_models import BaseIntake
+from modules import IncidentAnalysisModule, IndustryOverviewModule
+from signatures import ArticleClassificationSignature
 import functions as fn
-from webscraper import NewsScraper
+from scraper import ArticleExtractionPipeline
+
 
 class NewsAnalysisTool:
-    def __init__(self, model = 'openai/gpt-4o-mini', api_key: str = None):
+    def __init__(self, model="openai/gpt-4o-mini", api_key: str = None):
         """Initialize the NewsScraper with gpt 4o mini."""
         self.lm = dspy.LM(model, api_key=api_key)
         dspy.settings.configure(lm=self.lm)
 
-
-        self.newsScraper = NewsScraper()
+        self.scraper = ArticleExtractionPipeline()
         self.analysisTool = IncidentAnalysisModule()
         self.articleClassificationTool = dspy.ChainOfThought(
-            ArticleClassificationSignature)
+            ArticleClassificationSignature
+        )
         self.industryOverviewTool = IndustryOverviewModule()
         self.optimized_analysisTool = None
 
-    def fetch_article_from_url(self, url: str) -> str:
-        """Fetch article content from a given URL."""
-        return self.newsScraper.scrape_article(url)
-
-    def extract_from_text(self, article_text: str, url: str = "") -> dspy.Prediction | None:
+    def extract_from_text(
+        self, article_text: str, url: str = ""
+    ) -> dspy.Prediction | None:
         """
         Extract structured information from the provided text, if relevant.
 
         Returns None if the article is unrelated to IUU fishing incidents.
         """
         try:
-
             intake = BaseIntake(url=url, article_text=article_text)
-            
-            classification_result = self.articleClassificationTool(intake=intake).classification
-            
+
+            classification_result = self.articleClassificationTool(
+                intake=intake
+            ).classification
+
             # --- Check the classification type ---
             if classification_result.articleType == "Unrelated to IUU Fishing":
-                print(f"Article is unrelated to IUU Fishing. Retaining source information.")
+                print(
+                    f"Article is unrelated to IUU Fishing. Retaining source information."
+                )
                 # Return a prediction with just the source info and classification
                 return dspy.Prediction(
                     url=intake.url,
                     article_text=intake.article_text,
                     classification=classification_result,
-                    extracted_data=None,  
+                    extracted_data=None,
                 )
-            
+
             elif classification_result.articleType == "Industry Overview":
                 print(f"Article is Industry Overview. Running specialized extraction.")
                 # TODO: Replace with your industry overview extraction tool
-                prediction = self.industryOverviewTool(intake=intake) 
+                prediction = self.industryOverviewTool(intake=intake)
                 return prediction
-            
+
             else:
                 # --- Proceed with normal IUU incident analysis ---
-                print(f"Article type {classification_result.articleType} detected. Running incident analysis.")
+                # TODO implement better multiple incident extraction
+                print(
+                    f"Article type {classification_result.articleType} detected. Running incident analysis."
+                )
                 prediction = self.analysisTool(intake=intake)
                 return prediction
-                
+
         except Exception as e:
             print(f"Error in extract_from_text: {e}")
             return None
-        
+
     def extract_from_url(self, url: str) -> dspy.Prediction:
         """Extract structured information from a news article at the given URL."""
-        article_text = self.fetch_article_from_url(url)
+        article_text = self.scraper.process_url(url=url).clean_content
         return self.extract_from_text(article_text, url)
-    
+
     def extract_from_pdf(self, pdf_path: str) -> dspy.Prediction:
         """Extract structured information from a PDF file."""
         text = fn.read_pdf(pdf_path)
         return self.extract_from_text(text)
 
-    def extract_from_image(self, image_path: str, language: str = 'eng') -> dspy.Prediction:
+    def extract_from_image(
+        self, image_path: str, language: str = "eng"
+    ) -> dspy.Prediction:
         """Extract structured information from an image file."""
         text = fn.read_image(image_path, language=language)
         return self.extract_from_text(text)
-
 
     def format_results(self, analysis_output: dict) -> dict:
 
         # Helper function to convert Pydantic objects to dict
         def convert_to_dict(obj):
-            if hasattr(obj, 'model_dump'):  # Pydantic v2
+            if hasattr(obj, "model_dump"):  # Pydantic v2
                 return obj.model_dump()
-            elif hasattr(obj, 'dict'):  # Pydantic v1
+            elif hasattr(obj, "dict"):  # Pydantic v1
                 return obj.dict()
             else:
                 return obj
-        
+
         final_results = {
             "source": {
-                "url": analysis_output.get('url', None),
-                "article_text": analysis_output.get('article_text', None)
+                "url": analysis_output.get("url", None),
+                "article_text": analysis_output.get("article_text", None),
             },
-            "extracted_information": convert_to_dict(analysis_output.get('parsed_data', None)),
-            "incident_classification": convert_to_dict(analysis_output.get('classification', None))
+            "extracted_information": convert_to_dict(
+                analysis_output.get("parsed_data", None)
+            ),
+            "incident_classification": convert_to_dict(
+                analysis_output.get("classification", None)
+            ),
         }
         return final_results
 
-    
     def verify_results(self, formatted_results: dict) -> dict:
         """
         Verify the scientific names in the analysis output against known species names.
@@ -112,12 +121,14 @@ class NewsAnalysisTool:
             print("Error: formatted_results is not a dictionary")
             return formatted_results  # Return the original data instead of None
 
-        extracted_info = formatted_results.get('extracted_information', {})
+        extracted_info = formatted_results.get("extracted_information", {})
         if not extracted_info:
             print("Warning: No extracted_information found in analysis output.")
-            return formatted_results  # Return original data instead of raising exception
+            return (
+                formatted_results  # Return original data instead of raising exception
+            )
 
-        species_list = extracted_info.get('speciesInvolved', [])
+        species_list = extracted_info.get("speciesInvolved", [])
         if not species_list:
             print("Warning: No species found in extracted information.")
             return formatted_results
@@ -126,13 +137,17 @@ class NewsAnalysisTool:
             if not isinstance(species, dict):
                 print(f"Warning: Species entry is not a dictionary: {species}")
                 continue
-                
-            common_name = species.get('commonName')
+
+            common_name = species.get("commonName")
             # Note: You're looking for 'predictedScientificName' but your JSON shows 'scientificName'
-            predicted_sci_name = species.get('predictedScientificName') or species.get('scientificName')
+            predicted_sci_name = species.get("predictedScientificName") or species.get(
+                "scientificName"
+            )
 
             if not common_name or not predicted_sci_name:
-                print(f"Missing common name or predicted scientific name for species: {species}")
+                print(
+                    f"Missing common name or predicted scientific name for species: {species}"
+                )
                 species["verified"] = False  # Set to False if data is missing
                 continue
 
@@ -146,7 +161,6 @@ class NewsAnalysisTool:
                 species["verified"] = False
 
         return formatted_results
-    
 
     def extract_and_verify(self, url: str) -> dict:
         """
@@ -155,32 +169,41 @@ class NewsAnalysisTool:
         """
         analysis_output = self.extract_from_url(url)
         if not analysis_output:
-            return {"error": "No relevant information extracted from the article."}, False
-        
+            return {
+                "error": "No relevant information extracted from the article."
+            }, False
+
         formatted_results = self.format_results(analysis_output)
         if not formatted_results:
             return {"error": "Failed to format results."}, False
-        
-        extracted_info = formatted_results.get('extracted_information', None)
-        if extracted_info and isinstance(extracted_info, dict) and extracted_info.get('scopeOfArticle'):
-            article_type = extracted_info.get('scopeOfArticle')
-            
+
+        extracted_info = formatted_results.get("extracted_information", None)
+        if (
+            extracted_info
+            and isinstance(extracted_info, dict)
+            and extracted_info.get("scopeOfArticle")
+        ):
+            article_type = extracted_info.get("scopeOfArticle")
+
             if article_type == "Unrelated to IUU Fishing":
                 # No verification needed for unrelated articles
                 print("Article is unrelated to IUU Fishing. Skipping verification.")
-                return formatted_results       
+                return formatted_results
             else:
                 formatted_results = self.verify_results(formatted_results)
                 return formatted_results
         else:
-            print("No scope of article found in extracted information. Skipping verification.")
+            print(
+                "No scope of article found in extracted information. Skipping verification."
+            )
             return formatted_results
+
 
 def main():
     """Main function to run the NewsScraper."""
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
-    scraper = NewsAnalysisTool(model='openai/gpt-4o-mini', api_key=api_key)
+    analyzer = NewsAnalysisTool(model="openai/gpt-4o-mini", api_key=api_key)
 
     # Sample single incident article
     url = "https://cbcgdf.wordpress.com/2024/08/07/beijing-customs-intercepted-at-the-capital-airport-a-box-of-oahu-tree-snail-shells-cbcgdf-expert-shen-yihang-reports/"
@@ -188,16 +211,19 @@ def main():
     # url = "https://www.bbc.com/news/articles/cq69e4j6jz8o"
     # Sample unrelated article
     # url = "https://www.amazon.com/Ring-Battery-Doorbell-Head-to-Toe-Video-Satin-Nickel/dp/B0BZWRSRWV?ref=dlx_devic_dg_dcl_B0BZWRSRWV_dt_sl7_a4_pi&th=1"
-    scraper.max_retries = 3  # Set the maximum number of retries for species verification
-    results = scraper.extract_and_verify(url)
+    analyzer.max_retries = (
+        3  # Set the maximum number of retries for species verification
+    )
+    results = analyzer.extract_and_verify(url)
 
     if results is None:
         print("No relevant information extracted from the article.")
     else:
-        with open('news_analysis_results_unrelated_test.json', 'w') as f:
+        with open("news_analysis_results_unrelated_test.json", "w") as f:
             json.dump(results, f, indent=4)
 
-    
+    # print(analyzer.fetch_article_from_url(url=url))
+
 
 if __name__ == "__main__":
     main()
