@@ -4,8 +4,7 @@ from signatures import (
     StructuredDataToClassification,
     IndustryOverviewSignature,
 )
-from ..models.iuu_models import BaseIntake
-from pydantic import Dict
+from app.models.iuu_models import BaseIntake
 
 
 class IncidentAnalysisModule(dspy.Module):
@@ -17,7 +16,7 @@ class IncidentAnalysisModule(dspy.Module):
         self.extractor = dspy.ChainOfThought(TextToStructuredData)
         self.classifier = dspy.ChainOfThought(StructuredDataToClassification)
 
-    def forward(self, intake: BaseIntake) -> Dict:
+    def forward(self, intake: BaseIntake) -> dict:
         """
         Extract structured information from the article text and classify the incident.
         """
@@ -52,7 +51,7 @@ class IndustryOverviewModule(dspy.Module):
         super().__init__()
         self.extractor = dspy.ChainOfThought(IndustryOverviewSignature)
 
-    def forward(self, intake: BaseIntake) -> Dict:
+    def forward(self, intake: BaseIntake) -> dict:
         """
         Extract structured information from the industry overview article text.
         """

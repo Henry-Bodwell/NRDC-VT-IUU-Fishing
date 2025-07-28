@@ -1,8 +1,8 @@
 from typing import List, Literal
 from beanie import Document
-import dspy
 from pydantic import BaseModel, Field
-from article_models import BaseIntake
+from app.models.article_models import BaseIntake
+from datetime import datetime, timezone
 
 
 # Pydantic models
@@ -572,6 +572,7 @@ class IncidentReport(Document):
     source: BaseIntake
     extracted_information: ExtractedIncidentData
     incident_classification: IncidentClassification
+    dateUpdated: datetime = datetime.now(timezone.utc)
 
     class Settings:
         name = "incidents"

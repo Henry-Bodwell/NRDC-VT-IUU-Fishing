@@ -1,8 +1,8 @@
 import dspy
 import json
-from dotenv import load_dotenv
-import os
-from ..models.article_models import BaseIntake
+from dotenv import dotenv_values
+from app.models.article_models import BaseIntake
+from app.models.iuu_models import IncidentReport
 from modules import IncidentAnalysisModule, IndustryOverviewModule
 from signatures import ArticleClassificationSignature
 import functions as fn
@@ -87,7 +87,7 @@ class NewsAnalysisTool:
         text = fn.read_image(image_path, language=language)
         return self.extract_from_text(text)
 
-    def format_results(self, analysis_output: dict) -> dict:
+    def format_results(self, analysis_output: dict) -> IncidentReport:
 
         # Helper function to convert Pydantic objects to dict
         def convert_to_dict(obj):
@@ -112,7 +112,7 @@ class NewsAnalysisTool:
         }
         return final_results
 
-    def verify_results(self, formatted_results: dict) -> dict:
+    def verify_results(self, formatted_results: IncidentReport) -> IncidentReport:
         """
         Verify the scientific names in the analysis output against known species names.
         Returns the formatted_results dict with verification status added to each species.
@@ -162,7 +162,7 @@ class NewsAnalysisTool:
 
         return formatted_results
 
-    def extract_and_verify(self, url: str) -> dict:
+    def extract_and_verify(self, url: str) -> IncidentReport:
         """
         Extract structured information from a news article at the given URL and verify the scientific name.
         Returns a dictionary with the extraction results and a boolean verification status.
@@ -201,8 +201,8 @@ class NewsAnalysisTool:
 
 def main():
     """Main function to run the NewsScraper."""
-    load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY")
+    config = dotenv_values(".env")
+    api_key = config["OPENAI_API_KEY"]
     analyzer = NewsAnalysisTool(model="openai/gpt-4o-mini", api_key=api_key)
 
     # Sample single incident article
