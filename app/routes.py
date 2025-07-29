@@ -2,34 +2,33 @@ from fastapi import APIRouter, Body, Depends, Request, Response, HTTPException, 
 from fastapi.encoders import jsonable_encoder
 from typing import List
 from pydantic import BaseModel
-from app.dspy_files.NewsAnalysisTool import NewsAnalysisTool
+from app.dspy_files.newsAnalysis import run_full_analysis_from_url
 from app.models.iuu_models import IncidentReport
-import app.incident_logic 
-
+import app.incident_logic
 
 router = APIRouter()
+
 
 def get_news_analysis_tool():
     return app.incident_logic.news_analysis_service
 
+
 class URLRequest(BaseModel):
     url: str
 
-@router.post("/incidents", response_model=IncidentReport)
-async def create_incident_report(
-    request: URLRequest,
-    tool: NewsAnalysisTool = Depends(get_news_analysis_tool)
-):
-    """
-    Creates, saves, and returns a new incident report from a URL.
-    """
 
-    
-    report_object = await app.incident_logic.analyze_url_for_report(request.url, tool)
-    
-    throw_exception(report_object)
+@router.post("/incidents", response_model=IncidentReport, status_code=201)
+async def create_incident_report(request: URLRequest):
+    """
+    Submits a URL for analysis and saves the resulting incident report to database.
+    """
+    saved_report = await app.incident_logic.create_report_from_url(request.url)
 
-    saved_report = await app.incident_logic.save_report(report_object)
+    if not saved_report:
+        raise HTTPException(
+            status_code=422,
+            detail="Failed to process the URL or save the report. The source may be invalid or no relevant information was found.",
+        )
 
     return saved_report
 
@@ -68,6 +67,7 @@ def throw_exception(response: IncidentReport):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve incident report.",
         )
+
 
 @router.get("/test")
 async def test_route():
