@@ -1,4 +1,4 @@
-from external_apis import get_name_pairs
+from app.dspy_files.external_apis import get_name_pairs
 from pypdf import PdfReader
 import pytesseract
 import pandas as pd

@@ -2,15 +2,15 @@ from fastapi import APIRouter, Body, Depends, Request, Response, HTTPException, 
 from fastapi.encoders import jsonable_encoder
 from typing import List
 from pydantic import BaseModel
-from app.dspy.NewsAnalysisTool import NewsAnalysisTool
+from app.dspy_files.NewsAnalysisTool import NewsAnalysisTool
 from app.models.iuu_models import IncidentReport
-import incident_logic 
+import app.incident_logic 
 
 
 router = APIRouter()
 
 def get_news_analysis_tool():
-    return incident_logic.news_analysis_service
+    return app.incident_logic.news_analysis_service
 
 class URLRequest(BaseModel):
     url: str
@@ -24,11 +24,12 @@ async def create_incident_report(
     Creates, saves, and returns a new incident report from a URL.
     """
 
-    report_object = await incident_logic.analyze_url_for_report(request.url, tool)
-
+    
+    report_object = await app.incident_logic.analyze_url_for_report(request.url, tool)
+    
     throw_exception(report_object)
 
-    saved_report = await incident_logic.insert_report(report_object)
+    saved_report = await app.incident_logic.save_report(report_object)
 
     return saved_report
 
@@ -56,7 +57,7 @@ def throw_exception(response: IncidentReport):
     """
     Helper function to throw an exception if the response is not valid.
     """
-    if not respose:
+    if not response:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Incident report not found.",

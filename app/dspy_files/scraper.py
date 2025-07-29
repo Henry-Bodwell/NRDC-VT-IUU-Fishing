@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup, Comment, Tag
 from typing import List, Set
 import dspy
-from signatures import CleanArticleContent
+from app.dspy_files.signatures import CleanArticleContent
 from app.models.article_models import ArticleData
 
 
@@ -228,7 +228,7 @@ class ArticleExtractionPipeline:
                     return title
         return None
 
-    def process_url(self, url: str) -> ArticleData:
+    async def process_url(self, url: str) -> ArticleData:
         """Main pipeline: URL -> Filtered HTML -> Clean Text"""
 
         try:
@@ -253,7 +253,7 @@ class ArticleExtractionPipeline:
 
             try:
                 print("Processing with DSPy...")
-                result = self.cleaner(filtered_html=filtered_html)
+                result = await self.cleaner.acall(filtered_html=filtered_html)
                 clean_content = result.clean_article
                 print("DSPy processing complete")
             except Exception as e:

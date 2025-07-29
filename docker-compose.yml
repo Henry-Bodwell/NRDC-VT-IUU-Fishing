@@ -7,7 +7,8 @@ services:
     volumes:
       - ./app:/code/app
     environment:
-      - MONGO_URI=mongodb://mongo:27017/iuuIncidents?authSource=admin
+      - MONGO_URI=mongodb://mongo:27017/iuuIncidents
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - mongo
   mongo:

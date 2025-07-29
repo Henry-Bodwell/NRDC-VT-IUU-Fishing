@@ -1,5 +1,5 @@
 import dspy
-from signatures import (
+from app.dspy_files.signatures import (
     TextToStructuredData,
     StructuredDataToClassification,
     IndustryOverviewSignature,
@@ -16,18 +16,18 @@ class IncidentAnalysisModule(dspy.Module):
         self.extractor = dspy.ChainOfThought(TextToStructuredData)
         self.classifier = dspy.ChainOfThought(StructuredDataToClassification)
 
-    def forward(self, intake: BaseIntake) -> dict:
+    async def aforward(self, intake: BaseIntake) -> dict:
         """
         Extract structured information from the article text and classify the incident.
         """
         try:
             # Extract structured information
-            extraction = self.extractor(intake=intake)
+            extraction = await self.extractor.acall(intake=intake)
 
             structured_data_output = extraction.extracted_data
 
             # Classify the incident
-            classification_pred = self.classifier(
+            classification_pred = await self.classifier.acall(
                 incident_summary=structured_data_output.description,
                 structured_data=structured_data_output.model_dump_json(),
             )
@@ -51,12 +51,12 @@ class IndustryOverviewModule(dspy.Module):
         super().__init__()
         self.extractor = dspy.ChainOfThought(IndustryOverviewSignature)
 
-    def forward(self, intake: BaseIntake) -> dict:
+    async def aforward(self, intake: BaseIntake) -> dict:
         """
         Extract structured information from the industry overview article text.
         """
         try:
-            extraction = self.extractor(intake=intake)
+            extraction = await self.extractor.acall(intake=intake)
 
             return {
                 "url": intake.url,

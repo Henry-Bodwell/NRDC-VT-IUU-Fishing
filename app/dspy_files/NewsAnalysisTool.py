@@ -3,10 +3,10 @@ import json
 from dotenv import dotenv_values
 from app.models.article_models import BaseIntake
 from app.models.iuu_models import IncidentReport
-from modules import IncidentAnalysisModule, IndustryOverviewModule
-from signatures import ArticleClassificationSignature
-import functions as fn
-from scraper import ArticleExtractionPipeline
+from app.dspy_files.modules import IncidentAnalysisModule, IndustryOverviewModule
+from app.dspy_files.signatures import ArticleClassificationSignature
+import app.dspy_files.functions as fn
+from app.dspy_files.scraper import ArticleExtractionPipeline
 
 
 class NewsAnalysisTool:
@@ -23,7 +23,7 @@ class NewsAnalysisTool:
         self.industryOverviewTool = IndustryOverviewModule()
         self.optimized_analysisTool = None
 
-    def extract_from_text(
+    async def extract_from_text(
         self, article_text: str, url: str = ""
     ) -> dspy.Prediction | None:
         """
@@ -34,9 +34,10 @@ class NewsAnalysisTool:
         try:
             intake = BaseIntake(url=url, article_text=article_text)
 
-            classification_result = self.articleClassificationTool(
+            classification_pred = await self.articleClassificationTool.acall(
                 intake=intake
-            ).classification
+            )
+            classification_result = classification_pred.classification
 
             # --- Check the classification type ---
             if classification_result.articleType == "Unrelated to IUU Fishing":
@@ -54,7 +55,7 @@ class NewsAnalysisTool:
             elif classification_result.articleType == "Industry Overview":
                 print(f"Article is Industry Overview. Running specialized extraction.")
                 # TODO: Replace with your industry overview extraction tool
-                prediction = self.industryOverviewTool(intake=intake)
+                prediction = await self.industryOverviewTool.acall(intake=intake)
                 return prediction
 
             else:
@@ -63,29 +64,31 @@ class NewsAnalysisTool:
                 print(
                     f"Article type {classification_result.articleType} detected. Running incident analysis."
                 )
-                prediction = self.analysisTool(intake=intake)
+                prediction = await self.analysisTool.acall(intake=intake)
                 return prediction
 
         except Exception as e:
             print(f"Error in extract_from_text: {e}")
             return None
 
-    def extract_from_url(self, url: str) -> dspy.Prediction:
+    async def extract_from_url(self, url: str) -> dspy.Prediction:
         """Extract structured information from a news article at the given URL."""
-        article_text = self.scraper.process_url(url=url).clean_content
-        return self.extract_from_text(article_text, url)
+        article_object = await self.scraper.process_url(url=url)
 
-    def extract_from_pdf(self, pdf_path: str) -> dspy.Prediction:
+        article_text = article_object.clean_content
+        return await self.extract_from_text(article_text, url)
+
+    async def extract_from_pdf(self, pdf_path: str) -> dspy.Prediction:
         """Extract structured information from a PDF file."""
         text = fn.read_pdf(pdf_path)
-        return self.extract_from_text(text)
+        return await self.extract_from_text(text)
 
-    def extract_from_image(
+    async def extract_from_image(
         self, image_path: str, language: str = "eng"
     ) -> dspy.Prediction:
         """Extract structured information from an image file."""
         text = fn.read_image(image_path, language=language)
-        return self.extract_from_text(text)
+        return await self.extract_from_text(text)
 
     def format_results(self, analysis_output: dict) -> IncidentReport:
 
@@ -110,7 +113,7 @@ class NewsAnalysisTool:
                 analysis_output.get("classification", None)
             ),
         }
-        return final_results
+        return IncidentReport(**final_results)
 
     def verify_results(self, formatted_results: IncidentReport) -> IncidentReport:
         """
@@ -162,12 +165,12 @@ class NewsAnalysisTool:
 
         return formatted_results
 
-    def extract_and_verify(self, url: str) -> IncidentReport:
+    async def extract_and_verify(self, url: str) -> IncidentReport:
         """
         Extract structured information from a news article at the given URL and verify the scientific name.
         Returns a dictionary with the extraction results and a boolean verification status.
         """
-        analysis_output = self.extract_from_url(url)
+        analysis_output = await self.extract_from_url(url)
         if not analysis_output:
             return {
                 "error": "No relevant information extracted from the article."
@@ -191,6 +194,7 @@ class NewsAnalysisTool:
                 return formatted_results
             else:
                 formatted_results = self.verify_results(formatted_results)
+                # print(formatted_results)
                 return formatted_results
         else:
             print(
