@@ -1,28 +1,30 @@
 from fastapi import APIRouter, Body, Depends, Request, Response, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from typing import List
-
+from pydantic import BaseModel
 from app.dspy.NewsAnalysisTool import NewsAnalysisTool
-from models.iuu_models import IncidentReport
-from app.crud import incident_logic
+from app.models.iuu_models import IncidentReport
+import incident_logic 
 
 
 router = APIRouter()
 
-
 def get_news_analysis_tool():
     return incident_logic.news_analysis_service
 
+class URLRequest(BaseModel):
+    url: str
 
 @router.post("/incidents", response_model=IncidentReport)
 async def create_incident_report(
-    url: str, tool: NewsAnalysisTool = Depends(get_news_analysis_tool)
+    request: URLRequest,
+    tool: NewsAnalysisTool = Depends(get_news_analysis_tool)
 ):
     """
     Creates, saves, and returns a new incident report from a URL.
     """
 
-    report_object = await incident_logic.analyze_url_for_report(url, tool)
+    report_object = await incident_logic.analyze_url_for_report(request.url, tool)
 
     throw_exception(report_object)
 
@@ -50,7 +52,7 @@ async def get_incident_report(report_id: str):
     return report
 
 
-def throw_exception(respose: IncidentReport):
+def throw_exception(response: IncidentReport):
     """
     Helper function to throw an exception if the response is not valid.
     """
@@ -60,8 +62,12 @@ def throw_exception(respose: IncidentReport):
             detail="Incident report not found.",
         )
 
-    if not isinstance(respose, IncidentReport):
+    if not isinstance(response, IncidentReport):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve incident report.",
         )
+
+@router.get("/test")
+async def test_route():
+    return {"message": "Router is working!"}

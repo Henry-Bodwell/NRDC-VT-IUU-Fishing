@@ -4,4 +4,5 @@ fastapi==0.116.1
 pydantic==2.11.7
 python-dotenv==1.1.1
 Requests==2.32.4
+dspy-ai==2.4.12
 uvicorn[standard]

@@ -1,24 +1,20 @@
+
 services:
   backend:
     build: .
     ports:
       - "8000:8000"
     volumes:
-      - ./app:/app
+      - ./app:/code/app
     environment:
-      - MONGO_URI=mongodb://${MONGO_DB_USER}:${MONGO_DB_PW}@mongo:27017/iuuIncidents?authSource=admin
+      - MONGO_URI=mongodb://mongo:27017/iuuIncidents?authSource=admin
     depends_on:
       - mongo
-
   mongo:
     image: mongodb/mongodb-community-server:latest
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PW}
-
 volumes:
   mongo-data:
