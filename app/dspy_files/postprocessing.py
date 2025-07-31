@@ -1,5 +1,5 @@
 import dspy
-from app.models.iuu_models import IncidentReport
+from app.models.incidents import IncidentReport
 import app.dspy_files.functions as fn
 
 
@@ -20,6 +20,7 @@ def format_report(prediction: dspy.Prediction) -> IncidentReport | None:
     report_data = {
         "source": {
             "url": getattr(prediction, "url", None),
+            "language": getattr(prediction, "language", None),
             "article_text": getattr(prediction, "article_text", None),
         },
         "extracted_information": _convert_to_dict(

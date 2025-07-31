@@ -6,7 +6,7 @@ from app.dspy_files.config import setup_dspy
 from app.dspy_files.content_extraction import ContentExtractor
 from app.dspy_files.pipeline import AnalysisPipeline
 from app.dspy_files.postprocessing import format_report, verify_species_in_report
-from app.models.iuu_models import IncidentReport
+from app.models.incidents import IncidentReport
 
 
 async def run_full_analysis_from_url(url: str) -> IncidentReport | None:

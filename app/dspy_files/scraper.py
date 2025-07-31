@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup, Comment, Tag
 from typing import List, Set
 import dspy
 from app.dspy_files.signatures import CleanArticleContent
-from app.models.article_models import ArticleData
+from app.models.articles import ArticleData
 
 
 class ContentFilter:

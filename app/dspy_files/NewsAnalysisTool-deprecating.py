@@ -1,8 +1,8 @@
 import dspy
 import json
 from dotenv import dotenv_values
-from app.models.article_models import BaseIntake
-from app.models.iuu_models import IncidentReport
+from app.models.articles import BaseIntake
+from app.models.incidents import IncidentReport
 from app.dspy_files.modules import IncidentAnalysisModule, IndustryOverviewModule
 from app.dspy_files.signatures import ArticleClassificationSignature
 import app.dspy_files.functions as fn

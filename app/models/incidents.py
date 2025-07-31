@@ -1,8 +1,10 @@
 from typing import List, Literal
 from beanie import Document
 from pydantic import BaseModel, Field
-from app.models.article_models import BaseIntake
+from app.models.articles import BaseIntake
 from datetime import datetime, timezone
+
+from app.models.logs import LogMixin
 
 
 # Pydantic models
@@ -568,11 +570,10 @@ class IndustryOverviewExtract(BaseModel):
     summary: str = Field(description="Summary of the industry overview article.")
 
 
-class IncidentReport(Document):
+class IncidentReport(Document, LogMixin):
     source: BaseIntake
     extracted_information: ExtractedIncidentData
     incident_classification: IncidentClassification
-    dateUpdated: datetime = datetime.now(timezone.utc)
 
     class Settings:
         name = "incidents"

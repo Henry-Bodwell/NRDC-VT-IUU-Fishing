@@ -17,3 +17,4 @@ class BaseIntake(BaseModel):
     article_text: str = Field(
         ..., description="Text content of the article to analyze."
     )
+    language: str = Field(..., description="Language of the article")

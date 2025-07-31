@@ -1,7 +1,7 @@
 import os
 from pymongo import AsyncMongoClient
 from beanie import init_beanie
-from app.models.iuu_models import IncidentReport
+from app.models.incidents import IncidentReport
 
 
 MONGO_URI = os.getenv("MONGO_URI")

@@ -4,7 +4,7 @@ from app.dspy_files.signatures import (
     StructuredDataToClassification,
     IndustryOverviewSignature,
 )
-from app.models.iuu_models import BaseIntake
+from app.models.incidents import BaseIntake
 
 
 class IncidentAnalysisModule(dspy.Module):

@@ -1,5 +1,5 @@
 import dspy
-from app.models.article_models import BaseIntake
+from app.models.articles import BaseIntake
 from app.dspy_files.modules import IncidentAnalysisModule, IndustryOverviewModule
 from app.dspy_files.signatures import ArticleClassificationSignature
 

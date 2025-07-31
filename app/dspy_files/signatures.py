@@ -1,5 +1,5 @@
 import dspy
-from app.models.iuu_models import (
+from app.models.incidents import (
     BaseIntake,
     ExtractedIncidentData,
     IncidentClassification,
