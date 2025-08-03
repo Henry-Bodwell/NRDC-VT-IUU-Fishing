@@ -62,7 +62,7 @@ class LogMixin:
     async def _log_insert(self):
         """Log an insert operation"""
         log_entry = Log(
-            document_id=self.id,
+            document_id=PydanticObjectId(self.id),
             collection_name=self.__class__.Settings.name,
             operation="insert",
             before_state=None,
@@ -86,7 +86,7 @@ class LogMixin:
 
         if changes or not self._original_state:
             log_entry = Log(
-                document_id=self.id,
+                document_id=PydanticObjectId(self.id),
                 collection_name=self.__class__.Settings.name,
                 operation="update",
                 changes=changes if changes else None,
@@ -106,7 +106,7 @@ class LogMixin:
     async def _log_delete(self):
         """log delete operation"""
         log_entry = Log(
-            document_id=self.id,
+            document_id=PydanticObjectId(self.id),
             collection_name=self.__class__.Settings.name,
             operation="delete",
             before_state=self._original_state,
