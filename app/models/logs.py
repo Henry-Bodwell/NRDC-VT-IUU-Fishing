@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 from beanie import (
     Document,
     Insert,
@@ -26,9 +27,9 @@ class Log(Document):
     operation: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    changes: dict[str, dict[str, any]] | None = Field(default=None)
-    before_state: dict[str, any] | None = Field(default=None)
-    after_state: dict[str, any] | None = Field(default=None)
+    changes: dict[str, dict[str, Any]] | None = Field(default=None)
+    before_state: dict[str, Any] | None = Field(default=None)
+    after_state: dict[str, Any] | None = Field(default=None)
 
     context: LogContext | None = Field(default=None)
 
@@ -38,10 +39,10 @@ class Log(Document):
 
 
 class LogMixin:
-    """Mixing to add loigging to any given model"""
+    """Mixing to add loigging to Any given model"""
 
     _log_context: LogContext | None = Field(default=None)
-    _original_state: dict[str, any] = Field(default=None)
+    _original_state: dict[str, Any] = Field(default=None)
 
     def set_log_context(self, context: LogContext) -> None:
         """Set the log context for this operation"""
