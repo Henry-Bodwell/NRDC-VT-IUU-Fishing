@@ -14,7 +14,6 @@ from pydantic import BaseModel, ValidationError
 from app.models.incidents import IncidentReport
 from app.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
-from beanie.exceptions import DuplicateKeyError as BeanieDuplicateKeyError
 
 router = APIRouter()
 
@@ -49,7 +48,7 @@ async def create_incident_report(request: Request):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.errors()
             )
-        except (DuplicateKeyError, BeanieDuplicateKeyError) as e:
+        except DuplicateKeyError as e:
             if url_payload:
                 exist = await IncidentReport.find_one(
                     IncidentReport.source.url == url_payload.url
