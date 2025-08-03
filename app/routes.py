@@ -13,6 +13,8 @@ from typing import List
 from pydantic import BaseModel, ValidationError
 from app.models.incidents import IncidentReport
 from app.incident_service import IncidentService
+from pymongo.errors import DuplicateKeyError
+from beanie.exceptions import DuplicateKeyError as BeanieDuplicateKeyError
 
 router = APIRouter()
 
@@ -29,9 +31,9 @@ async def create_incident_report(request: Request):
     content_type = request.headers.get("content-type")
 
     if content_type == "application/json":
+        url_payload = None  # Initialize to avoid UnboundLocalError
         try:
             json_payload = await request.json()
-
             url_payload = URLRequest(**json_payload)
             saved_report = await IncidentService.create_report_from_url(url_payload)
 
@@ -41,10 +43,32 @@ async def create_incident_report(request: Request):
                     detail="Failed to process the URL or save the report. The source may be invalid or no relevant information was found.",
                 )
 
-            return {"status": "sucess", "report": saved_report.model_dump}
+            return {"status": "success", "report": saved_report.model_dump()}
+
         except ValidationError as e:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.errors()
+            )
+        except (DuplicateKeyError, BeanieDuplicateKeyError) as e:
+            if url_payload:
+                exist = await IncidentReport.find_one(
+                    IncidentReport.source.url == url_payload.url
+                )
+                if exist:
+                    return {
+                        "status": "duplicate",
+                        "report": exist.model_dump(),
+                        "message": "Incident report already exists for this URL.",
+                    }
+            raise HTTPException(
+                status_code=409,
+                detail="Duplicate key error occurred but could not find existing document.",
+            )
+        except Exception as e:
+            print(f"Unexpected error in create_incident_report: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="An unexpected error occurred while processing the request.",
             )
     elif content_type and content_type.startswith("multipart/form-data"):
         form = await request.form()

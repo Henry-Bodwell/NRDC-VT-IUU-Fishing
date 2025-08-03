@@ -45,7 +45,6 @@ class AnalysisPipeline:
                 return dspy.Prediction(
                     url=module_output.get("url"),
                     article_text=module_output.get("article_text"),
-                    # This module doesn't have its own classifier, so we use the pipeline's classification.
                     classification=classification_result,
                     parsed_data=module_output.get("parsed_data"),
                 )
@@ -56,8 +55,6 @@ class AnalysisPipeline:
                 return dspy.Prediction(
                     url=module_output.get("url"),
                     article_text=module_output.get("article_text"),
-                    # Your IncidentAnalysisModule provides its own, more detailed classification.
-                    # We should use that one.
                     classification=module_output.get("classification"),
                     parsed_data=module_output.get("parsed_data"),
                 )

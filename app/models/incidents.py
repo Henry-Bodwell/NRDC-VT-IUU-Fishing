@@ -1,6 +1,7 @@
 from typing import List, Literal
 from beanie import Document
 from pydantic import BaseModel, Field
+from pymongo import HASHED, IndexModel
 from app.models.articles import BaseIntake
 from datetime import datetime, timezone
 
@@ -577,3 +578,7 @@ class IncidentReport(Document, LogMixin):
 
     class Settings:
         name = "incidents"
+        indexes = [
+            IndexModel([("source.url", 1)], unique=True),
+            IndexModel([("source.article_hash", 1)], unique=True),
+        ]

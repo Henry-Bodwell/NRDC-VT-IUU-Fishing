@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 from beanie import init_beanie
 from dotenv import dotenv_values
 from pymongo import AsyncMongoClient
@@ -22,6 +23,19 @@ async def run_full_analysis_from_url(url: str) -> IncidentReport | None:
         article_text, source_url = await extractor.from_url(url)
     except Exception as e:
         print(f"Failed to extract content from {url}: {e}")
+        return None
+
+    article_hash = hashlib.sha256(article_text.encode()).hexdigest()
+    try:
+        text_exists = await IncidentReport.find(
+            IncidentReport.source.article_hash == article_hash
+        ).first_or_none()
+
+        if text_exists:
+            print("Article text already exists in the database. Skipping analysis.")
+            return text_exists
+    except Exception as e:
+        print(f"Error checking for existing article text: {e}")
         return None
 
     # 3. Run analysis
