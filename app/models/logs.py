@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from beanie import (
     Document,
     Insert,
+    PydanticObjectId,
     Replace,
     SaveChanges,
     Delete,
@@ -9,7 +10,6 @@ from beanie import (
     after_event,
 )
 from pydantic import BaseModel, Field
-from bson import ObjectId
 
 
 class LogContext(BaseModel):
@@ -21,7 +21,7 @@ class LogContext(BaseModel):
 
 
 class Log(Document):
-    document_id: ObjectId
+    document_id: PydanticObjectId
     collection_name: str
     operation: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
