@@ -58,14 +58,12 @@ async def _handle_url_request(request: Request, context_data: dict) -> dict:
         url_payload = URLRequest(**json_payload)
 
         # Check for existing report first (optional - depends on your business logic)
-        existing_report = await _check_for_existing_url_report(url_payload.url)
-        if existing_report:
+        existing_source = await _check_for_existing_url(url_payload.url)
+        if existing_source:
+            logger.error(f"Duplicate key error: {e}")
             return {
                 "status": "duplicate",
-                "report": existing_report.model_dump(
-                    exclude={"sources": {"__all__": {"incidents"}}}
-                ),
-                "message": "Source already exists for this URL.",
+                "message": "Source already exists for {url_payload.url}: {existing_source.id}",
             }
 
         # Create new report using the service
@@ -76,12 +74,10 @@ async def _handle_url_request(request: Request, context_data: dict) -> dict:
                 status_code=422,
                 detail="Failed to process the URL or save the report. The source may be invalid or no relevant information was found.",
             )
-
+        logger.info(f"Incident report created: {saved_report.id}")
         return {
             "status": "success",
-            "report": saved_report.model_dump(
-                exclude={"sources": {"__all__": {"incidents"}}}
-            ),
+            "report": str(saved_report.id),
             "message": "Incident report created successfully.",
         }
 
@@ -91,25 +87,24 @@ async def _handle_url_request(request: Request, context_data: dict) -> dict:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.errors()
         )
     except DuplicateKeyError as e:
-        logger.error(f"Duplicate key error: {e}")
-        # Try to find and return existing document
-        if "url_payload" in locals():
-            existing = await _check_for_existing_url_report(url_payload.url)
-            if existing:
+        logger.error(f"Unexpected duplicate key error (race condition?): {e}")
+        try:
+            existing_source = await _check_for_existing_url(url_payload.url)
+            if existing_source:
                 return {
                     "status": "duplicate",
-                    "report": existing_report.model_dump(
-                        exclude={"sources": {"__all__": {"incidents"}}}
-                    ),
-                    "message": "Incident report already exists for this URL.",
+                    "message": f"Source already exists for {url_payload.url} (created by concurrent request)",
                 }
+        except Exception as lookup_error:
+            logger.error(
+                f"Failed to lookup existing document after duplicate key error: {lookup_error}"
+            )
 
         raise HTTPException(
             status_code=409,
-            detail="Duplicate key error occurred but could not find existing document.",
+            detail="Duplicate key error occurred due to concurrent processing.",
         )
     except HTTPException:
-        # Re-raise HTTP exceptions from the service
         raise
     except Exception as e:
         logger.error(f"Unexpected error in URL request: {e}", exc_info=True)
@@ -145,7 +140,7 @@ async def _handle_file_request(request: Request, context_data: dict) -> dict:
 
         return {
             "status": "success",
-            "report": result.model_dump() if hasattr(result, "model_dump") else result,
+            "report": result,
             "message": "File processed successfully.",
         }
 
@@ -160,7 +155,7 @@ async def _handle_file_request(request: Request, context_data: dict) -> dict:
         )
 
 
-async def _check_for_existing_url_report(url: str) -> Source | None:
+async def _check_for_existing_url(url: str) -> Source | None:
     """
     Check if a report already exists for the given URL.
     Adjust this query based on your actual data model structure.

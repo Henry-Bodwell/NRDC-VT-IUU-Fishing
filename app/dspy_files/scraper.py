@@ -6,6 +6,10 @@ from typing import List, Set
 import dspy
 from app.dspy_files.signatures import CleanArticleContent
 from app.models.articles import Source
+from app.dspy_files.config import setup_dspy
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ContentFilter:
@@ -86,10 +90,10 @@ class ContentFilter:
         self, stage_name: str, soup: BeautifulSoup, last_successful_html: str, action
     ) -> str:
         """Helper to run a filtering stage and check the result."""
-        print(f"Running Stage: {stage_name}...")
+        logger.info(f"Running Stage: {stage_name}...")
         action(soup)
         if len(soup.get_text(strip=True)) < self.MIN_CONTENT_LENGTH:
-            print(f"Stage '{stage_name}' removed too much content. Reverting.")
+            logger.info(f"Stage '{stage_name}' removed too much content. Reverting.")
             return last_successful_html
         return str(soup)
 
@@ -145,7 +149,7 @@ class ContentFilter:
         soup_copy = BeautifulSoup(last_successful_html, "html.parser")
 
         # --- Final Processing on the best result we have so far ---
-        print("Filtering complete. Preparing final HTML for LLM.")
+        logger.info("Filtering complete. Preparing final HTML for LLM.")
         body = soup_copy.find("body")
         if not body:
             return original_html  # Should be very rare
@@ -201,8 +205,7 @@ class ArticleExtractionPipeline:
         self.scraper = WebScraper()
         self.filter = ContentFilter()
 
-        self.lm = dspy.LM(model, api_key=api_key)
-        dspy.settings.configure(lm=self.lm)
+        self.lm = setup_dspy(model=model, api_key=api_key)
         self.cleaner = dspy.ChainOfThought(CleanArticleContent)
 
     def extract_title(self, soup: BeautifulSoup) -> str | None:
@@ -233,12 +236,12 @@ class ArticleExtractionPipeline:
 
         try:
             # Step 1: Fetch the webpage
-            print(f"Fetching: {url}")
+            logger.info(f"Fetching: {url}")
             soup = self.scraper.fetch_page(url)
 
             # Step 2: Extract title
             title = self.extract_title(soup)
-            print(f"Title: {title}")
+            logger.info(f"Title: {title}")
 
             # Step 3: Filter content to textual HTML
             print("Filtering content...")
@@ -252,12 +255,12 @@ class ArticleExtractionPipeline:
             clean_content = filtered_html  # Fallback
 
             try:
-                print("Processing with DSPy...")
+                logger.info("Processing with DSPy...")
                 result = await self.cleaner.acall(filtered_html=filtered_html)
 
-                print("DSPy processing complete")
+                logger.info("DSPy processing complete")
             except Exception as e:
-                print(f"DSPy processing failed, using filtered HTML: {e}")
+                logger.warning(f"DSPy processing failed, using filtered HTML: {e}")
                 # Convert HTML to text as fallback
                 fallback_soup = BeautifulSoup(filtered_html, "html.parser")
                 clean_content = fallback_soup.get_text(separator="\n\n", strip=True)
@@ -277,12 +280,12 @@ class ArticleExtractionPipeline:
         results = []
 
         for i, url in enumerate(urls, 1):
-            print(f"\n--- Processing {i}/{len(urls)} ---")
+            logger.info(f"\n--- Processing {i}/{len(urls)} ---")
             try:
                 article = self.process_url(url)
                 results.append(article)
             except Exception as e:
-                print(f"Failed to process {url}: {e}")
+                logger.error(f"Failed to process {url}: {e}")
 
         return results
 

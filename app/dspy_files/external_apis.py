@@ -1,5 +1,8 @@
 import requests
 from urllib.parse import quote
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_taxon_cites(taxon_name: str, page: int, api_key: str) -> dict:
@@ -20,7 +23,7 @@ def fetch_taxon_cites(taxon_name: str, page: int, api_key: str) -> dict:
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        print(f"Error fetching data for {taxon_name}: {e}")
+        logger.error(f"Error fetching data for {taxon_name}: {e}")
         return {}
 
 
@@ -35,19 +38,21 @@ def fetch_all_cites_pages(taxon_name: str, api_key: str) -> dict:
         data = fetch_taxon_cites(taxon_name, current_page, api_key)
 
         if not data or "taxon_concepts" not in data:
-            print(f"No data returned for page {current_page}")
+            logger.warning(f"No data returned for page {current_page}")
             break
 
         if current_page == 1:
             total_entries = data.get("pagination", {}).get("total_entries", 0)
             if total_entries == 0:
-                print(f"No entries found for {taxon_name}.")
+                logger.warning(
+                    f"No entries found for {taxon_name} on page {current_page}."
+                )
                 break
-            print(f"Total entries to fetch: {total_entries}")
+            logger.info(f"Total entries to fetch: {total_entries}")
 
         page_taxa = data.get("taxon_concepts", [])
         all_taxon_concepts.extend(page_taxa)
-        print(f"Fetched page {current_page} with {len(page_taxa)} entries.")
+        logger.info(f"Fetched page {current_page} with {len(page_taxa)} entries.")
 
         if (
             len(page_taxa) < CITES_ENTRIES_PER_PAGE
@@ -65,7 +70,7 @@ def fetch_all_cites_pages(taxon_name: str, api_key: str) -> dict:
         },
         "taxon_concepts": all_taxon_concepts,
     }
-    print(
+    logger.info(
         f"Successfully merged {len(all_taxon_concepts)} taxon concepts from {current_page} pages"
     )
     return merged_response
@@ -88,7 +93,7 @@ def fetch_iucn_red_list(
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        print(f"Error fetching data for {taxon_name}: {e}")
+        logger.error(f"Error fetching data for {taxon_name}: {e}")
         return {}
 
 
@@ -102,12 +107,12 @@ def fetch_all_iucn_pages(taxon_rank: str, taxon_name: str, api_key: str) -> dict
         data = fetch_iucn_red_list(taxon_rank, taxon_name, current_page, api_key)
 
         if not data or "assessments" not in data:
-            print(f"No data returned for page {current_page}")
+            logger.warning(f"No data returned for page {current_page}")
             break
 
         page_assements = data.get("assessments", [])
         all_assessments.extend(page_assements)
-        print(f"Fetched page {current_page} with {len(page_assements)} entries.")
+        logger.info(f"Fetched page {current_page} with {len(page_assements)} entries.")
 
         if len(page_assements) < IUCN_ENTRIES_PER_PAGE:
             break
@@ -121,7 +126,9 @@ def fetch_all_iucn_pages(taxon_rank: str, taxon_name: str, api_key: str) -> dict
         },
         "result": all_assessments,
     }
-    print(f"Successfully merged {len(all_assessments)} taxa from {current_page} pages")
+    logger.info(
+        f"Successfully merged {len(all_assessments)} taxa from {current_page} pages"
+    )
     return merged_response
 
 
@@ -140,7 +147,7 @@ def fetch_IUCN_by_scientific_name(scientific_name: str, api_key: str) -> dict:
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        print(f"Error fetching data for {scientific_name}: {e}")
+        logger.error(f"Error fetching data for {scientific_name}: {e}")
         return {}
 
 
@@ -156,7 +163,7 @@ def fetch_scientific_name(common_name: str) -> dict:
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        print(f"Error fetching scientific name for {common_name}: {e}")
+        logger.error(f"Error fetching scientific name for {common_name}: {e}")
         return {}
 
 
@@ -164,7 +171,7 @@ def get_name_pairs(common_name: str) -> list:
     """Fetch a list of scientific and common name pairs for a given common name fragment."""
     response = fetch_scientific_name(common_name)
     if not response:
-        print(f"No data found for common name: {common_name}")
+        logger.warning(f"No data found for common name: {common_name}")
         return []
     species_list = response["sci_names_and_ids"]
     name_pairs = [
@@ -203,7 +210,7 @@ def get_articles_by_date(
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        print(f"Error fetching articles: {e}")
+        logger.error(f"Error fetching articles: {e}")
         return {}
 
 
@@ -219,21 +226,21 @@ def get_all_articles_by_date(
         data = get_articles_by_date(api_key, keywords, from_date, to_date, current_page)
 
         if not data or "articles" not in data:
-            print(f"No data returned for page {current_page}")
+            logger.warning(f"No data returned for page {current_page}")
             break
 
         if current_page == 1:
             total_results = data.get("totalResults", 0)
             if total_results == 0:
-                print(
+                logger.warning(
                     f"No articles found for {keywords} from {from_date} to {to_date}."
                 )
                 break
-            print(f"Total articles to fetch: {total_results}")
+            logger.info(f"Total articles to fetch: {total_results}")
 
         page_articles = data.get("articles", [])
         all_articles.extend(page_articles)
-        print(f"Fetched page {current_page} with {len(page_articles)} articles.")
+        logger.info(f"Fetched page {current_page} with {len(page_articles)} articles.")
 
         if len(page_articles) < 100 or len(all_articles) >= total_results:
             break
@@ -254,5 +261,7 @@ def get_all_articles_by_date(
         },
         "articles": all_articles,
     }
-    print(f"Successfully merged {len(all_articles)} articles from {current_page} pages")
+    logger.info(
+        f"Successfully merged {len(all_articles)} articles from {current_page} pages"
+    )
     return merged_response

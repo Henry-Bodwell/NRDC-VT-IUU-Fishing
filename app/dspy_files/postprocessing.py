@@ -1,6 +1,9 @@
 import dspy
 from app.models.incidents import IncidentReport
 import app.dspy_files.functions as fn
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _convert_to_dict(obj):
@@ -34,7 +37,7 @@ def verify_species_in_report(report: IncidentReport) -> IncidentReport:
     Modifies the report in-place by adding a 'verified' flag to each species.
     """
     if not report or not report.extracted_information:
-        print("Warning: No extracted information to verify.")
+        logger.warning("No extracted information to verify.")
         return report
 
     species_list = report.extracted_information.speciesInvolved
@@ -57,9 +60,9 @@ def verify_species_in_report(report: IncidentReport) -> IncidentReport:
         try:
             is_verified = fn.verify_sci_name(common_name, sci_name)
             species["verified"] = is_verified
-            print(f"Verified {common_name} -> {sci_name}: {is_verified}")
+            logger.info(f"Verified {common_name} -> {sci_name}: {is_verified}")
         except Exception as e:
-            print(f"Could not verify {common_name}: {e}")
+            logger.error(f"Could not verify {common_name}: {e}")
             species["verified"] = False
 
     return report

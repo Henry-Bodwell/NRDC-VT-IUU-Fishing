@@ -76,12 +76,6 @@ class Source(Document):
             IndexModel([("article_text", "text")]),
         ]
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str,
-        }
-
     @before_event([Insert, Replace])
     def generate_hash(self):
         """Generate article hash before saving"""

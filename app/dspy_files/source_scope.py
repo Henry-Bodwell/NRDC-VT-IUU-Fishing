@@ -1,6 +1,9 @@
 import dspy
 from app.models.articles import Source
 from app.dspy_files.signatures import ArticleClassificationSignature
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SourceScope:
@@ -13,7 +16,7 @@ class SourceScope:
         """
         try:
             if source.article_scope:
-                print(
+                logger.info(
                     f"Article from '{source.url}' already classified as: {source.article_scope.articleType}"
                 )
                 return source
@@ -21,8 +24,8 @@ class SourceScope:
             classification_pred = await self.classification_tool.acall(intake=source)
             source.article_scope = classification_pred.classification
 
-            print(f"Article classified as: {source.article_scope.articleType} ")
+            logger.info(f"Article classified as: {source.article_scope.articleType} ")
             return source
         except Exception as e:
-            print(f"Error during source pipeline for '{source.url}': {e}")
+            logger.error(f"Error during source pipeline for '{source.url}': {e}")
             raise

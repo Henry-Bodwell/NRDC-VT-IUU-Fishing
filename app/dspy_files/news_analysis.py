@@ -8,6 +8,10 @@ from app.dspy_files.postprocessing import format_report
 from app.models.articles import Source
 from app.models.incidents import IncidentReport, IndustryOverview
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PipelineResult(Enum):
     """Enum for pipeline result status"""
@@ -52,10 +56,10 @@ class AnalysisOrchestrator:
         incident = None
 
         try:
-            print(f"Starting analysis for: {url}")
+            logging.info(f"Starting analysis for: {url}")
             source = await self.extractor.from_url(url)
         except Exception as e:
-            print(f"Content Extraction failed for {url}: {e}")
+            logging.error(f"Content Extraction failed for {url}: {e}")
             return PipelineOutput(
                 status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
             )
@@ -68,7 +72,7 @@ class AnalysisOrchestrator:
                     error_message="Anaysis Pipeline returned no result",
                 )
         except Exception as e:
-            print(f"Analysis failed for {url}: {e}")
+            logging.error(f"Analysis failed for {url}: {e}")
             return PipelineOutput(
                 status=PipelineResult.FAILED_ANALYSIS,
                 source=source,
@@ -78,10 +82,10 @@ class AnalysisOrchestrator:
         try:
             scope = source.article_scope.articleType
             if scope == "Unrelated to IUU Fishing":
-                print(f"Article from {url} is unrelated to IUU fishing")
+                logger.warning(f"Article from {url} is unrelated to IUU fishing")
                 return PipelineOutput(status=PipelineResult.UNRELATED_CONTENT)
             elif scope == "Industry Overview":
-                print(f"Article from {url} is an industry overview")
+                logger.info(f"Article from {url} is an industry overview")
                 return PipelineOutput(
                     status=PipelineResult.SUCCESS,
                     source=source,
@@ -94,13 +98,14 @@ class AnalysisOrchestrator:
             elif scope in ["Single Incident", "Multiple Incidents"]:
                 incident = await self._process_incident_prediction(prediction, source)
                 if not incident:
+                    logger.error(f"Failed to process incident prediction for {url}")
                     return PipelineOutput(
                         status=PipelineResult.FAILED_FORMATTING,
                         source=source,
                         error_message="Failed to format incident report",
                     )
 
-                print(f"Successfully created incident report for {url}")
+                logger.info(f"Successfully created incident report for {url}")
                 return PipelineOutput(
                     status=PipelineResult.SUCCESS,
                     source=source,
@@ -108,7 +113,7 @@ class AnalysisOrchestrator:
                 )
 
         except Exception as e:
-            print(f"Error processing prediction for {e}")
+            logger.error(f"Error processing prediction for {e}")
             return PipelineOutput(
                 status=PipelineResult.FAILED_FORMATTING,
                 source=source,
@@ -121,13 +126,14 @@ class AnalysisOrchestrator:
         """Process incident prediction into IncidentReport"""
         try:
             # Format the raw prediction into a structured report
+            logger.info(f"Formatting report from source: {source.url}")
             incident = format_report(prediction)
             if not incident:
-                print("Failed to format prediction into incident report")
+                logger.error(f"Failed to format prediction into incident report")
                 return None
 
             return incident
 
         except Exception as e:
-            print(f"Error processing incident prediction: {e}")
+            logger.error(f"Error processing incident prediction: {e}")
             return None

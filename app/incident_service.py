@@ -3,6 +3,9 @@ from fastapi import File, HTTPException, status
 from app.models.incidents import IncidentReport
 from app.models.logs import LogContext
 from app.dspy_files.news_analysis import AnalysisOrchestrator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _filter_valid_fields(model_class, updates: dict) -> dict:
@@ -23,7 +26,7 @@ class IncidentService:
         #     source=context_data.get("source"),
         # )
 
-        print(f"Service: Starting analysis for URL: {url}")
+        logger.info(f"Incident Service: Starting analysis for URL: {url}")
         api = os.getenv("OPENAI_API_KEY")
         orchestrator = AnalysisOrchestrator(api_key=api)
         output = await orchestrator.run_full_analysis_from_url(url=url)
@@ -32,23 +35,33 @@ class IncidentService:
         report_object = output.incident
 
         if not source:
-            print(f"Service: Analysis failed to produce a source for URL: {url}")
+            logger.info(
+                f"Incident Service: Analysis failed to produce a source for URL: {url}"
+            )
             return None
 
         if not report_object:
-            print(f"Service: Analysis failed to produce a report for URL: {url}")
+            logger.error(
+                f"Incident Service: Analysis failed to produce a report for URL: {url}"
+            )
             return None
 
-        # report_object.set_log_context(context)
+        if output.status != "success":
+            logger.error(
+                f"Incident Service: Analysis failed for URL {url} with status {output.status}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Analysis failed with status: {output.status}: {output.error_message or 'No error message provided'}",
+            )
 
         try:
-
             await source.insert()
-            print(f"Service: Successfully saved source: {url}")
+            logger.info(f"Incident Service: Successfully saved source: {url}")
             await report_object.insert()
-            print(f"Service: Successfully saved report for URL: {url}")
+            logger.info(f"Incident Service: Successfully saved report for URL: {url}")
         except Exception as e:
-            print(f"Service: Database save failed for URL {url}: {e}")
+            logger.error(f"Incident Service: Database save failed for URL {url}: {e}")
             return None
         await report_object.add_source(source, is_primary=True)
         return report_object
@@ -61,7 +74,7 @@ class IncidentService:
             source=context_data.get("source"),
         )
 
-        print(f"Service: Starting analysis for file: {file.filename}")
+        logger.info(f"Incident Service: Starting analysis for file: {file.filename}")
         return {"status": "error", "detail": "not implemented yet"}
 
     @staticmethod
@@ -74,7 +87,9 @@ class IncidentService:
             source=context_data.get("source"),
         )
 
-        print(f"Service: Updating report {report_id} with data: {update_data}")
+        logger.info(
+            f"Incident Service: Updating report {report_id} with data: {update_data}"
+        )
 
         report = await IncidentReport.get(report_id)
         if not report:
@@ -92,9 +107,9 @@ class IncidentService:
 
         try:
             await report.save()
-            print(f"Service: Successfully updated report {report_id}")
+            logger.info(f"Incident Service: Successfully updated report {report_id}")
         except Exception as e:
-            print(f"Service: Update failed for report {report_id}: {e}")
+            logger.error(f"Incident Service: Update failed for report {report_id}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update the report.",
@@ -110,7 +125,7 @@ class IncidentService:
             source=context_data.get("source"),
         )
 
-        print(f"Service: Deleting report {report_id}")
+        logger.info(f"Incident Service: Deleting report {report_id}")
 
         report = await IncidentReport.get(report_id)
         if not report:
@@ -123,9 +138,11 @@ class IncidentService:
 
         try:
             await report.delete()
-            print(f"Service: Successfully deleted report {report_id}")
+            logger.info(f"Incident Service: Successfully deleted report {report_id}")
         except Exception as e:
-            print(f"Service: Deletion failed for report {report_id}: {e}")
+            logger.error(
+                f"Incident Service: Deletion failed for report {report_id}: {e}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete the report.",

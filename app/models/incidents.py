@@ -570,14 +570,6 @@ class IncidentReport(Document):
     class Settings:
         name = "incidents"
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str,
-        }
-        # Optional: avoid recursion on default dumps
-        serialize_default_exclude_unset = True
-
     @before_event([Insert, Replace])
     def generate_fingerprint(self):
         """Generate incident fingerprint before saving"""
@@ -676,5 +668,5 @@ class IncidentReponse(BaseModel):
         "failure",
         "duplicate",
     ]
-    report: IncidentReport | None = None
+    report: str | None = None
     message: str | None = None
