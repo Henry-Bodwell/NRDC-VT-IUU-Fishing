@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup, Comment, Tag
 from typing import List, Set
 import dspy
 from app.dspy_files.signatures import CleanArticleContent
-from app.models.articles import ArticleData
+from app.models.articles import Source
 
 
 class ContentFilter:
@@ -228,7 +228,7 @@ class ArticleExtractionPipeline:
                     return title
         return None
 
-    async def process_url(self, url: str) -> ArticleData:
+    async def process_url(self, url: str) -> Source:
         """Main pipeline: URL -> Filtered HTML -> Clean Text"""
 
         try:
@@ -254,28 +254,25 @@ class ArticleExtractionPipeline:
             try:
                 print("Processing with DSPy...")
                 result = await self.cleaner.acall(filtered_html=filtered_html)
-                clean_content = result.clean_article
+
                 print("DSPy processing complete")
             except Exception as e:
                 print(f"DSPy processing failed, using filtered HTML: {e}")
                 # Convert HTML to text as fallback
                 fallback_soup = BeautifulSoup(filtered_html, "html.parser")
                 clean_content = fallback_soup.get_text(separator="\n\n", strip=True)
+                result = Source(
+                    url=url,
+                    article_text=clean_content,
+                    article_title=title,
+                )
 
-            # Step 5: Create validated result
-            article_data = ArticleData(
-                url=url,
-                title=title,
-                raw_html=filtered_html,
-                clean_content=clean_content,
-            )
-
-            return article_data
+            return result
 
         except Exception as e:
             raise Exception(f"Pipeline failed for {url}: {str(e)}")
 
-    def process_multiple_urls(self, urls: List[str]) -> List[ArticleData]:
+    def process_multiple_urls(self, urls: List[str]) -> List[Source]:
         """Process multiple URLs"""
         results = []
 

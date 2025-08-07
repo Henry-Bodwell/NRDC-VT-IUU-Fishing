@@ -1,11 +1,13 @@
-from typing import List, Literal
-from beanie import Document
+from __future__ import annotations
+import hashlib
+from typing import TYPE_CHECKING, List, Literal
+from beanie import Document, Insert, Link, Replace, before_event
+from bson import ObjectId
 from pydantic import BaseModel, Field
-from pymongo import HASHED, IndexModel
-from app.models.articles import BaseIntake
-from datetime import datetime, timezone
-
 from app.models.logs import LogMixin
+
+if TYPE_CHECKING:
+    from app.models.articles import Source
 
 
 # Pydantic models
@@ -97,8 +99,8 @@ class EventData(BaseModel):
         ...,
         description="Categorize the primary event (e.g., 'Seizure', 'Arrest', 'Investigation Initiated', 'Fine Issued').",
     )
-    eventDate: str = Field(
-        ..., description="Date of the primary event (e.g., '2023-10-01')."
+    eventDate: str | None = Field(
+        default=None, description="Date of the primary event (e.g., '2023-10-01')."
     )
     eventLocation: str = Field(
         ...,
@@ -462,16 +464,6 @@ class DistributionData(BaseModel):
 class ExtractedIncidentData(BaseModel):
     """Model to represent the structured information extracted from an article about an IUU incident."""
 
-    scopeOfArticle: Literal[
-        "Single Incident",
-        "Multiple Incidents",
-        "Industry Overview",
-        "Unrelated to IUU Fishing",
-    ] = Field(
-        ...,
-        description="Is this about a single incident, multiple incidents, or an industry overview?",
-    )
-
     catchSourceInformation: CatchSourceData | None = Field(
         default=None,
         description="Structured information about the  catch involved in the incident.",
@@ -531,29 +523,8 @@ class IncidentClassification(BaseModel):
     )
 
 
-class ArticleScopeClassification(BaseModel):
-    """Model to represent the classification of an article."""
-
-    articleType: Literal[
-        "Single Incident",
-        "Multiple Incidents",
-        "Industry Overview",
-        "Unrelated to IUU Fishing",
-    ] = Field(
-        ...,
-        description="Type of article: Single Incident of IUU fishing, Discussing Multiple Incidents of IUU fishing, aGeneral Overview of the state of illegal fishing but not related to an explicit incident or unrelated to IUU fishing.",
-    )
-    confidence: float = Field(
-        ..., description="Confidence score for the classification, between 0 and 1."
-    )
-
-
 class IndustryOverviewExtract(BaseModel):
     """Model to represent the extraction of information from an industry overview article."""
-
-    scopeOfArticle: Literal["Industry Overview"] = Field(
-        description="Scope of the article, which is an industry overview."
-    )
 
     species: List[Species] = Field(
         ..., description="List of species mentioned in the overview."
@@ -571,14 +542,139 @@ class IndustryOverviewExtract(BaseModel):
     summary: str = Field(description="Summary of the industry overview article.")
 
 
-class IncidentReport(Document, LogMixin):
-    source: BaseIntake
+class IndustryOverview(Document, LogMixin):
+    """Model to represent an industry overview article."""
+
+    source: Link["Source"]
+    extracted_information: IndustryOverviewExtract
+
+    class Settings:
+        name = "industry_overviews"
+
+
+class IncidentReport(Document):
+    """Model to represent an incident report."""
+
+    incident_fingerprint: str | None = Field(
+        default=None, description="Unique fingerprint for the incident report"
+    )
+
+    sources: List[Link["Source"]] = Field(default_factory=list)
+    primary_source: Link["Source"] | None = Field(
+        default=None, description="Primary source of the incident report"
+    )
+
     extracted_information: ExtractedIncidentData
     incident_classification: IncidentClassification
 
     class Settings:
         name = "incidents"
-        indexes = [
-            IndexModel([("source.url", 1)], unique=True),
-            IndexModel([("source.article_hash", 1)], unique=True),
-        ]
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {
+            ObjectId: str,
+        }
+        # Optional: avoid recursion on default dumps
+        serialize_default_exclude_unset = True
+
+    @before_event([Insert, Replace])
+    def generate_fingerprint(self):
+        """Generate incident fingerprint before saving"""
+
+        if not self.incident_fingerprint:
+            eventData = self.extracted_information.eventData
+            catchSourceInfo = self.extracted_information.catchSourceInformation
+
+            location = (
+                eventData.eventLocation
+                if eventData and eventData.eventLocation
+                else "default_location"
+            )
+            date = (
+                eventData.eventDate
+                if eventData and eventData.eventDate
+                else "default_date"
+            )
+            name = (
+                catchSourceInfo.vesselName
+                if catchSourceInfo and catchSourceInfo.vesselName
+                else "default_vessel"
+            )
+
+            fingerprint_data = f"{name}_" f"{date}_" f"{location}"
+            self.incident_fingerprint = hashlib.sha256(
+                fingerprint_data.encode()
+            ).hexdigest()
+
+    async def add_source(self, source: "Source", is_primary: bool = False):
+        """Helper method to add a source and maintain bidirectional relationship"""
+        try:
+            if self.sources is None:
+                self.sources = []
+            # Check if source is already in the list by comparing IDs
+            source_ids = [s.id for s in self.sources if hasattr(s, "id")]
+            if source.id not in source_ids:
+                self.sources.append(source)
+
+            if is_primary:
+                self.primary_source = source
+
+            await self.save()
+            # Handle bidirectional relationship
+            if source.incidents is None:
+                source.incidents = []
+
+            incident_ids = [i.id for i in source.incidents if hasattr(i, "id")]
+            if self.id not in incident_ids:
+                source.incidents.append(self)
+                await source.save()
+
+        except Exception as e:
+            # Log error or handle as appropriate for your application
+            raise Exception(f"Failed to add source to incident: {e}")
+
+    async def remove_source(self, source: "Source"):
+        """Helper method to remove a source and maintain bidirectional relationship"""
+        try:
+            # Remove from sources list
+            self.sources = [s for s in self.sources if s.id != source.id]
+
+            # Update primary source if needed
+            if self.primary_source and self.primary_source.id == source.id:
+                self.primary_source = self.sources[0] if self.sources else None
+
+            # Update the source's incidents list
+            if source.incidents:
+                source.incidents = [i for i in source.incidents if i.id != self.id]
+                await source.save()
+
+            await self.save()
+        except Exception as e:
+            raise Exception(f"Failed to remove source from incident: {e}")
+
+    @classmethod
+    async def find_potential_duplicates(
+        cls, incident_data: "ExtractedIncidentData", threshold: float = 0.8
+    ):
+        # This is a placeholder - you'd implement your actual duplicate detection logic
+        # Could use vessel name, location proximity, date proximity, etc.
+        # TODO
+        """Find potential duplicate incidents based on similarity"""
+        vessel_name = getattr(incident_data.catchSourceInformation, "vesselName", None)
+        if vessel_name:
+            return await cls.find(
+                cls.extracted_information.catchSourceInformation.vesselName
+                == vessel_name
+            ).to_list()
+        return []
+
+
+class IncidentReponse(BaseModel):
+    status: Literal[
+        "success",
+        "failure",
+        "duplicate",
+    ]
+    report: IncidentReport | None = None
+    message: str | None = None

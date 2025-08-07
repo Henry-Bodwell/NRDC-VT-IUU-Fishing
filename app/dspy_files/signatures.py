@@ -1,19 +1,18 @@
+from datetime import datetime
 import dspy
 from app.models.incidents import (
-    BaseIntake,
     ExtractedIncidentData,
     IncidentClassification,
-    ArticleScopeClassification,
-    Species,
     IndustryOverviewExtract,
 )
+from app.models.articles import ArticleScopeClassification, Source
 
 
 class TextToStructuredData(dspy.Signature):
     """Signature to extract structured information from text."""
 
-    intake: BaseIntake = dspy.InputField(
-        desc="Base intake data containing URL and article text."
+    source: Source = dspy.InputField(
+        desc="Base source data containing URL and article text."
     )
     extracted_data: ExtractedIncidentData = dspy.OutputField()
 
@@ -28,29 +27,13 @@ class StructuredDataToClassification(dspy.Signature):
     classification: IncidentClassification = dspy.OutputField()
 
 
-class CorrectionSignature(dspy.Signature):
-    """
-    Corrects a Pydantic object based on an error message and feedback.
-    """
-
-    original_object_json: str = dspy.InputField(
-        desc="The original Pydantic object as a JSON string, which failed validation."
-    )
-    feedback: str = dspy.InputField(
-        desc="The error message explaining why the object was incorrect."
-    )
-    corrected_object: Species = dspy.OutputField(
-        desc="A new, corrected version of the Species object."
-    )
-
-
 class ArticleClassificationSignature(dspy.Signature):
     """
     Classifies an article based on its content.
     """
 
-    intake: BaseIntake = dspy.InputField(
-        desc="Base intake data containing URL and article text to classify."
+    source: Source = dspy.InputField(
+        desc="Base source data containing URL and article text to classify."
     )
     classification: ArticleScopeClassification = dspy.OutputField(
         desc="The classification of the article, including type and confidence score."
@@ -62,8 +45,8 @@ class IndustryOverviewSignature(dspy.Signature):
     Extracts information from an industry overview article.
     """
 
-    intake: BaseIntake = dspy.InputField(
-        desc="Base intake data containing URL and article text for industry overview extraction."
+    source: Source = dspy.InputField(
+        desc="Base source data containing URL and article text for industry overview extraction."
     )
     extracted_data: IndustryOverviewExtract = dspy.OutputField(
         desc="Structured data extracted from the industry overview article."
@@ -77,6 +60,4 @@ class CleanArticleContent(dspy.Signature):
     filtered_html = dspy.InputField(
         desc="Filtered HTML containing mainly textual content from article"
     )
-    clean_article = dspy.OutputField(
-        desc="Clean, well-structured article text with proper paragraphs and formatting"
-    )
+    source: Source = dspy.OutputField(desc="Source object with cleaned article text")

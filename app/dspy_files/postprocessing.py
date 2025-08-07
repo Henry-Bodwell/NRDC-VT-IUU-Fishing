@@ -18,16 +18,11 @@ def format_report(prediction: dspy.Prediction) -> IncidentReport | None:
         return None
 
     report_data = {
-        "source": {
-            "url": getattr(prediction, "url", None),
-            "language": getattr(prediction, "language", None),
-            "article_text": getattr(prediction, "article_text", None),
-        },
         "extracted_information": _convert_to_dict(
             getattr(prediction, "parsed_data", None)
         ),
         "incident_classification": _convert_to_dict(
-            getattr(prediction, "classification", None)
+            getattr(prediction, "incident_classification", None)
         ),
     }
     return IncidentReport(**report_data)

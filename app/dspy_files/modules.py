@@ -4,7 +4,7 @@ from app.dspy_files.signatures import (
     StructuredDataToClassification,
     IndustryOverviewSignature,
 )
-from app.models.incidents import BaseIntake
+from app.models.articles import Source
 
 
 class IncidentAnalysisModule(dspy.Module):
@@ -16,13 +16,13 @@ class IncidentAnalysisModule(dspy.Module):
         self.extractor = dspy.ChainOfThought(TextToStructuredData)
         self.classifier = dspy.ChainOfThought(StructuredDataToClassification)
 
-    async def aforward(self, intake: BaseIntake) -> dict:
+    async def aforward(self, source: Source) -> dict:
         """
         Extract structured information from the article text and classify the incident.
         """
         try:
             # Extract structured information
-            extraction = await self.extractor.acall(intake=intake)
+            extraction = await self.extractor.acall(source=source)
 
             structured_data_output = extraction.extracted_data
 
@@ -34,8 +34,7 @@ class IncidentAnalysisModule(dspy.Module):
 
             classification = classification_pred.classification
             return {
-                "url": intake.url,
-                "article_text": intake.article_text,
+                "sources": [source],
                 "extraction": extraction,
                 "parsed_data": structured_data_output,
                 "classification": classification,
@@ -51,16 +50,15 @@ class IndustryOverviewModule(dspy.Module):
         super().__init__()
         self.extractor = dspy.ChainOfThought(IndustryOverviewSignature)
 
-    async def aforward(self, intake: BaseIntake) -> dict:
+    async def aforward(self, source: Source) -> dict:
         """
         Extract structured information from the industry overview article text.
         """
         try:
-            extraction = await self.extractor.acall(intake=intake)
+            extraction = await self.extractor.acall(source=source)
 
             return {
-                "url": intake.url,
-                "article_text": intake.article_text,
+                "source": source,
                 "extraction": extraction,
                 "parsed_data": extraction.extracted_data,
             }

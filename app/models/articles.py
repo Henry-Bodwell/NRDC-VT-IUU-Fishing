@@ -1,27 +1,90 @@
+from __future__ import annotations
+from datetime import datetime
+from typing import List, Literal
+from beanie import Document, Insert, Link, Replace, before_event
+from bson import ObjectId
 from pydantic import BaseModel, Field, HttpUrl
 import hashlib
+from pymongo import ASCENDING, DESCENDING, IndexModel
+from app.models.logs import LogMixin
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from app.models.incidents import IncidentReport
 
 
 class ArticleData(BaseModel):
     """Pydantic model for validated article data"""
 
-    url: HttpUrl
-    title: str | None = Field(default=None)
-    raw_html: str | None = Field(default=None)
-    clean_content: str | None = Field(default=None)
+    text: str | None = Field(
+        ...,
+        description="Clean, well-structured article text with proper paragraphs and formatting",
+    )
+    language: str | None = Field(
+        default=None, description="Language of the article, eg. 'en' for English"
+    )
+    publication_date: datetime | None = Field(
+        default=None, description="Publication date of the article, if available"
+    )
 
 
-class BaseIntake(BaseModel):
-    url: str = Field(..., description="URL of the article to analyze.")
+class ArticleScopeClassification(BaseModel):
+    """Model to represent the classification of an article."""
+
+    articleType: Literal[
+        "Single Incident",
+        "Multiple Incidents",
+        "Industry Overview",
+        "Unrelated to IUU Fishing",
+    ] = Field(
+        ...,
+        description="Type of article: Single Incident of IUU fishing, Discussing Multiple Incidents of IUU fishing, aGeneral Overview of the state of illegal fishing but not related to an explicit incident or unrelated to IUU fishing.",
+    )
+    confidence: float = Field(
+        ..., description="Confidence score for the classification, between 0 and 1."
+    )
+
+
+class Source(Document):
+    url: str | None = Field(default=None, description="URL of the article to analyze.")
+    article_title: str | None = Field(
+        default=None, description="Title of the article if available."
+    )
     article_text: str = Field(
         ..., description="Text content of the article to analyze."
+    )
+    article_scope: ArticleScopeClassification | None = Field(
+        default=None, description="Scope classification of the article"
     )
     article_hash: str = Field(
         default="", description="Hash of article text for deduplication"
     )
-    language: str = Field(..., description="Language of the article")
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    author: str | None = Field(default=None, description="Author or organization")
+    publication_date: datetime | None = Field(
+        default=None, description="When the source was published"
+    )
+
+    incidents: List[Link["IncidentReport"]] = Field(default_factory=list)
+
+    class Settings:
+        name = "sources"
+        indexes = [
+            IndexModel([("article_hash", ASCENDING)], unique=True),
+            IndexModel([("url", ASCENDING)], unique=True, sparse=True),
+            IndexModel([("article_text", "text")]),
+        ]
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {
+            ObjectId: str,
+        }
+
+    @before_event([Insert, Replace])
+    def generate_hash(self):
+        """Generate article hash before saving"""
         if not self.article_hash:
             self.article_hash = hashlib.sha256(self.article_text.encode()).hexdigest()
+        # self.updated_at = datetime.utcnow()

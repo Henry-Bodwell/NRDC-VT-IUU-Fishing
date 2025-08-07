@@ -1,17 +1,32 @@
 import app.dspy_files.functions as fn
 from app.dspy_files.scraper import ArticleExtractionPipeline
+from app.models.articles import Source
 
 
 class ContentExtractor:
     """Extracts text content from various sources like URLs, PDFs, and images."""
 
-    def __init__(self):
-        self.scraper = ArticleExtractionPipeline()
+    def __init__(self, api_key: str):
+        self.scraper = ArticleExtractionPipeline(api_key=api_key)
 
-    async def from_url(self, url: str) -> tuple[str, str]:
+    async def from_url(self, url: str) -> Source:
         """Extracts cleaned text content from a URL."""
-        article_object = await self.scraper.process_url(url=url)
-        return article_object.clean_content, url
+        try:
+            existing_source = await Source.find_one(Source.url == url)
+            if existing_source:
+                print(f"Source already exists for URL: {url}")
+                return existing_source
+
+            prediction = await self.scraper.process_url(url=url)
+            source = prediction.source
+
+            print(f"Successfully extracted content from: {url}")
+
+            return source
+
+        except Exception as e:
+            print(f"Failed to extract content from {url}: {e}")
+            raise
 
     def from_pdf(self, pdf_path: str) -> tuple[str, str]:
         """Extracts text from a PDF file."""

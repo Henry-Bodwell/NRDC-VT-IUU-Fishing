@@ -1,7 +1,8 @@
+import os
 from fastapi import File, HTTPException, status
-from app.dspy_files.news_analysis import run_full_analysis_from_url
 from app.models.incidents import IncidentReport
 from app.models.logs import LogContext
+from app.dspy_files.news_analysis import AnalysisOrchestrator
 
 
 def _filter_valid_fields(model_class, updates: dict) -> dict:
@@ -15,30 +16,41 @@ class IncidentService:
     """
 
     @staticmethod
-    async def create_report_from_url(url: str, context_data: dict) -> IncidentReport:
-        context = LogContext(
-            user_id=context_data.get("acting_user_id"),
-            action="new_report",
-            source=context_data.get("source"),
-        )
+    async def create_report_from_url(url: str) -> IncidentReport:
+        # context = LogContext(
+        #     user_id=context_data.get("acting_user_id"),
+        #     action="new_report",
+        #     source=context_data.get("source"),
+        # )
 
         print(f"Service: Starting analysis for URL: {url}")
+        api = os.getenv("OPENAI_API_KEY")
+        orchestrator = AnalysisOrchestrator(api_key=api)
+        output = await orchestrator.run_full_analysis_from_url(url=url)
 
-        report_object = await run_full_analysis_from_url(url)
+        source = output.source
+        report_object = output.incident
+
+        if not source:
+            print(f"Service: Analysis failed to produce a source for URL: {url}")
+            return None
 
         if not report_object:
             print(f"Service: Analysis failed to produce a report for URL: {url}")
             return None
 
-        report_object.set_log_context(context)
+        # report_object.set_log_context(context)
 
         try:
+
+            await source.insert()
+            print(f"Service: Successfully saved source: {url}")
             await report_object.insert()
             print(f"Service: Successfully saved report for URL: {url}")
         except Exception as e:
             print(f"Service: Database save failed for URL {url}: {e}")
             return None
-
+        await report_object.add_source(source, is_primary=True)
         return report_object
 
     @staticmethod
