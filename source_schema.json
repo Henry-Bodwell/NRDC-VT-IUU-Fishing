@@ -1,0 +1,162 @@
+{
+  "$defs": {
+    "ArticleScopeClassification": {
+      "description": "Model to represent the classification of an article.",
+      "properties": {
+        "articleType": {
+          "description": "Type of article: Single Incident of IUU fishing, Discussing Multiple Incidents of IUU fishing, aGeneral Overview of the state of illegal fishing but not related to an explicit incident or unrelated to IUU fishing.",
+          "enum": [
+            "Single Incident",
+            "Multiple Incidents",
+            "Industry Overview",
+            "Unrelated to IUU Fishing"
+          ],
+          "title": "Articletype",
+          "type": "string"
+        },
+        "confidence": {
+          "description": "Confidence score for the classification, between 0 and 1.",
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "articleType",
+        "confidence"
+      ],
+      "title": "ArticleScopeClassification",
+      "type": "object"
+    },
+    "PydanticObjectId": {
+      "example": "5eb7cf5a86d9755df3a6c593",
+      "maxLength": 24,
+      "minLength": 24,
+      "pattern": "^[0-9a-f]{24}$",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "_id": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PydanticObjectId"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "MongoDB document ObjectID"
+    },
+    "url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "URL of the article to analyze.",
+      "title": "Url"
+    },
+    "article_title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Title of the article if available.",
+      "title": "Article Title"
+    },
+    "article_text": {
+      "description": "Text content of the article to analyze.",
+      "title": "Article Text",
+      "type": "string"
+    },
+    "article_scope": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArticleScopeClassification"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Scope classification of the article"
+    },
+    "article_hash": {
+      "default": "",
+      "description": "Hash of article text for deduplication",
+      "title": "Article Hash",
+      "type": "string"
+    },
+    "author": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Author or organization",
+      "title": "Author"
+    },
+    "publication_date": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "When the source was published",
+      "title": "Publication Date"
+    },
+    "incidents": {
+      "items": {
+        "anyOf": [
+          {
+            "properties": {
+              "id": {
+                "title": "Id",
+                "type": "string"
+              },
+              "collection": {
+                "title": "Collection",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "collection"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "type": "object"
+          }
+        ]
+      },
+      "title": "Incidents",
+      "type": "array"
+    }
+  },
+  "required": [
+    "article_text"
+  ],
+  "title": "Source",
+  "type": "object"
+}

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-
+from app.logging import setup_logging
 from app.database import init_db
 from app.routes import router
 import logging
@@ -21,23 +21,23 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown.")
 
 
-def main():
-    logging.basicConfig(filename="fishlog.log", level=logging.INFO)
+# Configure logging
+setup_logging()
 
-    # Create the main FastAPI application instance, passing the lifespan manager
-    app = FastAPI(lifespan=lifespan)
+# Create the FastAPI app instance at module level
+app = FastAPI(lifespan=lifespan)
+app.include_router(router, prefix="/api", tags=["api"])
 
-    app.include_router(router, prefix="/api", tags=["api"])
 
-    @app.get("/", tags=["Root"])
-    async def read_root():
-        """
-        A simple root endpoint to confirm the API is running.
-        """
-        return {"message": "Welcome to the Fish Project API!"}
-
-    return app
+@app.get("/", tags=["Root"])
+async def read_root():
+    """
+    A simple root endpoint to confirm the API is running.
+    """
+    return {"message": "Welcome to the Fish Project API!"}
 
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

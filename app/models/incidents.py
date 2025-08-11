@@ -567,6 +567,8 @@ class IncidentReport(Document):
     extracted_information: ExtractedIncidentData
     incident_classification: IncidentClassification
 
+    verified: bool = Field(default=False)
+
     class Settings:
         name = "incidents"
 
@@ -645,6 +647,21 @@ class IncidentReport(Document):
         except Exception as e:
             raise Exception(f"Failed to remove source from incident: {e}")
 
+    async def delete(self):
+        """Override delete method to handle source removal"""
+        try:
+            # Remove this incident from all sources
+            for source in self.sources:
+                self.remove_source(source)
+
+            self.sources = []
+            self.primary_source = None
+
+            # Call the parent delete method
+            await super().delete()
+        except Exception as e:
+            raise Exception(f"Failed to delete incident report: {e}")
+
     @classmethod
     async def find_potential_duplicates(
         cls, incident_data: "ExtractedIncidentData", threshold: float = 0.8
@@ -660,13 +677,3 @@ class IncidentReport(Document):
                 == vessel_name
             ).to_list()
         return []
-
-
-class IncidentReponse(BaseModel):
-    status: Literal[
-        "success",
-        "failure",
-        "duplicate",
-    ]
-    report: str | None = None
-    message: str | None = None

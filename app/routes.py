@@ -9,24 +9,31 @@ from fastapi import (
     status,
 )
 from fastapi.encoders import jsonable_encoder
-from typing import List
+from typing import List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError
-from app.models.incidents import IncidentReponse, IncidentReport
+from app.models.incidents import IncidentReport
 from app.models.articles import Source
 from app.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
+from app.source_service import SourceService
+
 
 router = APIRouter()
 import logging
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T", bound=BaseModel)
+
 
 class URLRequest(BaseModel):
     url: str
 
 
-@router.post("/incidents", response_model=IncidentReponse, status_code=201)
+# Incident Routes
+@router.post(
+    "/incidents", response_model=IncidentReport, status_code=status.HTTP_201_CREATED
+)
 async def create_incident_report(request: Request):
     """
     Submits a URL or file for analysis and saves the resulting incident report to database.
@@ -61,25 +68,21 @@ async def _handle_url_request(request: Request, context_data: dict) -> dict:
         existing_source = await _check_for_existing_url(url_payload.url)
         if existing_source:
             logger.error(f"Duplicate key error: {e}")
-            return {
-                "status": "duplicate",
-                "message": "Source already exists for {url_payload.url}: {existing_source.id}",
-            }
+            raise HTTPException(
+                status_code=409,
+                detail=f"Source already exists for {url_payload.url}",
+            )
 
         # Create new report using the service
         saved_report = await IncidentService.create_report_from_url(url=url_payload.url)
 
-        if not saved_report:
-            raise HTTPException(
-                status_code=422,
-                detail="Failed to process the URL or save the report. The source may be invalid or no relevant information was found.",
-            )
+        valid_response(saved_report, IncidentReport)
+
         logger.info(f"Incident report created: {saved_report.id}")
-        return {
-            "status": "success",
-            "report": str(saved_report.id),
-            "message": "Incident report created successfully.",
-        }
+        return saved_report.model_dump(
+            exclude={"sources", "primary_source"},  # Exclude problematic fields
+            mode="json",  # Ensures proper serialization
+        )
 
     except ValidationError as e:
         logger.error(f"Validation error in URL request: {e}")
@@ -145,7 +148,6 @@ async def _handle_file_request(request: Request, context_data: dict) -> dict:
         }
 
     except HTTPException:
-        # Re-raise HTTP exceptions
         raise
     except Exception as e:
         logger.error(f"Unexpected error in file request: {e}", exc_info=True)
@@ -169,7 +171,7 @@ async def _check_for_existing_url(url: str) -> Source | None:
 
 
 @router.get("/incidents", response_model=List[IncidentReport])
-async def get_incident_reports(skip: int = 0, limit: int = 10):
+async def list_incident_reports(skip: int = 0, limit: int = 25):
     """
     Retrieves a list of incident reports with pagination.
     """
@@ -183,24 +185,123 @@ async def get_incident_report(report_id: str):
     Retrieves a specific incident report by its ID.
     """
     report = await IncidentReport.get(report_id)
-    throw_exception(report)
+    valid_response(report, IncidentReport)
     return report
 
 
-def throw_exception(response: IncidentReport):
+@router.delete(
+    "/incidents/{report_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_incident(report_id: str):
+    """
+    Deletes an incident report by its ID.
+    """
+
+    try:
+        was_deleted = await IncidentService.delete_report(report_id=report_id)
+        if was_deleted:
+            return
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Incident report not found",
+            )
+    except Exception as e:
+        logger.error(f"Error deleting incident report {report_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete incident report.",
+        )
+
+
+@router.put("/incidents/{report_id}", response_model=IncidentReport)
+async def update_incident_report(report_id: str, update_data: IncidentReport):
+    """Updates an existing incident report by its ID."""
+    try:
+        updated_report = await IncidentService.update_report(
+            report_id=report_id, update_data=update_data.model_dump()
+        )
+        valid_response(updated_report, IncidentReport)
+        return updated_report
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "update_failed",
+                "message": "Failed to update incident report",
+                "details": str(e),
+            },
+        )
+
+
+# Source routes
+@router.get("/sources", response_model=List[Source])
+async def list_sources(skip: int = 0, limit: int = 25):
+    sources = await Source.find_all().skip(skip).limit(limit).to_list()
+    return sources
+
+
+@router.get("/sources/{source_id}", response_model=Source)
+async def get_source(source_id: str):
+    source = await Source.get(source_id)
+    valid_response(source, Source)
+    return source
+
+
+@router.delete(
+    "/sources/{source_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_source(source_id: str):
+    try:
+        was_deleted = await SourceService.delete(source_id)
+        if was_deleted:
+            return
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Source not found",
+            )
+    except Exception as e:
+        logger.error(f"Error deleting source {source_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete source.",
+        )
+
+
+@router.put("/sources/{source_id}", response_model=Source)
+async def update_source(source_id: str, update_data: Source):
+    updated_source = await SourceService.update_source(
+        source_id=source_id, update_data=update_data
+    )
+
+
+def valid_response(response: Optional[T], pydanticModel: Type[T]):
     """
     Helper function to throw an exception if the response is not valid.
     """
     if not response:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Incident report not found.",
+            detail={
+                "error": "not_found",
+                "message": f"{pydanticModel.__name__} not found",
+            },
         )
 
-    if not isinstance(response, IncidentReport):
+    if not isinstance(response, pydanticModel):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve incident report.",
+            detail={
+                "error": "invalid_response",
+                "message": f"Expected {pydanticModel.__name__}, got {type(response).__name__}",
+            },
         )
 
 
