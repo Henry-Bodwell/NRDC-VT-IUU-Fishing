@@ -542,7 +542,7 @@ class IndustryOverviewExtract(BaseModel):
     summary: str = Field(description="Summary of the industry overview article.")
 
 
-class IndustryOverview(Document, LogMixin):
+class IndustryOverview(Document):
     """Model to represent an industry overview article."""
 
     source: Link["Source"]

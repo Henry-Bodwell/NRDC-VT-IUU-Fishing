@@ -1,8 +1,12 @@
 import os
 from fastapi import File, HTTPException, status
-from app.models.incidents import IncidentReport
+from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.logs import LogContext
-from app.dspy_files.news_analysis import AnalysisOrchestrator, PipelineResult
+from app.dspy_files.news_analysis import (
+    AnalysisOrchestrator,
+    PipelineOutput,
+    PipelineResult,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,7 +23,7 @@ class IncidentService:
     """
 
     @staticmethod
-    async def create_report_from_url(url: str) -> IncidentReport:
+    async def create_report_from_url(url: str) -> PipelineOutput:
         # context = LogContext(
         #     user_id=context_data.get("acting_user_id"),
         #     action="new_report",
@@ -32,35 +36,61 @@ class IncidentService:
         output = await orchestrator.run_full_analysis_from_url(url=url)
 
         source = output.source
-        report_object = output.incident
+
         if not source:
-            logger.info(f"Analysis failed to produce a source for URL: {url}")
-            return None
+            logger.error(f"Analysis failed to produce a source for URL: {url}")
+            logger.error(f"Pipeline status {output.status}: {output.error_message}")
 
-        if not report_object:
+            return output
+
+        try:
+            await source.insert()
+            logger.info(f"Successfully saved source: {url}")
+        except Exception as e:
+            logger.error(f"Database save failed for URL {url}: {e}")
+            raise e
+
+        if output.status == PipelineResult.UNRELATED_CONTENT:
+            logger.info(f"Source {url} unrelated to IUU fishing")
+            return output
+
+        incident = output.incident
+        industry = output.industry_overview
+        if not output.has_incident and not output.has_overview:
             logger.error(f"Analysis failed to produce a report for URL: {url}")
-            return None
+            logger.error(f"Pipeline status {output.status}: {output.error_message}")
+            return output
 
-        if output.status != PipelineResult.SUCCESS:
+        if not output.is_success:
             logger.error(f"Analysis failed for URL {url} with status {output.status}")
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Analysis failed with status: {output.status}: {output.error_message or 'No error message provided'}",
             )
-
-        try:
-            await source.insert()
-            logger.info(f"Successfully saved source: {url}")
-            await report_object.insert()
-            logger.info(f"Successfully saved report for URL: {url}")
-        except Exception as e:
-            logger.error(f"Database save failed for URL {url}: {e}")
-            return None
-        await report_object.add_source(source, is_primary=True)
-        return report_object
+        if incident:
+            try:
+                await incident.insert()
+                logger.info(f"Successfully saved incident report: {incident.id}")
+            except Exception as e:
+                logger.error(f"Database save failed for report {incident.id}: {e}")
+                raise e
+            await incident.add_source(source, is_primary=True)
+            output.incident = incident
+            return output
+        else:
+            try:
+                await industry.insert()
+                logger.info(f"Successfully saved industry report: {industry.id}")
+            except Exception as e:
+                logger.error(
+                    f"Database save failed for industry report {industry.id}: {e}"
+                )
+                raise e
+            output.industry_overview = industry
+            return output
 
     @staticmethod
-    async def create_report_from_file(file: File, context_data: dict) -> IncidentReport:
+    async def create_report_from_file(file: File, context_data: dict) -> PipelineResult:
         context = LogContext(
             user_id=context_data.get("acting_user_id"),
             action="new_report",

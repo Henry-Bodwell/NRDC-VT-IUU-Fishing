@@ -1,7 +1,7 @@
 import dspy
 from app.dspy_files.signatures import (
     TextToStructuredData,
-    StructuredDataToClassification,
+    TextToClassification,
     IndustryOverviewSignature,
 )
 from app.models.articles import Source
@@ -14,7 +14,7 @@ class IncidentAnalysisModule(dspy.Module):
         super().__init__()
 
         self.extractor = dspy.ChainOfThought(TextToStructuredData)
-        self.classifier = dspy.ChainOfThought(StructuredDataToClassification)
+        self.classifier = dspy.ChainOfThought(TextToClassification)
 
     async def aforward(self, source: Source) -> dict:
         """
@@ -28,8 +28,7 @@ class IncidentAnalysisModule(dspy.Module):
 
             # Classify the incident
             classification_pred = await self.classifier.acall(
-                incident_summary=structured_data_output.description,
-                structured_data=structured_data_output.model_dump_json(),
+                incident_text=source.article_text
             )
 
             classification = classification_pred.classification

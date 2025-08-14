@@ -1,7 +1,8 @@
-from dataclasses import dataclass
+from __future__ import annotations
 from enum import Enum
 
 import dspy
+from pydantic import BaseModel
 from app.dspy_files.content_extraction import ContentExtractor
 from app.dspy_files.analysis_pipeline import AnalysisPipeline
 from app.dspy_files.postprocessing import format_report
@@ -24,8 +25,7 @@ class PipelineResult(Enum):
     UNRELATED_CONTENT = "unrelated_content"
 
 
-@dataclass
-class PipelineOutput:
+class PipelineOutput(BaseModel):
     """Structured output from the pipeline"""
 
     status: PipelineResult
@@ -41,6 +41,10 @@ class PipelineOutput:
     @property
     def has_incident(self) -> bool:
         return self.incident is not None
+
+    @property
+    def has_overview(self) -> bool:
+        return self.industry_overview is not None
 
 
 class AnalysisOrchestrator:
@@ -82,8 +86,10 @@ class AnalysisOrchestrator:
         try:
             scope = source.article_scope.articleType
             if scope == "Unrelated to IUU Fishing":
-                logger.warning(f"Article from {url} is unrelated to IUU fishing")
-                return PipelineOutput(status=PipelineResult.UNRELATED_CONTENT)
+                logger.info(f"Article from {url} is unrelated to IUU fishing")
+                return PipelineOutput(
+                    status=PipelineResult.UNRELATED_CONTENT, source=source
+                )
             elif scope == "Industry Overview":
                 logger.info(f"Article from {url} is an industry overview")
                 return PipelineOutput(

@@ -17,13 +17,10 @@ class TextToStructuredData(dspy.Signature):
     extracted_data: ExtractedIncidentData = dspy.OutputField()
 
 
-class StructuredDataToClassification(dspy.Signature):
+class TextToClassification(dspy.Signature):
     """Classifier for IUU incidents."""
 
-    incident_summary: str = dspy.InputField(desc="Summary of the incident to classify")
-    structured_data: ExtractedIncidentData = dspy.InputField(
-        desc="Structured data extracted from the incident"
-    )
+    incident_text: str = dspy.InputField(desc="Article Text to classifiy")
     classification: IncidentClassification = dspy.OutputField()
 
 

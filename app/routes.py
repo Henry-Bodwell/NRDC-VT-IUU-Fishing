@@ -11,11 +11,12 @@ from fastapi import (
 from fastapi.encoders import jsonable_encoder
 from typing import List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError
-from app.models.incidents import IncidentReport
+from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
 from app.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
 from app.source_service import SourceService
+from app.dspy_files.news_analysis import PipelineOutput
 
 
 router = APIRouter()
@@ -32,7 +33,7 @@ class URLRequest(BaseModel):
 
 # Incident Routes
 @router.post(
-    "/incidents", response_model=IncidentReport, status_code=status.HTTP_201_CREATED
+    "/incidents", response_model=PipelineOutput, status_code=status.HTTP_201_CREATED
 )
 async def create_incident_report(request: Request):
     """
@@ -67,45 +68,39 @@ async def _handle_url_request(request: Request, context_data: dict) -> dict:
         # Check for existing report first (optional - depends on your business logic)
         existing_source = await _check_for_existing_url(url_payload.url)
         if existing_source:
-            logger.error(f"Duplicate key error: {e}")
+            logger.error(f"Source already exists for {url_payload.url}")
             raise HTTPException(
                 status_code=409,
                 detail=f"Source already exists for {url_payload.url}",
             )
 
         # Create new report using the service
-        saved_report = await IncidentService.create_report_from_url(url=url_payload.url)
+        output = await IncidentService.create_report_from_url(url=url_payload.url)
+        if output.is_success:
+            if output.has_overview:
+                overview = output.industry_overview
+                if isinstance(overview, IndustryOverview):
+                    valid_response(overview, IndustryOverview)
+                    logger.info(f"Industry Overview created: {overview.id}")
 
-        valid_response(saved_report, IncidentReport)
+            if output.has_incident:
+                report = output.incident
+                if isinstance(report, IncidentReport):
+                    valid_response(report, IncidentReport)
+                    logger.info(f"Incident report created: {report.id}")
 
-        logger.info(f"Incident report created: {saved_report.id}")
-        return saved_report.model_dump(
-            exclude={"sources", "primary_source"},  # Exclude problematic fields
-            mode="json",  # Ensures proper serialization
+        return output.model_dump(
+            exclude={
+                "source": "incidents",
+                "incident": {"sources", "primary_source"},
+                "industry_overview": "source",
+            }
         )
 
     except ValidationError as e:
         logger.error(f"Validation error in URL request: {e}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.errors()
-        )
-    except DuplicateKeyError as e:
-        logger.error(f"Unexpected duplicate key error (race condition?): {e}")
-        try:
-            existing_source = await _check_for_existing_url(url_payload.url)
-            if existing_source:
-                return {
-                    "status": "duplicate",
-                    "message": f"Source already exists for {url_payload.url} (created by concurrent request)",
-                }
-        except Exception as lookup_error:
-            logger.error(
-                f"Failed to lookup existing document after duplicate key error: {lookup_error}"
-            )
-
-        raise HTTPException(
-            status_code=409,
-            detail="Duplicate key error occurred due to concurrent processing.",
         )
     except HTTPException:
         raise
