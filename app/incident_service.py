@@ -54,7 +54,7 @@ class IncidentService:
             logger.info(f"Source {url} unrelated to IUU fishing")
             return output
 
-        incident = output.incident
+        incidents = output.incidents
         industry = output.industry_overview
         if not output.has_incident and not output.has_overview:
             logger.error(f"Analysis failed to produce a report for URL: {url}")
@@ -67,15 +67,17 @@ class IncidentService:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Analysis failed with status: {output.status}: {output.error_message or 'No error message provided'}",
             )
-        if incident:
-            try:
-                await incident.insert()
-                logger.info(f"Successfully saved incident report: {incident.id}")
-            except Exception as e:
-                logger.error(f"Database save failed for report {incident.id}: {e}")
-                raise e
-            await incident.add_source(source, is_primary=True)
-            output.incident = incident
+        if output.has_incident:
+            output.incidents = []
+            for incident in incidents:
+                try:
+                    await incident.insert()
+                    logger.info(f"Successfully saved incident report: {incident.id}")
+                except Exception as e:
+                    logger.error(f"Database save failed for report {incident.id}: {e}")
+                    raise e
+                await incident.add_source(source, is_primary=True)
+                output.incidents.append(incident)
             return output
         else:
             try:

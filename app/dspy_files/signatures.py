@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 import dspy
 from app.models.incidents import (
     ExtractedIncidentData,
@@ -15,12 +16,21 @@ class TextToStructuredData(dspy.Signature):
         desc="Base source data containing URL and article text."
     )
     extracted_data: ExtractedIncidentData = dspy.OutputField()
+    classification: IncidentClassification = dspy.OutputField()
 
 
-class TextToClassification(dspy.Signature):
-    """Classifier for IUU incidents."""
+class MultipleIncidentSignature(dspy.Signature):
+    """Splits text into unique sets for extraction"""
 
-    incident_text: str = dspy.InputField(desc="Article Text to classifiy")
+    text: str = dspy.InputField(desc="Article Text with multiple IUU incidents")
+    seperated_incident_text: List[str] = dspy.OutputField(
+        desc="List of text regarding each unique incident metioned in article, ie if the article has 2 incidents this should have two items, with each item containing all relevant text referring to its incident."
+    )
+
+
+class MultipleIncidentToStructured(dspy.Signature):
+    text: str = dspy.InputField(desc="Article Text to extract and classify")
+    extracted_data: ExtractedIncidentData = dspy.OutputField()
     classification: IncidentClassification = dspy.OutputField()
 
 

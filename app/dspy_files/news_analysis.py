@@ -1,8 +1,10 @@
 from __future__ import annotations
 from enum import Enum
+import traceback
+from typing import List
 
 import dspy
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.dspy_files.content_extraction import ContentExtractor
 from app.dspy_files.analysis_pipeline import AnalysisPipeline
 from app.dspy_files.postprocessing import format_report
@@ -30,7 +32,7 @@ class PipelineOutput(BaseModel):
 
     status: PipelineResult
     source: Source | None = None
-    incident: IncidentReport | None = None
+    incidents: List[IncidentReport] = Field(default_factory=list)
     industry_overview: IndustryOverview | None = None
     error_message: str | None = None
 
@@ -40,7 +42,7 @@ class PipelineOutput(BaseModel):
 
     @property
     def has_incident(self) -> bool:
-        return self.incident is not None
+        return len(self.incidents) != 0
 
     @property
     def has_overview(self) -> bool:
@@ -56,8 +58,6 @@ class AnalysisOrchestrator:
         """
         Orchestrates the end-to-end process of URL -> Text -> Analysis -> Format -> Verify.
         """
-        source = None
-        incident = None
 
         try:
             logging.info(f"Starting analysis for: {url}")
@@ -92,16 +92,50 @@ class AnalysisOrchestrator:
                 )
             elif scope == "Industry Overview":
                 logger.info(f"Article from {url} is an industry overview")
+                logger.debug(
+                    f"prediction.parsed_data type: {type(prediction.parsed_data)}"
+                )
+
+                try:
+                    overview = IndustryOverview(
+                        source=source,
+                        extracted_information=prediction.parsed_data,
+                    )
+                    logger.info(f"Successfully created overview: {overview}")
+                    return PipelineOutput(
+                        status=PipelineResult.SUCCESS,
+                        source=source,
+                        industry_overview=overview,
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Error creating IndustryOverview: {type(e).__name__}: {str(e)}"
+                    )
+                    raise  # Re-raise to be caught by outer exception handler
+            elif scope == "Multiple Incidents":
+                logger.info(f"Article from {url} contains multiple incidents")
+                incident_list = []
+                for incident in prediction.incidents:
+                    sub_prediction = dspy.Prediction(
+                        sources=[source],
+                        incident_classification=incident.classification,
+                        parsed_data=incident.parsed_data,
+                    )
+                    processed = await self._process_incident_prediction(
+                        sub_prediction, source
+                    )
+                    if not processed:
+                        logger.error(
+                            f"Failed to process incident prediction for {incident.parsed_data}"
+                        )
+                    incident_list.append(processed)
                 return PipelineOutput(
                     status=PipelineResult.SUCCESS,
                     source=source,
-                    incident=None,
-                    industry_overview=IndustryOverview(
-                        source=source,
-                        extracted_information=prediction.parsed_data,
-                    ),
+                    incidents=incident_list,
                 )
-            elif scope in ["Single Incident", "Multiple Incidents"]:
+
+            elif scope == "Single Incident":
                 incident = await self._process_incident_prediction(prediction, source)
                 if not incident:
                     logger.error(f"Failed to process incident prediction for {url}")
@@ -115,15 +149,21 @@ class AnalysisOrchestrator:
                 return PipelineOutput(
                     status=PipelineResult.SUCCESS,
                     source=source,
-                    incident=incident,
+                    incidents=[incident],
                 )
 
         except Exception as e:
-            logger.error(f"Error processing prediction for {e}")
+            error_details = {
+                "exception_type": type(e).__name__,
+                "exception_message": str(e),
+                "traceback": traceback.format_exc(),
+            }
+            logger.error(f"Error processing prediction: {error_details}")
+
             return PipelineOutput(
                 status=PipelineResult.FAILED_FORMATTING,
                 source=source,
-                error_message=str(e),
+                error_message=f"{type(e).__name__}: {str(e)}",
             )
 
     async def _process_incident_prediction(

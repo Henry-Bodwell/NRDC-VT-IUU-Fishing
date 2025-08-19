@@ -84,16 +84,17 @@ async def _handle_url_request(request: Request, context_data: dict) -> dict:
                     logger.info(f"Industry Overview created: {overview.id}")
 
             if output.has_incident:
-                report = output.incident
-                if isinstance(report, IncidentReport):
-                    valid_response(report, IncidentReport)
-                    logger.info(f"Incident report created: {report.id}")
+                for incident in output.incidents:
+                    report = incident
+                    if isinstance(report, IncidentReport):
+                        valid_response(report, IncidentReport)
+                        logger.info(f"Incident report created: {report.id}")
 
         return output.model_dump(
             exclude={
                 "source": "incidents",
-                "incident": {"sources", "primary_source"},
-                "industry_overview": "source",
+                "incidents": {"__all__": {"sources", "primary_source"}},
+                "industry_overview": {"source"},
             }
         )
 

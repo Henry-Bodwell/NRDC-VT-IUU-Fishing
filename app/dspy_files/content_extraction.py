@@ -22,6 +22,7 @@ class ContentExtractor:
 
             prediction = await self.scraper.process_url(url=url)
             source = prediction.source
+            source.url = url
 
             logger.info(f"Successfully extracted content from: {url}")
 

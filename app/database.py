@@ -2,6 +2,8 @@ import os
 from pymongo import AsyncMongoClient
 from beanie import init_beanie
 
+from app.models.incidents import IndustryOverview
+
 
 MONGO_URI = os.getenv("MONGO_URI")
 
@@ -19,6 +21,10 @@ async def init_db():
 
     await init_beanie(
         database=client.get_database("iuuIncidents"),  # Use get_database() for clarity
-        document_models=[IncidentReport, Source],  # Pass all Beanie Documents here
+        document_models=[
+            IncidentReport,
+            Source,
+            IndustryOverview,
+        ],  # Pass all Beanie Documents here
     )
     print("Database initialized successfully.")

@@ -17,8 +17,8 @@ class Species(BaseModel):
     commonName: str = Field(
         ..., description="The common name of the species (e.g., 'Bluefin Tuna')."
     )
-    scientificName: str = Field(
-        ..., description="The scientific name of the species (e.g., 'Thunnus thynnus')."
+    scientificName: str | None = Field(
+        description="The scientific name of the species (e.g., 'Thunnus thynnus')."
     )
     ASFISCode: str | None = Field(
         default=None, description="ASFIS 3-Aplha code of the species, if available."
@@ -545,7 +545,7 @@ class IndustryOverviewExtract(BaseModel):
 class IndustryOverview(Document):
     """Model to represent an industry overview article."""
 
-    source: Link["Source"]
+    source: Link["Source"] | None = None
     extracted_information: IndustryOverviewExtract
 
     class Settings:

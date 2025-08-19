@@ -47,8 +47,13 @@ class AnalysisPipeline:
                     sources=[source],
                     parsed_data=module_output.get("parsed_data"),
                 )
-
-            else:  # "IUU Incident Report", "Single Incident", etc.
+            elif article_type == "Multiple Incidents":
+                module_output = await self.incident_analysis_tool.acall(source=source)
+                return dspy.Prediction(
+                    sources=[source],
+                    incidents=module_output.get("incidents"),
+                )
+            else:  # "Single Incident"
                 module_output = await self.incident_analysis_tool.acall(source=source)
                 return dspy.Prediction(
                     sources=[source],

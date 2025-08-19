@@ -257,7 +257,8 @@ class ArticleExtractionPipeline:
             try:
                 logger.info("Processing with DSPy...")
                 result = await self.cleaner.acall(filtered_html=filtered_html)
-
+                result.url = url
+                result.article_title = title
                 logger.info("DSPy processing complete")
             except Exception as e:
                 logger.warning(f"DSPy processing failed, using filtered HTML: {e}")

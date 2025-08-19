@@ -1,7 +1,8 @@
 import dspy
 from app.dspy_files.signatures import (
+    MultipleIncidentSignature,
+    MultipleIncidentToStructured,
     TextToStructuredData,
-    TextToClassification,
     IndustryOverviewSignature,
 )
 from app.models.articles import Source
@@ -13,8 +14,9 @@ class IncidentAnalysisModule(dspy.Module):
     def __init__(self):
         super().__init__()
 
-        self.extractor = dspy.ChainOfThought(TextToStructuredData)
-        self.classifier = dspy.ChainOfThought(TextToClassification)
+        self.extractAndClassify = dspy.ChainOfThought(TextToStructuredData)
+        self.multiIncidentText = dspy.ChainOfThought(MultipleIncidentSignature)
+        self.multiIncidentClass = dspy.ChainOfThought(MultipleIncidentToStructured)
 
     async def aforward(self, source: Source) -> dict:
         """
@@ -22,22 +24,32 @@ class IncidentAnalysisModule(dspy.Module):
         """
         try:
             # Extract structured information
-            extraction = await self.extractor.acall(source=source)
+            if source.article_scope.articleType == "Single Incident":
+                output = await self.extractAndClassify.acall(source=source)
+                structured_data_output = output.extracted_data
+                classification = output.classification
 
-            structured_data_output = extraction.extracted_data
+                return {
+                    "sources": [source],
+                    "parsed_data": structured_data_output,
+                    "classification": classification,
+                }
+            elif source.article_scope.articleType == "Multiple Incidents":
+                source.seperated_incident_text = await self.multiIncident.acall(
+                    text=source.article_text
+                )
+                return_object = []
+                for incident in source.seperated_incident_text:
+                    output = await self.multiIncidentClass.acall(text=incident)
+                    sub_out = {
+                        "sources": [source],
+                        "parsed_data": output.extracted_data,
+                        "classification": output.classication,
+                    }
+                    return_object.append(sub_out)
 
-            # Classify the incident
-            classification_pred = await self.classifier.acall(
-                incident_text=source.article_text
-            )
+                return {"incidents": return_object}
 
-            classification = classification_pred.classification
-            return {
-                "sources": [source],
-                "extraction": extraction,
-                "parsed_data": structured_data_output,
-                "classification": classification,
-            }
         except Exception as e:
             raise Exception(f"Error during extraction and classification: {str(e)}")
 

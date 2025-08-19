@@ -57,6 +57,9 @@ class Source(Document):
     article_scope: ArticleScopeClassification | None = Field(
         default=None, description="Scope classification of the article"
     )
+
+    seperated_incident_text: List[str] = Field(default_factory=list)
+
     article_hash: str = Field(
         default="", description="Hash of article text for deduplication"
     )
