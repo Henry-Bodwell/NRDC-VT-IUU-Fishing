@@ -23,46 +23,37 @@ class IncidentService:
     """
 
     @staticmethod
-    async def create_report_from_url(url: str) -> PipelineOutput:
-        # context = LogContext(
-        #     user_id=context_data.get("acting_user_id"),
-        #     action="new_report",
-        #     source=context_data.get("source"),
-        # )
-
-        logger.info(f"Starting analysis for URL: {url}")
-        api = os.getenv("OPENAI_API_KEY")
-        orchestrator = AnalysisOrchestrator(api_key=api)
-        output = await orchestrator.run_full_analysis_from_url(url=url)
-
+    async def _create_report(output: PipelineOutput) -> PipelineResult:
         source = output.source
 
         if not source:
-            logger.error(f"Analysis failed to produce a source for URL: {url}")
+            logger.error(f"Analysis failed to produce a source")
             logger.error(f"Pipeline status {output.status}: {output.error_message}")
 
             return output
 
         try:
             await source.insert()
-            logger.info(f"Successfully saved source: {url}")
+            logger.info(f"Successfully saved source: {source.id}")
         except Exception as e:
-            logger.error(f"Database save failed for URL {url}: {e}")
+            logger.error(f"Database save failed for {source.id}: {e}")
             raise e
 
         if output.status == PipelineResult.UNRELATED_CONTENT:
-            logger.info(f"Source {url} unrelated to IUU fishing")
+            logger.info(f"Source {source.id} unrelated to IUU fishing")
             return output
 
         incidents = output.incidents
         industry = output.industry_overview
         if not output.has_incident and not output.has_overview:
-            logger.error(f"Analysis failed to produce a report for URL: {url}")
+            logger.error(f"Analysis failed to produce a report for source: {source.id}")
             logger.error(f"Pipeline status {output.status}: {output.error_message}")
             return output
 
         if not output.is_success:
-            logger.error(f"Analysis failed for URL {url} with status {output.status}")
+            logger.error(
+                f"Analysis failed for source {source.id} with status {output.status}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Analysis failed with status: {output.status}: {output.error_message or 'No error message provided'}",
@@ -92,6 +83,28 @@ class IncidentService:
             return output
 
     @staticmethod
+    def _get_orchestrator() -> AnalysisOrchestrator:
+        api = os.getenv("OPENAI_API_KEY")
+        return AnalysisOrchestrator(api_key=api)
+
+    @staticmethod
+    async def create_report_from_url(url: str) -> PipelineOutput:
+        # context = LogContext(
+        #     user_id=context_data.get("acting_user_id"),
+        #     action="new_report",
+        #     source=context_data.get("source"),
+        # )
+
+        logger.info(f"Starting analysis for URL: {url}")
+
+        orchestrator = IncidentService._get_orchestrator()
+
+        output = await orchestrator.run_full_analysis_from_url(url=url)
+
+        results = await IncidentService._create_report(output)
+        return results
+
+    @staticmethod
     async def create_report_from_file(file: File, context_data: dict) -> PipelineResult:
         context = LogContext(
             user_id=context_data.get("acting_user_id"),
@@ -101,6 +114,15 @@ class IncidentService:
 
         logger.info(f"Starting analysis for file: {file.filename}")
         return {"status": "error", "detail": "not implemented yet"}
+
+    @staticmethod
+    async def create_report_from_text(text: str) -> PipelineResult:
+        logger.info(f"Starting analysis for text: {text[:50]}")
+        orchestrator = IncidentService._get_orchestrator()
+        output = await orchestrator.run_full_analysis_from_text(text=text)
+
+        results = await IncidentService._create_report(output)
+        return results
 
     @staticmethod
     async def update_report(report_id: str, update_data: dict) -> IncidentReport:

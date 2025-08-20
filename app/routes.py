@@ -10,7 +10,7 @@ from fastapi import (
 )
 from fastapi.encoders import jsonable_encoder
 from typing import List, Optional, Type, TypeVar
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, model_validator
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
 from app.incident_service import IncidentService
@@ -27,8 +27,16 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 
-class URLRequest(BaseModel):
-    url: str
+class GenRequest(BaseModel):
+    url: str | None = None
+    text: str | None = None
+    title: str | None = None
+
+    @model_validator(mode="after")
+    def check_at_least_one_field(self):
+        if not any([self.url, self.text]):
+            raise ValueError("Either url or text must be provided")
+        return self
 
 
 # Incident Routes
@@ -49,7 +57,7 @@ async def create_incident_report(request: Request):
     }
 
     if content_type == "application/json":
-        return await _handle_url_request(request, context_data)
+        return await _handle_json_request(request, context_data)
     elif content_type and content_type.startswith("multipart/form-data"):
         return await _handle_file_request(request, context_data)
     else:
@@ -59,23 +67,25 @@ async def create_incident_report(request: Request):
         )
 
 
-async def _handle_url_request(request: Request, context_data: dict) -> dict:
-    """Handle JSON URL request"""
+async def _handle_json_request(request, context_data):
     try:
         json_payload = await request.json()
-        url_payload = URLRequest(**json_payload)
+        payload = GenRequest(**json_payload)
 
-        # Check for existing report first (optional - depends on your business logic)
-        existing_source = await _check_for_existing_url(url_payload.url)
-        if existing_source:
-            logger.error(f"Source already exists for {url_payload.url}")
-            raise HTTPException(
-                status_code=409,
-                detail=f"Source already exists for {url_payload.url}",
-            )
+        if payload.url:
+            existing_source = await _check_for_existing_url(payload.url)
+            if existing_source:
+                logger.error(f"Source already exists for {payload.url}")
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Source already exists for {payload.url}",
+                )
+            output = await IncidentService.create_report_from_url(payload.url)
+        elif payload.text:
+            output = await IncidentService.create_report_from_text(payload.text)
+        else:
+            raise ValueError("Payload must include either 'text' or 'url'")
 
-        # Create new report using the service
-        output = await IncidentService.create_report_from_url(url=url_payload.url)
         if output.is_success:
             if output.has_overview:
                 overview = output.industry_overview
@@ -97,16 +107,15 @@ async def _handle_url_request(request: Request, context_data: dict) -> dict:
                 "industry_overview": {"source"},
             }
         )
-
     except ValidationError as e:
-        logger.error(f"Validation error in URL request: {e}")
+        logger.error(f"Validation error in request: {e}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.errors()
         )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in URL request: {e}", exc_info=True)
+        logger.error(f"Unexpected error in request: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred while processing the request.",

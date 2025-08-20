@@ -20,6 +20,7 @@ class PipelineResult(Enum):
     """Enum for pipeline result status"""
 
     SUCCESS = "success"
+    INVALID_INPUT = "invalid_input"
     FAILED_EXTRACTION = "failed_extraction"
     FAILED_CLASSIFICATION = "failed_classification"
     FAILED_ANALYSIS = "failed_analysis"
@@ -67,6 +68,28 @@ class AnalysisOrchestrator:
             return PipelineOutput(
                 status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
             )
+
+        return await self._analysis_from_source(source=source)
+
+    async def run_full_analysis_from_text(self, text: str) -> PipelineOutput:
+        if len(text) < 50:
+            return PipelineOutput(
+                status=PipelineResult.INVALID_INPUT,
+                error_message="Text is too short to analyze",
+            )
+        try:
+            logging.info(f"Starting analysis for: {text[:50]}...")
+            source = Source(article_text=text)
+
+        except Exception as e:
+            logging.error(f"Error creating source from: {text[:50]}... : {e}")
+            return PipelineOutput(
+                status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
+            )
+        return await self._analysis_from_source(source=source)
+
+    async def _analysis_from_source(self, source: Source) -> PipelineOutput:
+
         try:
             prediction = await self.pipeline.run(source)
             if not prediction:
@@ -76,7 +99,7 @@ class AnalysisOrchestrator:
                     error_message="Anaysis Pipeline returned no result",
                 )
         except Exception as e:
-            logging.error(f"Analysis failed for {url}: {e}")
+            logging.error(f"Analysis failed for {source.id}: {e}")
             return PipelineOutput(
                 status=PipelineResult.FAILED_ANALYSIS,
                 source=source,
@@ -86,12 +109,12 @@ class AnalysisOrchestrator:
         try:
             scope = source.article_scope.articleType
             if scope == "Unrelated to IUU Fishing":
-                logger.info(f"Article from {url} is unrelated to IUU fishing")
+                logger.info(f"Article from {source.id} is unrelated to IUU fishing")
                 return PipelineOutput(
                     status=PipelineResult.UNRELATED_CONTENT, source=source
                 )
             elif scope == "Industry Overview":
-                logger.info(f"Article from {url} is an industry overview")
+                logger.info(f"Article from {source.id} is an industry overview")
                 logger.debug(
                     f"prediction.parsed_data type: {type(prediction.parsed_data)}"
                 )
@@ -113,7 +136,7 @@ class AnalysisOrchestrator:
                     )
                     raise  # Re-raise to be caught by outer exception handler
             elif scope == "Multiple Incidents":
-                logger.info(f"Article from {url} contains multiple incidents")
+                logger.info(f"Article from {source.id} contains multiple incidents")
                 incident_list = []
                 for incident in prediction.incidents:
                     sub_prediction = dspy.Prediction(
@@ -138,14 +161,16 @@ class AnalysisOrchestrator:
             elif scope == "Single Incident":
                 incident = await self._process_incident_prediction(prediction, source)
                 if not incident:
-                    logger.error(f"Failed to process incident prediction for {url}")
+                    logger.error(
+                        f"Failed to process incident prediction for {source.id}"
+                    )
                     return PipelineOutput(
                         status=PipelineResult.FAILED_FORMATTING,
                         source=source,
                         error_message="Failed to format incident report",
                     )
 
-                logger.info(f"Successfully created incident report for {url}")
+                logger.info(f"Successfully created incident report for {source.id}")
                 return PipelineOutput(
                     status=PipelineResult.SUCCESS,
                     source=source,
