@@ -1,3 +1,4 @@
+from typing import Dict
 import app.dspy_files.functions as fn
 from app.dspy_files.scraper import ArticleExtractionPipeline
 from app.models.articles import Source
@@ -32,10 +33,18 @@ class ContentExtractor:
             logger.error(f"Failed to extract content from {url}: {e}")
             raise
 
-    def from_pdf(self, pdf_path: str) -> tuple[str, str]:
+    @staticmethod
+    def from_pdf(pdf_bytes: bytes) -> Source:
         """Extracts text from a PDF file."""
-        return fn.read_pdf(pdf_path), pdf_path
+        response = fn.read_pdf(pdf_bytes)
 
+        text = response.get("text")
+        author = response.get("metadata", {}).get("author")
+        title = response.get("metadata", {}).get("title")
+        # date = response.get("metadata", {}).get("date")
+        return Source(article_text=text, author=author, article_title=title)
+
+    @staticmethod
     def from_image(self, image_path: str, language: str = "eng") -> tuple[str, str]:
         """Extracts text from an image file using OCR."""
         return fn.read_image(image_path, language=language), image_path

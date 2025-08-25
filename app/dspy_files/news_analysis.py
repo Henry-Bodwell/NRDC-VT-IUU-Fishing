@@ -69,7 +69,7 @@ class AnalysisOrchestrator:
                 status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
             )
 
-        return await self._analysis_from_source(source=source)
+        return await self.analysis_from_source(source=source)
 
     async def run_full_analysis_from_text(self, text: str) -> PipelineOutput:
         if len(text) < 50:
@@ -86,9 +86,9 @@ class AnalysisOrchestrator:
             return PipelineOutput(
                 status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
             )
-        return await self._analysis_from_source(source=source)
+        return await self.analysis_from_source(source=source)
 
-    async def _analysis_from_source(self, source: Source) -> PipelineOutput:
+    async def analysis_from_source(self, source: Source) -> PipelineOutput:
 
         try:
             prediction = await self.pipeline.run(source)
@@ -124,6 +124,7 @@ class AnalysisOrchestrator:
                         source=source,
                         extracted_information=prediction.parsed_data,
                     )
+                    source.overview = overview
                     logger.info(f"Successfully created overview: {overview}")
                     return PipelineOutput(
                         status=PipelineResult.SUCCESS,

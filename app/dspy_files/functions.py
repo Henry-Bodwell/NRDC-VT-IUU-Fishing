@@ -1,7 +1,11 @@
+from typing import Dict
 from app.dspy_files.external_apis import get_name_pairs
-from pypdf import PdfReader
+import pymupdf
 import pytesseract
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def verify_sci_name(common_name: str, predicted_sci_name: str) -> bool:
@@ -22,22 +26,46 @@ def verify_sci_name(common_name: str, predicted_sci_name: str) -> bool:
     return False
 
 
-def read_pdf(file_path: str) -> str:
+def read_pdf(pdf_byes: bytes) -> Dict[str, any]:
     """
-    Read the content of a PDF file and return it as a string.
+    Extracts text and metadata from PDF using PyMuPDF.
 
     Args:
-        file_path (str): The path to the PDF file.
+        pdf_bytes: Raw PDF file bytes
+        filename: Original filename for logging/metadata
 
     Returns:
-        str: The text content of the PDF file.
+        Dictionary containing extracted text and metadata
     """
-    reader = PdfReader(file_path)
-    text = ""
+    try:
+        doc = pymupdf.open(stream=pdf_byes, filetype="pdf")
+        full_text = ""
 
-    for page in reader.pages:
-        text += page.extract_text() + "\n"
-    return text.strip()
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            page_text = page.get_text()
+            full_text += page_text
+
+        metadata = doc.metadata
+        doc_info = {
+            "title": metadata.get("title", ""),
+            "author": metadata.get("author", ""),
+            "date": metadata.get("creationDate", ""),
+            "modification_date": metadata.get("modDate", ""),
+            "total_pages": len(doc),
+        }
+
+        doc.close()
+        if not full_text.strip():
+            logger.warning(f"No text extracted from PDF")
+            raise ValueError(
+                "No text content found in PDF. Document may be scanned or image-based."
+            )
+
+        return {"text": full_text.strip(), "metadata": doc_info}
+    except IOError:
+        logger.error(f"IO Exception when reading pdf bytes")
+        raise
 
 
 def read_image(file_path: str, language: str = "eng") -> str:

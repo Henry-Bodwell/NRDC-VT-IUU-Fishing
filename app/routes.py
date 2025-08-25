@@ -67,6 +67,31 @@ async def create_incident_report(request: Request):
         )
 
 
+def _request_response(pipeline_output: PipelineOutput):
+
+    if pipeline_output.is_success:
+        if pipeline_output.has_overview:
+            overview = pipeline_output.industry_overview
+            if isinstance(overview, IndustryOverview):
+                valid_response(overview, IndustryOverview)
+                logger.info(f"Industry Overview created: {overview.id}")
+
+        if pipeline_output.has_incident:
+            for incident in pipeline_output.incidents:
+                report = incident
+                if isinstance(report, IncidentReport):
+                    valid_response(report, IncidentReport)
+                    logger.info(f"Incident report created: {report.id}")
+
+    return pipeline_output.model_dump(
+        exclude={
+            "source": "incidents",
+            "incidents": {"__all__": {"sources", "primary_source"}},
+            "industry_overview": {"source"},
+        }
+    )
+
+
 async def _handle_json_request(request, context_data):
     try:
         json_payload = await request.json()
@@ -85,28 +110,7 @@ async def _handle_json_request(request, context_data):
             output = await IncidentService.create_report_from_text(payload.text)
         else:
             raise ValueError("Payload must include either 'text' or 'url'")
-
-        if output.is_success:
-            if output.has_overview:
-                overview = output.industry_overview
-                if isinstance(overview, IndustryOverview):
-                    valid_response(overview, IndustryOverview)
-                    logger.info(f"Industry Overview created: {overview.id}")
-
-            if output.has_incident:
-                for incident in output.incidents:
-                    report = incident
-                    if isinstance(report, IncidentReport):
-                        valid_response(report, IncidentReport)
-                        logger.info(f"Incident report created: {report.id}")
-
-        return output.model_dump(
-            exclude={
-                "source": "incidents",
-                "incidents": {"__all__": {"sources", "primary_source"}},
-                "industry_overview": {"source"},
-            }
-        )
+        return _request_response(output)
     except ValidationError as e:
         logger.error(f"Validation error in request: {e}")
         raise HTTPException(
@@ -126,31 +130,29 @@ async def _handle_file_request(request: Request, context_data: dict) -> dict:
     """Handle multipart file request"""
     try:
         form = await request.form()
-        file = form.get("file")
 
-        if not file or not isinstance(file, UploadFile):
+        pdf_file = None
+        for key, value in form.items():
+            if isinstance(value, UploadFile):
+                if not value.content_type == "application/pdf":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"File must be a PDF. Received: {value.content_type}",
+                    )
+                pdf_file = value
+                break
+
+        if not pdf_file:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A 'file' part is required for multipart/form-data.",
+                detail="No PDF file found in request",
             )
 
-        # Use the service to handle file processing
-        result = await IncidentService.create_report_from_file(
-            file=file, context_data=context_data
-        )
+        pdf_bytes = await pdf_file.read()
 
-        if isinstance(result, dict) and result.get("status") == "error":
-            # Service returned error (like not implemented)
-            raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                detail=result.get("detail", "File processing not implemented yet."),
-            )
+        output = IncidentService.create_report_from_pdf(pdf_bytes, pdf_file.filename)
 
-        return {
-            "status": "success",
-            "report": result,
-            "message": "File processed successfully.",
-        }
+        return _request_response(output)
 
     except HTTPException:
         raise

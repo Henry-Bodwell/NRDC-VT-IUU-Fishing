@@ -8,6 +8,7 @@ from app.dspy_files.news_analysis import (
     PipelineResult,
 )
 import logging
+from app.dspy_files.content_extraction import ContentExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,6 @@ class IncidentService:
                     f"Database save failed for industry report {industry.id}: {e}"
                 )
                 raise e
-            output.industry_overview = industry
             return output
 
     @staticmethod
@@ -105,15 +105,23 @@ class IncidentService:
         return results
 
     @staticmethod
-    async def create_report_from_file(file: File, context_data: dict) -> PipelineResult:
+    async def create_report_from_pdf(
+        pdf_file: bytes, context_data: dict
+    ) -> PipelineResult:
         context = LogContext(
             user_id=context_data.get("acting_user_id"),
             action="new_report",
             source=context_data.get("source"),
         )
 
-        logger.info(f"Starting analysis for file: {file.filename}")
-        return {"status": "error", "detail": "not implemented yet"}
+        logger.info(f"Starting analysis for file: {pdf_file.filename}")
+        source = ContentExtractor.from_pdf(pdf_file)
+        orchestrator = IncidentService._get_orchestrator()
+        output = await orchestrator.analysis_from_source(source=source)
+
+        results = await IncidentService._create_report(output=output)
+
+        return results
 
     @staticmethod
     async def create_report_from_text(text: str) -> PipelineResult:

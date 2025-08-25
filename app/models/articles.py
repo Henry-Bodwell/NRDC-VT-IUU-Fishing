@@ -6,6 +6,7 @@ from bson import ObjectId
 from pydantic import BaseModel, Field, HttpUrl
 import hashlib
 from pymongo import ASCENDING, DESCENDING, IndexModel
+from app.models.incidents import IndustryOverview
 from app.models.logs import LogMixin
 from typing import TYPE_CHECKING
 
@@ -39,7 +40,9 @@ class ArticleScopeClassification(BaseModel):
         "Unrelated to IUU Fishing",
     ] = Field(
         ...,
-        description="Type of article: Single Incident of IUU fishing, Discussing Multiple Incidents of IUU fishing, aGeneral Overview of the state of illegal fishing but not related to an explicit incident or unrelated to IUU fishing.",
+        description="Select the type of article: if unrelated to Illegal, unregulated or unreported fishing, 'Unrelated to IUU Fishing', "
+        "else if referring to a specific or multiple specific incidents of illegal fishing select 'Single Incident' or 'Multiple Incidents', "
+        "otherwise if discussing illegal fishing but not referring to a specific case 'Industry Overview'",
     )
     confidence: float = Field(
         ..., description="Confidence score for the classification, between 0 and 1."
@@ -70,6 +73,7 @@ class Source(Document):
     )
 
     incidents: List[Link["IncidentReport"]] = Field(default_factory=list)
+    overview: Link["IndustryOverview"] | None = None
 
     class Settings:
         name = "sources"
