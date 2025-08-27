@@ -1,6 +1,7 @@
 import os
 from fastapi import File, HTTPException, status
 from app.models.incidents import IncidentReport, IndustryOverview
+from pymongo.errors import DuplicateKeyError
 from app.models.logs import LogContext
 from app.dspy_files.news_analysis import (
     AnalysisOrchestrator,
@@ -24,6 +25,10 @@ class IncidentService:
 
     @staticmethod
     async def _create_report(output: PipelineOutput) -> PipelineResult:
+        if output.status == PipelineResult.DUPLICATE_HASHED_TEXT:
+            logger.info(f"Text already exists in db: {output.source.id}")
+            return output
+
         source = output.source
 
         if not source:
@@ -35,6 +40,9 @@ class IncidentService:
         try:
             await source.insert()
             logger.info(f"Successfully saved source: {source.id}")
+        # except DuplicateKeyError as d:
+        #     logger.warning(f"Source already exists in db")
+        #     return
         except Exception as e:
             logger.error(f"Database save failed for {source.id}: {e}")
             raise e
