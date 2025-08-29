@@ -134,6 +134,9 @@ async def _handle_file_request(request: Request, context_data: dict) -> dict:
         pdf_file = None
         for key, value in form.items():
             if isinstance(value, UploadFile):
+                if not value.filename:
+                    continue
+
                 if not value.content_type == "application/pdf":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
