@@ -27,33 +27,40 @@ class AnalysisPipeline:
         """
         try:
             if not source.article_scope:
-                logger.info(f"Classifying article scope from '{source.url}'")
+                logger.info(f"Classifying article scope: '{source.article_hash}'")
                 source = await self.source_scope.run(source=source)
 
             article_type = source.article_scope.articleType
-            logger.info(
-                f"Processing article from '{source.url}' classified as: {article_type}"
-            )
 
             if article_type == "Unrelated to IUU Fishing":
+                logger.info(
+                    f"Article '{source.article_hash}' is unrelated to IUU fishing."
+                )
                 return dspy.Prediction(
                     sources=[source],
                     extracted_data=None,
                 )
 
             elif article_type == "Industry Overview":
+                logger.info(f"Article '{source.article_hash}' is an industry overview.")
                 module_output = await self.industry_overview_tool.acall(source=source)
                 return dspy.Prediction(
                     sources=[source],
                     parsed_data=module_output.get("parsed_data"),
                 )
             elif article_type == "Multiple Incidents":
+                logger.info(
+                    f"Article '{source.article_hash}' contains multiple incidents."
+                )
                 module_output = await self.incident_analysis_tool.acall(source=source)
                 return dspy.Prediction(
                     sources=[source],
                     incidents=module_output.get("incidents"),
                 )
             else:  # "Single Incident"
+                logger.info(
+                    f"Article '{source.article_hash}' contains a single incident."
+                )
                 module_output = await self.incident_analysis_tool.acall(source=source)
                 return dspy.Prediction(
                     sources=[source],

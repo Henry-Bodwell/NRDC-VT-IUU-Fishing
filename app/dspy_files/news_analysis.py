@@ -43,6 +43,10 @@ class PipelineOutput(BaseModel):
         return self.status == PipelineResult.SUCCESS
 
     @property
+    def is_unrelated(self) -> bool:
+        return self.status == PipelineResult.UNRELATED_CONTENT
+
+    @property
     def has_incident(self) -> bool:
         return len(self.incidents) != 0
 
@@ -70,7 +74,7 @@ class AnalysisOrchestrator:
                 status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
             )
 
-        return await self._analysis_from_source(source=source)
+        return await self.analysis_from_source(source=source)
 
     async def run_full_analysis_from_text(self, text: str) -> PipelineOutput:
         if len(text) < 50:
@@ -98,10 +102,12 @@ class AnalysisOrchestrator:
             return PipelineOutput(
                 status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
             )
-        return await self._analysis_from_source(source=source)
+        return await self.analysis_from_source(source=source)
 
-    async def _analysis_from_source(self, source: Source) -> PipelineOutput:
-
+    async def analysis_from_source(self, source: Source) -> PipelineOutput:
+        logger.info(
+            f"Running analysis for source (article_hash): {source.article_hash}"
+        )
         try:
             prediction = await self.pipeline.run(source)
             if not prediction:
@@ -136,6 +142,7 @@ class AnalysisOrchestrator:
                         source=source,
                         extracted_information=prediction.parsed_data,
                     )
+                    source.overview = overview
                     logger.info(f"Successfully created overview: {overview}")
                     return PipelineOutput(
                         status=PipelineResult.SUCCESS,

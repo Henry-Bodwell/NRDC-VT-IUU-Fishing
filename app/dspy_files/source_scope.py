@@ -21,7 +21,7 @@ class SourceScope:
                 )
                 return source
 
-            classification_pred = await self.classification_tool.acall(intake=source)
+            classification_pred = await self.classification_tool.acall(source=source)
             source.article_scope = classification_pred.classification
 
             logger.info(f"Article classified as: {source.article_scope.articleType} ")

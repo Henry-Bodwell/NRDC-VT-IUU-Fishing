@@ -9,16 +9,35 @@ from app.models.logs import LogMixin
 if TYPE_CHECKING:
     from app.models.articles import Source
 
+subtype_behavior = """
+        - Illegal Fishing: 'Exceeding catch quotas', 'Keeping undersized fish', 'Catching unauthorized or prohibited species', 'Prohibited fishing gear', 'Fishing in closed areas or closed seasons'
+        - Illegal Fishing Associated Activities: 'Invalid permit','Obscuring vessel identity', 'Unauthorized transhipment', 'falsifying documents, excepting fish/transshipment license', 'Objstructing inspectors', 'illegal bycatch practices'
+        - Unreported Catch: 'Un/underreported catch weight', 'Un/underreported discards/bycatch', 'Misreported catch species', 'Misreported location', 'Misreported gear'
+        - Unreported Catch Associated Activities: 'Unreported transshipment activities'
+        - Unregulated Actors: 'Stateless vessel', 'Fishing under flag not party to RFMO' 
+        - Unregulated Areas or Stocks: 'Operating for stock or in places to avoid international regulation'
+        - Seafood Fraud of Mislabeling: 'Species', 'Production information', 'Processing information'
+        - Forced Labor or Labor Abuse: 'Wage/Pay', 'Excessive overtime', 'Restriction of movement', 'Abusive living conditions', 'Abusive working conditions', 'Violence', 'Intimidation', 'ID Rentention', 'Deception', 'Isolation', 'Abuse of Vulnerability'
+        - Circumventing Prohibitions or Sanctions: 'Sanctions', 'Prohibitions'
+        - Illegal Aquacultural Practices: 'Unapproved/non-native species', 'Illegal sourcing', 'Unlicensed/Unauthorized farm', 'Stolen Products'
+        """
+
 
 # Pydantic models
 class Species(BaseModel):
     """Model to represent a single species involved in an incident."""
 
-    commonName: str = Field(
-        ..., description="The common name of the species (e.g., 'Bluefin Tuna')."
+    speciesCommonName: str | None = Field(
+        default=None,
+        description="The common name of the species (e.g., 'Bluefin Tuna').",
     )
     scientificName: str | None = Field(
-        description="The scientific name of the species (e.g., 'Thunnus thynnus')."
+        default=None,
+        description="The scientific name of the species (e.g., 'Thunnus thynnus').",
+    )
+    aggregateCommonName: str | None = Field(
+        default=None,
+        description="speciesCommonName:aggregateCommonName::hammerhead shark:shark, or north florida hoppers:shrimp",
     )
     ASFISCode: str | None = Field(
         default=None, description="ASFIS 3-Aplha code of the species, if available."
@@ -62,28 +81,22 @@ class IUUClassification(BaseModel):
         "Illegal Fishing",
         "Illegal Fishing Associated Activities",
         "Unreported Catch",
-        "Unreported Catch Associated Activities" "Unregulated Actors",
+        "Unreported Catch Associated Activities",
+        "Unregulated Actors",
         "Unregulated Areas or Stocks",
         "Seafood Fraud or Mislabeling",
         "Forced Labor or Labor Abuse",
         "Circumventing Prohibitions or Sanctions",
         "Illegal Aquacultural Practices",
         "Other",
-    ] = Field(...)
+    ] = Field(
+        ...,
+        description=f"Select the IUU type that best applies, see below for list of behaviors and related iuu type: {subtype_behavior}",
+    )
 
     IUUSubType: List[str] | None = Field(
         default=None,
-        description="""The specific subcategory based on IUUType:
-        - Illegal Fishing: 'Exceeding catch quotas', 'Keeping undersized fish', 'Catching unauthorized or prohibited species', 'Prohibited fishing gear', 'Fishing in closed areas or closed seasons'
-        - Illegal Fishing Associated Activities: 'Invalid permit','Obscuring vessel identity', 'Unauthorized transhipment', 'falsifying documents, excepting fish/transshipment license', 'Objstructing inspectors', 'illegal bycatch practices'
-        - Unreported Catch: 'Un/underreported catch weight', 'Un/underreported discards/bycatch', 'Misreported catch species', 'Misreported location', 'Misreported gear'
-        - Unreported Catch Associated Activities: 'Unreported transshipment activities'
-        - Unregulated Actors: 'Stateless vessel', 'Fishing under flag not party to RFMO' 
-        - Unregulated Areas or Stocks: 'Operating for stock or in places to avoid international regulation'
-        - Seafood Fraud of Mislabeling: 'Species', 'Production information', 'Processing information'
-        - Forced Labor or Labor Abuse: 'Wage/Pay', 'Excessive overtime', 'Restriction of movement', 'Abusive living conditions', 'Abusive working conditions', 'Violence', 'Intimidation', 'ID Rentention', 'Deception', 'Isolation', 'Abuse of Vulnerability'
-        - Circumventing Prohibitions or Sanctions: 'Sanctions', 'Prohibitions'
-        """,
+        description=f"The select subtypes associatedin article under given IUUType: {subtype_behavior}",
     )
 
     IUUTypeReason: str = Field(
@@ -550,6 +563,19 @@ class IndustryOverview(Document):
 
     class Settings:
         name = "industry_overviews"
+
+    async def delete(self):
+        """Override delete method to handle source removal"""
+        try:
+            if self.source:
+                self.source.overviews = None
+
+            self.source = None
+
+            # Call the parent delete method
+            await super().delete()
+        except Exception as e:
+            raise Exception(f"Failed to delete industry report: {e}")
 
 
 class IncidentReport(Document):

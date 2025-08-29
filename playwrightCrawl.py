@@ -1,453 +1,374 @@
-import asyncio
+"""
+Website Article Scraper using Playwright
+Searches websites for articles related to given keywords and stores URLs in JSON.
+"""
+
 import json
-import re
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple, Set
-from dataclasses import dataclass
+import asyncio
+from datetime import datetime
 from urllib.parse import urljoin, urlparse
-from playwright.async_api import async_playwright, Browser, BrowserContext, Page
-import aiofiles
+from playwright.async_api import async_playwright
+import argparse
 
 
-@dataclass
-class SiteConfig:
-    """Configuration for a specific news site"""
+class BaseScraper:
+    """Base scraper class with common functionality"""
 
-    name: str
-    base_url: str
-    search_url: str
-    search_input_selector: str
-    search_button_selector: str
-    article_link_selectors: List[str]
-    next_page_selector: Optional[str] = None
-    results_per_page: int = 10
-    max_pages: int = 5
+    def __init__(self, base_url, name):
+        self.base_url = base_url
+        self.name = name
+
+    async def search(self, page, keywords):
+        """Override this method for site-specific search logic"""
+        return []
+
+    def extract_article_urls(self, page_content, base_url):
+        """Basic fallback method to extract article URLs"""
+        # This is a simple implementation - can be enhanced
+        return []
 
 
-class NewsNavigator:
-    def __init__(self, headless: bool = True, timeout: int = 30000, delay: int = 2000):
-        self.browser: Optional[Browser] = None
-        self.context: Optional[BrowserContext] = None
-        self.headless = headless
-        self.timeout = timeout
-        self.delay = delay
+class UndercurrentNewsScraper(BaseScraper):
+    """Scraper for Undercurrent News"""
 
-        # Predefined site configurations
-        self.site_configs = {
-            "cnn": SiteConfig(
-                name="CNN",
-                base_url="https://www.cnn.com",
-                search_url="https://www.cnn.com/search",
-                search_input_selector="input[name='q'], input[type='search'], .search-input",
-                search_button_selector="button[type='submit'], .search-button, .search-submit",
-                article_link_selectors=[
-                    "a[href*='/article/']",
-                    "a[href*='/news/']",
-                    ".card-media a",
-                    ".media__link",
-                    "h3 a",
-                ],
-                next_page_selector=".pagination-arrow-right, .next-page",
-            ),
-            "bbc": SiteConfig(
-                name="BBC News",
-                base_url="https://www.bbc.com",
-                search_url="https://www.bbc.com/search",
-                search_input_selector="#search-input, input[name='q']",
-                search_button_selector="#search-button, button[type='submit']",
-                article_link_selectors=[
-                    "a[href*='/news/']",
-                    ".gs-title a",
-                    "h3 a",
-                    ".media__link",
-                ],
-            ),
-            "reuters": SiteConfig(
-                name="Reuters",
-                base_url="https://www.reuters.com",
-                search_url="https://www.reuters.com/site-search/",
-                search_input_selector="input[name='blob'], input[type='search']",
-                search_button_selector="button[type='submit'], .search-submit",
-                article_link_selectors=[
-                    "a[href*='/article/']",
-                    ".story-title a",
-                    "h3 a",
-                    ".media-story-card__headline__eqhp9 a",
-                ],
-            ),
-        }
+    def __init__(self):
+        super().__init__("https://www.undercurrentnews.com", "Undercurrent News")
 
-    async def __aenter__(self):
-        await self.initialize()
-        return self
+    async def search(self, page, keywords):
+        search_query = " ".join(keywords)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
+        # Try multiple search approaches for Undercurrent News
+        search_urls = [
+            f"{self.base_url}/?s={search_query}",  # WordPress search
+        ]
 
-    async def initialize(self):
-        """Initialize the browser and context."""
-        self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(headless=self.headless)
-
-        self.context = await self.browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1920, "height": 1080},
-        )
-
-    async def search_site(
-        self, site_key: str, search_terms: List[str], date_filter: Optional[str] = None
-    ) -> List[str]:
-        """
-        Search a news site and return article URLs.
-
-        Args:
-            site_key: Key for predefined site config (e.g., 'cnn', 'bbc')
-            search_terms: List of search terms to query
-            date_filter: Optional date filter ('today', 'week', 'month')
-
-        Returns:
-            List of article URLs found
-        """
-        if site_key not in self.site_configs:
-            raise ValueError(
-                f"Site '{site_key}' not configured. Available: {list(self.site_configs.keys())}"
-            )
-
-        config = self.site_configs[site_key]
-        all_article_urls = set()
-
-        for search_term in search_terms:
-            print(f"Searching {config.name} for: '{search_term}'")
-            urls = await self._search_single_term(config, search_term, date_filter)
-            all_article_urls.update(urls)
-
-            # Add delay between search terms
-            if len(search_terms) > 1:
-                await asyncio.sleep(self.delay / 1000)
-
-        return list(all_article_urls)
-
-    async def _search_single_term(
-        self, config: SiteConfig, search_term: str, date_filter: Optional[str] = None
-    ) -> List[str]:
-        """Search for a single term and return article URLs."""
-        page = await self.context.new_page()
-        article_urls = set()
-
-        try:
-            # Navigate to search page
-            await page.goto(config.search_url, timeout=self.timeout)
-            await page.wait_for_load_state("networkidle")
-
-            # Handle cookie consent banners
-            await self._handle_consent_banners(page)
-
-            # Find and fill search input
-            search_input = await page.wait_for_selector(
-                config.search_input_selector, timeout=10000
-            )
-            await search_input.fill(search_term)
-
-            # Submit search
+        for search_url in search_urls:
             try:
-                search_button = await page.wait_for_selector(
-                    config.search_button_selector, timeout=5000
-                )
-                await search_button.click()
-            except:
-                # Try pressing Enter if button click fails
-                await search_input.press("Enter")
+                print(f"Trying URL: {search_url}")
+                await page.goto(search_url, wait_until="load", timeout=15000)
+                await page.wait_for_timeout(15000)
 
-            # Wait for search results
-            await page.wait_for_load_state("networkidle")
-            await asyncio.sleep(2)  # Additional wait for dynamic content
+                # If we're on homepage, look for recent articles
+                if search_url == self.base_url:
+                    article_selectors = [
+                        "article h2 a, article h3 a",
+                        ".entry-title a",
+                        ".post-title a",
+                        ".article-title a",
+                        "h2 a[href*='/20']",  # Links with years (likely articles)
+                        "h3 a[href*='/20']",
+                    ]
+                else:
+                    # Search results page selectors
+                    article_selectors = [
+                        "article .entry-title a",
+                        ".search-results article h2 a",
+                        ".post .entry-title a",
+                        ".search-result h2 a, .search-result h3 a",
+                    ]
 
-            # Extract article URLs from multiple pages
-            for page_num in range(1, config.max_pages + 1):
-                print(f"  Extracting from page {page_num}...")
+                urls = []
+                for selector in article_selectors:
+                    try:
+                        article_links = await page.query_selector_all(selector)
 
-                # Extract article URLs from current page
-                page_urls = await self._extract_article_urls(page, config)
-                article_urls.update(page_urls)
+                        for link in article_links:
+                            href = await link.get_attribute("href")
+                            title = await link.text_content()
 
-                print(f"    Found {len(page_urls)} articles on page {page_num}")
+                            if href and title and self._is_valid_article(href, title):
+                                full_url = urljoin(self.base_url, href)
+                                if full_url not in [item["url"] for item in urls]:
+                                    urls.append(
+                                        {
+                                            "url": full_url,
+                                            "title": title.strip(),
+                                            "site": self.name,
+                                        }
+                                    )
+                    except Exception as selector_error:
+                        print(f"Selector '{selector}' failed: {selector_error}")
+                        continue
 
-                # Try to navigate to next page
-                if page_num < config.max_pages and config.next_page_selector:
-                    next_button = await page.query_selector(config.next_page_selector)
-                    if next_button and await next_button.is_visible():
-                        await next_button.click()
-                        await page.wait_for_load_state("networkidle")
-                        await asyncio.sleep(2)
-                    else:
-                        print(f"    No more pages available")
-                        break
-
-        except Exception as e:
-            print(f"Error searching {config.name}: {e}")
-        finally:
-            await page.close()
-
-        return list(article_urls)
-
-    async def _extract_article_urls(self, page: Page, config: SiteConfig) -> List[str]:
-        """Extract article URLs from the current page."""
-        article_urls = set()
-
-        for selector in config.article_link_selectors:
-            try:
-                # Find all matching links
-                links = await page.query_selector_all(selector)
-
-                for link in links:
-                    href = await link.get_attribute("href")
-                    if href:
-                        # Convert relative URLs to absolute
-                        if href.startswith("/"):
-                            full_url = urljoin(config.base_url, href)
-                        elif href.startswith("http"):
-                            full_url = href
-                        else:
-                            continue
-
-                        # Filter for actual article URLs
-                        if self._is_valid_article_url(full_url, config):
-                            article_urls.add(full_url)
+                if urls:  # If we found articles, return them
+                    print(f"Found {len(urls)} articles using {search_url}")
+                    return urls
 
             except Exception as e:
-                print(f"    Error with selector '{selector}': {e}")
+                print(f"Error with URL {search_url}: {e}")
                 continue
 
-        return list(article_urls)
+        return []
 
-    def _is_valid_article_url(self, url: str, config: SiteConfig) -> bool:
-        """Check if URL appears to be a valid article URL."""
-        # Basic URL validation
-        try:
-            parsed = urlparse(url)
-            if not parsed.netloc:
-                return False
-        except:
-            return False
-
-        # Filter out non-article URLs
-        unwanted_patterns = [
-            "/video/",
-            "/live/",
-            "/sport/",
-            "/weather/",
-            "/category/",
-            "/tag/",
-            "/author/",
-            "/search/",
-            "mailto:",
-            "javascript:",
+    def _is_valid_article(self, href, title):
+        """Check if this is likely a real article"""
+        skip_patterns = [
             "#",
-            "?",
+            "javascript:",
+            "mailto:",
+            "/feed",
+            "/category",
+            "/tag",
+            "/author",
         ]
+        skip_titles = ["search", "archive", "home", "about", "contact", ""]
 
-        url_lower = url.lower()
-        for pattern in unwanted_patterns:
-            if pattern in url_lower:
-                return False
+        return (
+            not any(pattern in href.lower() for pattern in skip_patterns)
+            and title.lower().strip() not in skip_titles
+            and len(title.strip()) > 5
+        )
 
-        # Must contain article indicators
-        article_indicators = [
-            "/article/",
-            "/news/",
-            "/story/",
-            "/report/",
-            "/politics/",
-            "/business/",
-            "/technology/",
-            "/world/",
-        ]
 
-        return any(indicator in url_lower for indicator in article_indicators)
+class JusticeGovScraper(BaseScraper):
+    """Scraper for Justice.gov"""
 
-    async def _handle_consent_banners(self, page: Page):
-        """Handle cookie consent and other banners."""
-        consent_selectors = [
-            "button:has-text('Accept')",
-            "button:has-text('I Accept')",
-            "button:has-text('OK')",
-            "button:has-text('Continue')",
-            ".accept-cookies",
-            ".cookie-accept",
-            "#accept-cookies",
-        ]
+    def __init__(self):
+        super().__init__("https://www.justice.gov", "Justice.gov")
 
-        for selector in consent_selectors:
-            try:
-                button = await page.query_selector(selector)
-                if button and await button.is_visible():
-                    await button.click()
-                    await asyncio.sleep(1)
-                    break
-            except:
-                continue
-
-    async def crawl_site_section(
-        self, site_key: str, section_url: str, max_articles: int = 50
-    ) -> List[str]:
-        """
-        Crawl a specific section of a news site (e.g., /politics, /technology).
-
-        Args:
-            site_key: Key for predefined site config
-            section_url: URL of the section to crawl
-            max_articles: Maximum number of articles to collect
-
-        Returns:
-            List of article URLs found
-        """
-        if site_key not in self.site_configs:
-            raise ValueError(f"Site '{site_key}' not configured")
-
-        config = self.site_configs[site_key]
-        page = await self.context.new_page()
-        article_urls = set()
+    async def search(self, page, keywords):
+        search_query = " ".join(keywords)
+        # Use the correct search URL format for justice.gov
+        search_url = f"https://search.justice.gov/search?query={search_query}&op=Search&affiliate=justice"
 
         try:
-            print(f"Crawling {config.name} section: {section_url}")
-            await page.goto(section_url, timeout=self.timeout)
-            await page.wait_for_load_state("networkidle")
+            await page.goto(search_url, wait_until="networkidle")
+            await page.wait_for_timeout(3000)  # Wait for search results to load
 
-            await self._handle_consent_banners(page)
+            # More specific selectors for Justice.gov search results
+            article_selectors = [
+                ".result h3 a",
+                ".search-result-item h3 a",
+                ".gsc-result .gs-title a",
+            ]
 
-            # Scroll to load more content (for infinite scroll sites)
-            for _ in range(3):
-                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                await asyncio.sleep(2)
+            urls = []
+            for selector in article_selectors:
+                article_links = await page.query_selector_all(selector)
 
-            # Extract article URLs
-            urls = await self._extract_article_urls(page, config)
-            article_urls.update(urls[:max_articles])
+                for link in article_links:
+                    href = await link.get_attribute("href")
+                    title = await link.text_content()
 
-            print(f"Found {len(article_urls)} articles in section")
+                    if href and title and self._is_valid_article(href, title):
+                        # Ensure we have full URLs
+                        if href.startswith("http"):
+                            full_url = href
+                        else:
+                            full_url = urljoin(self.base_url, href)
 
+                        if full_url not in [
+                            item["url"] for item in urls
+                        ]:  # Avoid duplicates
+                            urls.append(
+                                {
+                                    "url": full_url,
+                                    "title": title.strip(),
+                                    "site": self.name,
+                                }
+                            )
+
+            return urls
         except Exception as e:
-            print(f"Error crawling section: {e}")
-        finally:
-            await page.close()
+            print(f"Error scraping {self.name}: {e}")
+            return []
 
-        return list(article_urls)
+    def _is_valid_article(self, href, title):
+        """Check if this is likely a real article"""
+        skip_patterns = ["#", "javascript:", "mailto:", "/search"]
+        skip_titles = ["search", "archive", "home", "about", "contact", ""]
 
-    def add_site_config(self, site_key: str, config: SiteConfig):
-        """Add a custom site configuration."""
-        self.site_configs[site_key] = config
-
-    async def close(self):
-        """Close the browser and cleanup."""
-        if self.browser:
-            await self.browser.close()
-        if hasattr(self, "playwright"):
-            await self.playwright.stop()
+        return (
+            not any(pattern in href.lower() for pattern in skip_patterns)
+            and title.lower().strip() not in skip_titles
+            and len(title.strip()) > 10
+            and "justice.gov" in href.lower()
+        )
 
 
-# Integration with the article scraper
-class IntegratedNewsScraper:
-    """Combines navigation and scraping functionality."""
+class GenericScraper(BaseScraper):
+    """Generic fallback scraper for any website"""
 
-    def __init__(self, headless: bool = True, delay: int = 2000):
-        self.navigator = NewsNavigator(headless=headless, delay=delay)
-        self.scraper = None  # Will import NewsArticleScraper
+    def __init__(self, base_url, name):
+        super().__init__(base_url, name)
 
-    async def __aenter__(self):
-        await self.navigator.initialize()
-        return self
+    async def search(self, page, keywords):
+        """Generic search attempt - tries common search patterns"""
+        search_query = " ".join(keywords)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.navigator.close()
-        if self.scraper:
-            await self.scraper.close()
+        # Common search URL patterns to try
+        search_patterns = [
+            f"{self.base_url}/search?q={search_query}",
+            f"{self.base_url}/search?query={search_query}",
+            f"{self.base_url}/?s={search_query}",
+        ]
 
-    async def search_and_scrape(
-        self, site_key: str, search_terms: List[str], max_articles: int = 20
-    ) -> Tuple[List, List]:
-        """
-        Search a site and scrape the found articles.
+        for search_url in search_patterns:
+            try:
+                await page.goto(search_url, wait_until="networkidle")
 
-        Returns:
-            Tuple of (scraped_articles, errors)
-        """
-        # Find article URLs
-        article_urls = await self.navigator.search_site(site_key, search_terms)
+                # Generic selectors for article links
+                selectors = [
+                    "article a[href]",
+                    ".article a[href]",
+                    ".post a[href]",
+                    "h1 a[href], h2 a[href], h3 a[href]",
+                    ".entry-title a[href]",
+                    ".title a[href]",
+                ]
 
-        if not article_urls:
-            print("No articles found")
-            return [], []
+                urls = []
+                for selector in selectors:
+                    links = await page.query_selector_all(selector)
+                    for link in links:
+                        href = await link.get_attribute("href")
+                        title = await link.text_content()
+                        if href and self._is_article_link(href):
+                            full_url = urljoin(self.base_url, href)
+                            urls.append(
+                                {
+                                    "url": full_url,
+                                    "title": title.strip() if title else "",
+                                    "site": self.name,
+                                }
+                            )
 
-        # Limit the number of articles
-        article_urls = article_urls[:max_articles]
-        print(f"Scraping {len(article_urls)} articles...")
+                if urls:  # If we found articles, return them
+                    return urls
 
-        # Import and use the scraper (assuming it's in the same directory)
-        from playwrightTest import NewsArticleScraper
+            except Exception as e:
+                print(f"Error trying search pattern {search_url}: {e}")
+                continue
 
-        async with NewsArticleScraper(headless=self.navigator.headless) as scraper:
-            results, errors = await scraper.scrape_multiple_articles(
-                article_urls, concurrency=3
+        return []
+
+    def _is_article_link(self, href):
+        """Basic heuristic to determine if a link might be an article"""
+        # Skip navigation links, images, etc.
+        skip_patterns = [
+            "#",
+            "javascript:",
+            "mailto:",
+            ".jpg",
+            ".png",
+            ".pdf",
+            "/feed",
+            "/category",
+            "/tag",
+            "/author",
+            "/search",
+            "/archive",
+        ]
+        return (
+            not any(pattern in href.lower() for pattern in skip_patterns)
+            and len(href) > 10
+        )
+
+
+class ArticleScraper:
+    """Main scraper orchestrator"""
+
+    def __init__(self):
+        self.scrapers = {
+            "www.undercurrentnews.com": UndercurrentNewsScraper(),
+            "www.justice.gov": JusticeGovScraper(),
+        }
+        self.results = []
+
+    def add_generic_scraper(self, url, name):
+        """Add a generic scraper for a new site"""
+        domain = urlparse(url).netloc.lower()
+        self.scrapers[domain] = GenericScraper(url, name)
+
+    async def scrape_site(self, site_url, keywords, name=None):
+        """Scrape a single site for articles"""
+        domain = urlparse(site_url).netloc.lower()
+        # Use specific scraper if available, otherwise create generic one
+        if domain in self.scrapers:
+            scraper = self.scrapers[domain]
+        else:
+            scraper_name = name or domain
+            scraper = GenericScraper(site_url, scraper_name)
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=False)
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             )
+            page = await context.new_page()
 
-        return results, errors
+            try:
+                print(f"Scraping {scraper.name}...")
+                urls = await scraper.search(page, keywords)
+                self.results.extend(urls)
+                print(f"Found {len(urls)} articles on {scraper.name}")
+
+                # Print first few results for debugging
+                for i, url in enumerate(urls[:3]):
+                    print(
+                        f"  {i+1}. {url['title'][:60]}{'...' if len(url['title']) > 60 else ''}"
+                    )
+
+            except Exception as e:
+                print(f"Error scraping {scraper.name}: {e}")
+            finally:
+                await browser.close()
+
+    async def scrape_multiple_sites(self, sites, keywords):
+        """Scrape multiple sites concurrently"""
+        tasks = []
+        for site in sites:
+            if isinstance(site, dict):
+                task = self.scrape_site(site["url"], keywords, site.get("name"))
+            else:
+                task = self.scrape_site(site, keywords)
+            tasks.append(task)
+
+        await asyncio.gather(*tasks)
+
+    def save_results(self, filename="article_urls.json"):
+        """Save results to JSON file"""
+        data = {
+            "timestamp": datetime.now().isoformat(),
+            "total_articles": len(self.results),
+            "articles": self.results,
+        }
+
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        print(f"Saved {len(self.results)} articles to {filename}")
 
 
-# Usage example
 async def main():
-    """Example usage of the integrated news scraper."""
+    parser = argparse.ArgumentParser(description="Scrape articles from websites")
+    parser.add_argument("keywords", nargs="+", help="Keywords to search for")
+    parser.add_argument("--sites", nargs="*", help="Additional sites to scrape")
+    parser.add_argument(
+        "--output", "-o", default="article_urls.json", help="Output JSON file"
+    )
 
-    search_terms = ["artificial intelligence", "climate change", "economic policy"]
+    args = parser.parse_args()
 
-    async with IntegratedNewsScraper(headless=True) as scraper:
-        # Search and scrape CNN
-        print("=== Searching CNN ===")
-        cnn_articles, cnn_errors = await scraper.search_and_scrape(
-            "cnn", search_terms, max_articles=10
-        )
+    scraper = ArticleScraper()
 
-        print(f"CNN: Scraped {len(cnn_articles)} articles, {len(cnn_errors)} errors")
+    # Default sites to scrape
+    default_sites = [
+        {"url": "https://www.undercurrentnews.com", "name": "Undercurrent News"},
+        {"url": "https://www.justice.gov", "name": "Justice.gov"},
+    ]
 
-        # Search and scrape BBC
-        print("\n=== Searching BBC ===")
-        bbc_articles, bbc_errors = await scraper.search_and_scrape(
-            "bbc", search_terms, max_articles=10
-        )
+    # Add any additional sites
+    sites = default_sites
+    if args.sites:
+        for site in args.sites:
+            sites.append({"url": site, "name": urlparse(site).netloc})
 
-        print(f"BBC: Scraped {len(bbc_articles)} articles, {len(bbc_errors)} errors")
+    print(f"Searching for keywords: {', '.join(args.keywords)}")
+    print(f"Sites to search: {[s['name'] for s in sites]}")
 
-        # Crawl a specific section
-        print("\n=== Crawling Reuters Technology Section ===")
-        tech_urls = await scraper.navigator.crawl_site_section(
-            "reuters", "https://www.reuters.com/technology/", max_articles=15
-        )
-
-        # Scrape the section articles
-        if tech_urls:
-            from news_scraper import NewsArticleScraper
-
-            async with NewsArticleScraper() as article_scraper:
-                tech_articles, tech_errors = (
-                    await article_scraper.scrape_multiple_articles(tech_urls[:10])
-                )
-
-            print(f"Reuters Tech: Scraped {len(tech_articles)} articles")
-
-        # Combine all results
-        all_articles = (
-            cnn_articles + bbc_articles + (tech_articles if tech_urls else [])
-        )
-
-        if all_articles:
-            # Save combined results
-            json_data = [asdict(article) for article in all_articles]
-            async with aiofiles.open(
-                "all_scraped_articles.json", "w", encoding="utf-8"
-            ) as f:
-                await f.write(json.dumps(json_data, indent=2, ensure_ascii=False))
-
-            print(f"\nTotal articles scraped: {len(all_articles)}")
-            print("Results saved to 'all_scraped_articles.json'")
+    await scraper.scrape_multiple_sites(sites, args.keywords)
+    scraper.save_results(args.output)
 
 
 if __name__ == "__main__":
