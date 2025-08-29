@@ -28,13 +28,16 @@ class Species(BaseModel):
     """Model to represent a single species involved in an incident."""
 
     speciesCommonName: str | None = Field(
-        description="The common name of the species (e.g., 'Bluefin Tuna')."
+        default=None,
+        description="The common name of the species (e.g., 'Bluefin Tuna').",
     )
     scientificName: str | None = Field(
-        description="The scientific name of the species (e.g., 'Thunnus thynnus')."
+        default=None,
+        description="The scientific name of the species (e.g., 'Thunnus thynnus').",
     )
     aggregateCommonName: str | None = Field(
-        description="speciesCommonName:aggregateCommonName::hammerhead shark:shark, or north florida hoppers:shrimp"
+        default=None,
+        description="speciesCommonName:aggregateCommonName::hammerhead shark:shark, or north florida hoppers:shrimp",
     )
     ASFISCode: str | None = Field(
         default=None, description="ASFIS 3-Aplha code of the species, if available."

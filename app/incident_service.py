@@ -114,16 +114,16 @@ class IncidentService:
 
     @staticmethod
     async def create_report_from_pdf(
-        pdf_file: bytes, context_data: dict
+        pdf_bytes: bytes, filename: str = "", context_data: dict = {}
     ) -> PipelineResult:
-        context = LogContext(
-            user_id=context_data.get("acting_user_id"),
-            action="new_report",
-            source=context_data.get("source"),
-        )
+        # context = LogContext(
+        #     user_id=context_data.get("acting_user_id"),
+        #     action="new_report",
+        #     source=context_data.get("source"),
+        # )
 
-        logger.info(f"Starting analysis for file: {pdf_file.filename}")
-        source = ContentExtractor.from_pdf(pdf_file)
+        logger.info(f"Starting analysis for file: {filename}")
+        source = ContentExtractor.from_pdf(pdf_bytes)
         orchestrator = IncidentService._get_orchestrator()
         output = await orchestrator.analysis_from_source(source=source)
 

@@ -40,7 +40,7 @@ class ArticleClassificationSignature(dspy.Signature):
     """
 
     source: Source = dspy.InputField(
-        desc="Base source data containing URL and article text to classify."
+        desc="Base source data containing article text to classify."
     )
     classification: ArticleScopeClassification = dspy.OutputField(
         desc="The classification of the article, including type and confidence score."

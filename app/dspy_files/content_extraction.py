@@ -37,12 +37,13 @@ class ContentExtractor:
     def from_pdf(pdf_bytes: bytes) -> Source:
         """Extracts text from a PDF file."""
         response = fn.read_pdf(pdf_bytes)
-
         text = response.get("text")
         author = response.get("metadata", {}).get("author")
         title = response.get("metadata", {}).get("title")
         # date = response.get("metadata", {}).get("date")
-        return Source(article_text=text, author=author, article_title=title)
+        source = Source(article_text=text, author=author, article_title=title)
+        logger.info(f"Source from PDF: {source}")
+        return source
 
     @staticmethod
     def from_image(self, image_path: str, language: str = "eng") -> tuple[str, str]:

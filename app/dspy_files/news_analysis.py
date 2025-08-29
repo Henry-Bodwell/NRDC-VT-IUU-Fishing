@@ -43,6 +43,10 @@ class PipelineOutput(BaseModel):
         return self.status == PipelineResult.SUCCESS
 
     @property
+    def is_unrelated(self) -> bool:
+        return self.status == PipelineResult.UNRELATED_CONTENT
+
+    @property
     def has_incident(self) -> bool:
         return len(self.incidents) != 0
 
@@ -101,7 +105,9 @@ class AnalysisOrchestrator:
         return await self.analysis_from_source(source=source)
 
     async def analysis_from_source(self, source: Source) -> PipelineOutput:
-
+        logger.info(
+            f"Running analysis for source (article_hash): {source.article_hash}"
+        )
         try:
             prediction = await self.pipeline.run(source)
             if not prediction:

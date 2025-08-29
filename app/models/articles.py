@@ -79,7 +79,11 @@ class Source(Document):
         name = "sources"
         indexes = [
             IndexModel([("article_hash", ASCENDING)], unique=True),
-            IndexModel([("url", ASCENDING)], unique=True, sparse=True),
+            IndexModel(
+                [("url", ASCENDING)],
+                unique=True,
+                partialFilterExpression={"url": {"$type": "string"}},
+            ),
             IndexModel([("article_text", "text")]),
         ]
 

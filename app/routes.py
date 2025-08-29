@@ -5,9 +5,10 @@ from fastapi import (
     Request,
     Response,
     HTTPException,
-    UploadFile,
+    UploadFile as FastAPIUploadFile,
     status,
 )
+from starlette.datastructures import UploadFile
 from fastapi.encoders import jsonable_encoder
 from typing import List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError, model_validator
@@ -138,14 +139,20 @@ async def _handle_file_request(request: Request, context_data: dict) -> dict:
     """Handle multipart file request"""
     try:
         form = await request.form()
-
+        logger.info(f"Form recevied with keys: {list(form.keys())}")
         pdf_file = None
         for key, value in form.items():
-            if isinstance(value, UploadFile):
+            logger.info(f"Key: {key}, Value type: {type(value)}, Value: {value}")
+            if isinstance(value, (UploadFile, FastAPIUploadFile)):
                 if not value.filename:
                     continue
 
-                if not value.content_type == "application/pdf":
+                allowed_types = [
+                    "application/pdf",
+                    "application/x-pdf",
+                    "application/acrobat",
+                ]
+                if value.content_type not in allowed_types:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"File must be a PDF. Received: {value.content_type}",
@@ -161,7 +168,9 @@ async def _handle_file_request(request: Request, context_data: dict) -> dict:
 
         pdf_bytes = await pdf_file.read()
 
-        output = IncidentService.create_report_from_pdf(pdf_bytes, pdf_file.filename)
+        output = await IncidentService.create_report_from_pdf(
+            pdf_bytes, pdf_file.filename
+        )
 
         return _request_response(output)
 
@@ -188,7 +197,7 @@ async def _check_for_existing_url(url: str) -> Source | None:
         return None
 
 
-@router.get("/incidents", response_model=List[IncidentReport])
+@router.get("/incidents")
 async def list_incident_reports(skip: int = 0, limit: int = 25):
     """
     Retrieves a list of incident reports with pagination.
@@ -326,3 +335,8 @@ def valid_response(response: Optional[T], pydanticModel: Type[T]):
 @router.get("/test")
 async def test_route():
     return {"message": "Router is working!"}
+
+
+@router.get("/ping")
+async def ping():
+    return {"message": "Pong"}

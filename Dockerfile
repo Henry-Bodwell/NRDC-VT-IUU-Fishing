@@ -1,10 +1,12 @@
-FROM python:3.12-slim
+FROM python:3.12
 WORKDIR /code
 
 # Install system dependencies that might be needed
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    tesseract-ocr \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install requirements
