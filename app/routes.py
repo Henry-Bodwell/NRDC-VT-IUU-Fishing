@@ -55,15 +55,23 @@ async def create_incident_report(request: Request):
         "source": "api",
         "request_id": request.headers.get("x-request-id"),
     }
-
-    if content_type == "application/json":
-        return await _handle_json_request(request, context_data)
-    elif content_type and content_type.startswith("multipart/form-data"):
-        return await _handle_file_request(request, context_data)
-    else:
+    try:
+        if content_type == "application/json":
+            return await _handle_json_request(request, context_data)
+        elif content_type and content_type.startswith("multipart/form-data"):
+            return await _handle_file_request(request, context_data)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Unsupported Content-Type: {content_type}. Must be 'application/json' or 'multipart/form-data'",
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error inserting incident report: {e}")
         raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"Unsupported Content-Type: {content_type}. Must be 'application/json' or 'multipart/form-data'",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to insert incident report. {e}",
         )
 
 

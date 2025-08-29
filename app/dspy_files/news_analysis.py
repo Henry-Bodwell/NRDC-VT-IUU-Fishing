@@ -26,6 +26,7 @@ class PipelineResult(Enum):
     FAILED_ANALYSIS = "failed_analysis"
     FAILED_FORMATTING = "failed_formatting"
     UNRELATED_CONTENT = "unrelated_content"
+    DUPLICATE_HASHED_TEXT = "duplicate_hashed_text"
 
 
 class PipelineOutput(BaseModel):
@@ -80,7 +81,18 @@ class AnalysisOrchestrator:
         try:
             logging.info(f"Starting analysis for: {text[:50]}...")
             source = Source(article_text=text)
+            existing_source = await Source.find_one(
+                {"article_hash": source.article_hash}
+            )
+            if existing_source:
+                logger.info(f"Source already exists: {existing_source.id}")
+                return PipelineOutput(
+                    status=PipelineResult.DUPLICATE_HASHED_TEXT,
+                    source=existing_source,
+                    error_message="Duplicate Article",
+                )
 
+            logger.info(source.article_text[:50])
         except Exception as e:
             logging.error(f"Error creating source from: {text[:50]}... : {e}")
             return PipelineOutput(

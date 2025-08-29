@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Literal
 from beanie import Document, Insert, Link, Replace, before_event
 from bson import ObjectId
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, model_validator
 import hashlib
 from pymongo import ASCENDING, DESCENDING, IndexModel
 from app.models.incidents import IndustryOverview
@@ -83,9 +83,16 @@ class Source(Document):
             IndexModel([("article_text", "text")]),
         ]
 
+    @model_validator(mode="after")
+    def generate_hash_on_creation(self):
+        """Generate article hash after model creation"""
+        if not self.article_hash and self.article_text:
+            self.article_hash = hashlib.sha256(self.article_text.encode()).hexdigest()
+        return self
+
     @before_event([Insert, Replace])
     def generate_hash(self):
         """Generate article hash before saving"""
-        if not self.article_hash:
+        if self.article_text:
             self.article_hash = hashlib.sha256(self.article_text.encode()).hexdigest()
         # self.updated_at = datetime.utcnow()
