@@ -1,4 +1,6 @@
+import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.logging import setup_logging
 from app.database import init_db
@@ -23,10 +25,26 @@ async def lifespan(app: FastAPI):
 
 # Configure logging
 setup_logging()
+frontendPort = os.getenv("FRONTEND_PORT", "4000")
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    f"http://localhost:{frontendPort}",
+    "https://localhost",
+    "https://localhost:8000",
+    f"https://localhost:{frontendPort}",
+]
 
 # Create the FastAPI app instance at module level
 app = FastAPI(lifespan=lifespan)
 app.include_router(router, prefix="/api", tags=["api"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/", tags=["Root"])

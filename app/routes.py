@@ -307,6 +307,7 @@ async def update_source(source_id: str, update_data: Source):
     updated_source = await SourceService.update_source(
         source_id=source_id, update_data=update_data
     )
+    return updated_source
 
 
 def valid_response(response: Optional[T], pydanticModel: Type[T]):
