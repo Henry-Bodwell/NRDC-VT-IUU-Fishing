@@ -9,6 +9,7 @@ from app.models.logs import LogMixin
 if TYPE_CHECKING:
     from app.models.articles import Source
 
+
 subtype_behavior = """
         - Illegal Fishing: 'Exceeding catch quotas', 'Keeping undersized fish', 'Catching unauthorized or prohibited species', 'Prohibited fishing gear', 'Fishing in closed areas or closed seasons'
         - Illegal Fishing Associated Activities: 'Invalid permit','Obscuring vessel identity', 'Unauthorized transhipment', 'falsifying documents, excepting fish/transshipment license', 'Objstructing inspectors', 'illegal bycatch practices'
@@ -594,6 +595,10 @@ class IncidentReport(Document):
     incident_classification: IncidentClassification
 
     verified: bool = Field(default=False)
+    status: Literal["generated", "user_input", "modified"] = Field(
+        default="generated",
+        description="Status of the report. Generated means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
+    )
 
     class Settings:
         name = "incidents"
@@ -641,9 +646,6 @@ class IncidentReport(Document):
                 self.primary_source = source
 
             await self.save()
-            # Handle bidirectional relationship
-            if source.incidents is None:
-                source.incidents = []
 
             incident_ids = [i.id for i in source.incidents if hasattr(i, "id")]
             if self.id not in incident_ids:

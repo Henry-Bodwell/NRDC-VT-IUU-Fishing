@@ -2,15 +2,17 @@ from fastapi import (
     APIRouter,
     Body,
     Depends,
+    Query,
     Request,
     Response,
     HTTPException,
     UploadFile as FastAPIUploadFile,
     status,
 )
+from pymongo import DESCENDING
 from starlette.datastructures import UploadFile
 from fastapi.encoders import jsonable_encoder
-from typing import List, Optional, Type, TypeVar
+from typing import Annotated, List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError, model_validator
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
@@ -18,6 +20,7 @@ from app.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
 from app.source_service import SourceService
 from app.dspy_files.news_analysis import PipelineOutput
+from app.interfaces import GenRequest, IncidentFilters
 
 
 router = APIRouter()
@@ -26,18 +29,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
-
-
-class GenRequest(BaseModel):
-    url: str | None = None
-    text: str | None = None
-    title: str | None = None
-
-    @model_validator(mode="after")
-    def check_at_least_one_field(self):
-        if not any([self.url, self.text]):
-            raise ValueError("Either url or text must be provided")
-        return self
 
 
 # Incident Routes
@@ -198,12 +189,43 @@ async def _check_for_existing_url(url: str) -> Source | None:
 
 
 @router.get("/incidents")
-async def list_incident_reports(skip: int = 0, limit: int = 25):
+async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()]):
     """
-    Retrieves a list of incident reports with pagination.
+    Retrieves a list of incident reports with pagination and filtering.
     """
-    reports = await IncidentReport.find_all().skip(skip).limit(limit).to_list()
-    return reports
+    query_filters = {}
+
+    if filter_query.source_type != "all":
+        query_filters["primary_source.category"] = filter_query.source_type
+
+    if filter_query.verified != "all":
+        query_filters["verified"] = filter_query.verified == "true"
+
+    if filter_query.IUU_type != "all":
+        query_filters["IUU_type"] = filter_query.IUU_type
+
+    sort_direction = DESCENDING
+    sort_field = filter_query.sort_by
+
+    reports = (
+        await IncidentReport.find(query_filters)
+        .sort([(sort_field, sort_direction)])
+        .skip(filter_query.skip)
+        .limit(filter_query.limit)
+        .to_list()
+    )
+
+    total_count = await IncidentReport.find(query_filters).count()
+
+    return {
+        "reports": reports,
+        "pagination": {
+            "total": total_count,
+            "skip": filter_query.skip,
+            "limit": filter_query.limit,
+            "has_more": (filter_query.skip + filter_query.limit) < total_count,
+        },
+    }
 
 
 @router.get("/incidents/{report_id}", response_model=IncidentReport)
