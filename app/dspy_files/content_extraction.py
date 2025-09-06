@@ -24,6 +24,7 @@ class ContentExtractor:
             prediction = await self.scraper.process_url(url=url)
             source = prediction.source
             source.url = url
+            source.category = "url"
 
             logger.info(f"Successfully extracted content from: {url}")
 
@@ -41,7 +42,9 @@ class ContentExtractor:
         author = response.get("metadata", {}).get("author")
         title = response.get("metadata", {}).get("title")
         # date = response.get("metadata", {}).get("date")
-        source = Source(article_text=text, author=author, article_title=title)
+        source = Source(
+            article_text=text, author=author, article_title=title, category="pdf"
+        )
         logger.info(f"Source from PDF: {source}")
         return source
 

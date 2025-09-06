@@ -38,12 +38,56 @@ class IncidentService:
 
             return output
 
+        if output.status != PipelineResult.UNRELATED_CONTENT:
+            incidents = output.incidents
+            industry = output.industry_overview
+
+            if not output.has_incident and not output.has_overview:
+                logger.error(
+                    f"Analysis failed to produce a report for source: {source.id}"
+                )
+                logger.error(f"Pipeline status {output.status}: {output.error_message}")
+                return output
+
+            if not output.is_success:
+                logger.error(
+                    f"Analysis failed for source {source.id} with status {output.status}"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Analysis failed with status: {output.status}: {output.error_message or 'No error message provided'}",
+                )
+
+            if output.has_incident:
+                saved_incidents = []
+                for incident in incidents:
+                    try:
+                        await incident.insert()
+                        logger.info(
+                            f"Successfully saved incident report: {incident.id}"
+                        )
+                        saved_incidents.append(incident)
+                    except Exception as e:
+                        logger.error(
+                            f"Database save failed for report {incident.id}: {e}"
+                        )
+                        raise e
+                source.incidents = saved_incidents
+                output.incidents = saved_incidents
+            if output.has_overview and industry:
+                try:
+                    await industry.insert()
+                    logger.info(f"Successfully saved industry report: {industry.id}")
+                    source.overview = industry
+                except Exception as e:
+                    logger.error(
+                        f"Database save failed for industry report {industry.id}: {e}"
+                    )
+                    raise e
+
         try:
             await source.insert()
             logger.info(f"Successfully saved source: {source.id}")
-        # except DuplicateKeyError as d:
-        #     logger.warning(f"Source already exists in db")
-        #     return
         except Exception as e:
             logger.error(f"Database save failed for {source.id}: {e}")
             raise e
@@ -52,43 +96,18 @@ class IncidentService:
             logger.info(f"Source {source.id} unrelated to IUU fishing")
             return output
 
-        incidents = output.incidents
-        industry = output.industry_overview
-        if not output.has_incident and not output.has_overview:
-            logger.error(f"Analysis failed to produce a report for source: {source.id}")
-            logger.error(f"Pipeline status {output.status}: {output.error_message}")
-            return output
-
-        if not output.is_success:
-            logger.error(
-                f"Analysis failed for source {source.id} with status {output.status}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Analysis failed with status: {output.status}: {output.error_message or 'No error message provided'}",
-            )
         if output.has_incident:
-            output.incidents = []
-            for incident in incidents:
-                try:
-                    await incident.insert()
-                    logger.info(f"Successfully saved incident report: {incident.id}")
-                except Exception as e:
-                    logger.error(f"Database save failed for report {incident.id}: {e}")
-                    raise e
-                await incident.add_source(source, is_primary=True)
-                output.incidents.append(incident)
-            return output
-        else:
-            try:
-                await industry.insert()
-                logger.info(f"Successfully saved industry report: {industry.id}")
-            except Exception as e:
-                logger.error(
-                    f"Database save failed for industry report {industry.id}: {e}"
-                )
-                raise e
-            return output
+            for incident in output.incidents:
+                if incident.primary_source is None:
+                    await incident.add_source(source, is_primary=True)
+                else:
+                    await incident.add_source(source, is_primary=False)
+
+        if output.has_overview and industry and hasattr(industry, "source"):
+            industry.source = source
+            await industry.save()
+
+        return output
 
     @staticmethod
     def _get_orchestrator() -> AnalysisOrchestrator:

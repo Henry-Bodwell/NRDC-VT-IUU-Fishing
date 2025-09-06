@@ -58,6 +58,27 @@ def process_taxon_record(taxon: Dict) -> Dict:
     return flat_record
 
 
+def process_distribution_record(distribution: Dict) -> Dict:
+    """
+    Process a single distribution record, extracting and flattening key information.
+
+    Args:
+        distribution: A dictionary containing a single distribution record
+    """
+    flat_record = {
+        "id": distribution.get("id"),
+        "iso_code2": distribution.get("iso_code2"),
+        "name": distribution.get("name"),
+        "type": distribution.get("type"),
+    }
+    tags = distribution.get("tags", [])
+    all_tags = [f"{tag} " for tag in tags]
+    references = distribution.get("references", [])
+
+    for i, ref in enumerate(references):
+        flat_record[f"reference_{i+1}"] = ref
+
+
 def convert_speciesplus_json_to_csv(input_file: str, output_file: str) -> None:
     """
     Convert Species+ JSON data to CSV.
