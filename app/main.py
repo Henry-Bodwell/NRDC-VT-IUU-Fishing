@@ -28,10 +28,10 @@ setup_logging()
 frontendPort = os.getenv("FRONTEND_PORT", "4000")
 origins = [
     "http://localhost",
-    "http://localhost:8000",
+    "http://localhost:5000",
     f"http://localhost:{frontendPort}",
     "https://localhost",
-    "https://localhost:8000",
+    "https://localhost:5000",
     f"https://localhost:{frontendPort}",
 ]
 

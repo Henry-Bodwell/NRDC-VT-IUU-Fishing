@@ -68,6 +68,9 @@ class Source(Document):
     )
 
     author: str | None = Field(default=None, description="Author or organization")
+    publisher: str | None = Field(
+        default=None, description="Publisher of the article if available"
+    )
     publication_date: datetime | None = Field(
         default=None, description="When the source was published"
     )

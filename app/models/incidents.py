@@ -481,7 +481,7 @@ class ExtractedIncidentData(BaseModel):
         default=None,
         description="Structured information about the  catch involved in the incident.",
     )
-    aquactureInformation: AquacultureData | None = Field(
+    aquacultureInformation: AquacultureData | None = Field(
         default=None,
         description="Information on farmed fishery involved in incident, if available",
     )
@@ -593,7 +593,13 @@ class IncidentReport(Document):
     extracted_information: ExtractedIncidentData
     incident_classification: IncidentClassification
 
-    verified: bool = Field(default=False)
+    status: Literal["Extracted", "Entered", "Modified"] = Field(
+        default="Extracted",
+    )
+    verified: bool = Field(
+        default=False,
+        description="Whether the incident information has been verified by a human",
+    )
 
     class Settings:
         name = "incidents"
