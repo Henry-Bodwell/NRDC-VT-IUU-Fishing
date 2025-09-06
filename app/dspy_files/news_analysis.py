@@ -84,7 +84,7 @@ class AnalysisOrchestrator:
             )
         try:
             logging.info(f"Starting analysis for: {text[:50]}...")
-            source = Source(article_text=text)
+            source = Source(article_text=text, category="text_upload")
             existing_source = await Source.find_one(
                 {"article_hash": source.article_hash}
             )
@@ -139,7 +139,6 @@ class AnalysisOrchestrator:
 
                 try:
                     overview = IndustryOverview(
-                        source=source,
                         extracted_information=prediction.parsed_data,
                     )
                     source.overview = overview

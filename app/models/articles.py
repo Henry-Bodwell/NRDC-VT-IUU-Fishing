@@ -75,6 +75,14 @@ class Source(Document):
     incidents: List[Link["IncidentReport"]] = Field(default_factory=list)
     overview: Link["IndustryOverview"] | None = None
 
+    category: Literal["url", "text_upload", "pdf", "academic"] = Field(
+        default="url", description="Category of the source"
+    )
+    status: Literal["extracted", "user_input", "modified"] = Field(
+        default="extracted",
+        description="Status of the source. Extracted means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
+    )
+
     class Settings:
         name = "sources"
         indexes = [
