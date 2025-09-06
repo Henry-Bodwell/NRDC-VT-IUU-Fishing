@@ -139,7 +139,6 @@ class AnalysisOrchestrator:
 
                 try:
                     overview = IndustryOverview(
-                        source=source,
                         extracted_information=prediction.parsed_data,
                     )
                     source.overview = overview

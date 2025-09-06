@@ -80,7 +80,7 @@ class Source(Document):
     )
     status: Literal["extracted", "user_input", "modified"] = Field(
         default="extracted",
-        description="Status of the source. Generated means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
+        description="Status of the source. Extracted means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
     )
 
     class Settings:

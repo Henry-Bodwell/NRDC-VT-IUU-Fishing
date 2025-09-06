@@ -85,7 +85,7 @@ def _request_response(pipeline_output: PipelineOutput):
 
     return pipeline_output.model_dump(
         exclude={
-            "source": "incidents",
+            "source": {"incidents", "overview"},
             "incidents": {"__all__": {"sources", "primary_source"}},
             "industry_overview": {"source"},
         }
@@ -202,13 +202,17 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
         query_filters["verified"] = filter_query.verified == "true"
 
     if filter_query.IUU_type != "all":
-        query_filters["IUU_type"] = filter_query.IUU_type
-
+        query_filters["incident_classification.iuuClassifications"] = {
+            "$elemMatch": {"IUUType": filter_query.IUU_type}
+        }
+    if filter_query.status != "all":
+        query_filters["status"] = filter_query.status
     sort_direction = DESCENDING
     sort_field = filter_query.sort_by
 
+    logger.info(f"Query Filters: {query_filters}")
     reports = (
-        await IncidentReport.find(query_filters)
+        await IncidentReport.find(query_filters, fetch_links=True, nesting_depth=1)
         .sort([(sort_field, sort_direction)])
         .skip(filter_query.skip)
         .limit(filter_query.limit)

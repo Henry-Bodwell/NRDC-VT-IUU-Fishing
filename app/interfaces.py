@@ -22,6 +22,7 @@ class IncidentFilters(BaseModel):
     )
     source_type: Literal["all", "url", "text_upload", "pdf"] = Field(default="all")
     verified: Literal["all", "true", "false"] = Field(default="all")
+    status: Literal["all", "extracted", "user_input", "modified"] = Field(default="all")
     IUU_type: Literal[
         "Illegal Fishing",
         "Illegal Fishing Associated Activities",

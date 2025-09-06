@@ -595,9 +595,9 @@ class IncidentReport(Document):
     incident_classification: IncidentClassification
 
     verified: bool = Field(default=False)
-    status: Literal["generated", "user_input", "modified"] = Field(
-        default="generated",
-        description="Status of the report. Generated means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
+    status: Literal["extracted", "user_input", "modified"] = Field(
+        default="extracted",
+        description="Status of the report. extracted means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
     )
 
     class Settings:
@@ -637,7 +637,6 @@ class IncidentReport(Document):
         try:
             if self.sources is None:
                 self.sources = []
-            # Check if source is already in the list by comparing IDs
             source_ids = [s.id for s in self.sources if hasattr(s, "id")]
             if source.id not in source_ids:
                 self.sources.append(source)
@@ -653,20 +652,16 @@ class IncidentReport(Document):
                 await source.save()
 
         except Exception as e:
-            # Log error or handle as appropriate for your application
             raise Exception(f"Failed to add source to incident: {e}")
 
     async def remove_source(self, source: "Source"):
         """Helper method to remove a source and maintain bidirectional relationship"""
         try:
-            # Remove from sources list
             self.sources = [s for s in self.sources if s.id != source.id]
 
-            # Update primary source if needed
             if self.primary_source and self.primary_source.id == source.id:
                 self.primary_source = self.sources[0] if self.sources else None
 
-            # Update the source's incidents list
             if source.incidents:
                 source.incidents = [i for i in source.incidents if i.id != self.id]
                 await source.save()
@@ -678,14 +673,11 @@ class IncidentReport(Document):
     async def delete(self):
         """Override delete method to handle source removal"""
         try:
-            # Remove this incident from all sources
             for source in self.sources:
                 self.remove_source(source)
 
             self.sources = []
             self.primary_source = None
-
-            # Call the parent delete method
             await super().delete()
         except Exception as e:
             raise Exception(f"Failed to delete incident report: {e}")
@@ -694,7 +686,6 @@ class IncidentReport(Document):
     async def find_potential_duplicates(
         cls, incident_data: "ExtractedIncidentData", threshold: float = 0.8
     ):
-        # This is a placeholder - you'd implement your actual duplicate detection logic
         # Could use vessel name, location proximity, date proximity, etc.
         # TODO
         """Find potential duplicate incidents based on similarity"""
