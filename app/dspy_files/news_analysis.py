@@ -68,6 +68,16 @@ class AnalysisOrchestrator:
         try:
             logging.info(f"Starting analysis for: {url}")
             source = await self.extractor.from_url(url)
+            existing_source = await Source.find_one(
+                {"article_hash": source.article_hash}
+            )
+            if existing_source:
+                logger.info(f"Source already exists: {existing_source.id}")
+                return PipelineOutput(
+                    status=PipelineResult.DUPLICATE_HASHED_TEXT,
+                    source=existing_source,
+                    error_message="Duplicate Article",
+                )
         except Exception as e:
             logging.error(f"Content Extraction failed for {url}: {e}")
             return PipelineOutput(
