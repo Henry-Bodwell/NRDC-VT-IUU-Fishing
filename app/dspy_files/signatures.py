@@ -6,7 +6,7 @@ from app.models.incidents import (
     IncidentClassification,
     IndustryOverviewExtract,
 )
-from app.models.articles import ArticleScopeClassification, Source
+from app.models.articles import ArticleScopeClassification, Source, SourceExtraction
 
 
 class TextToStructuredData(dspy.Signature):
@@ -67,4 +67,6 @@ class CleanArticleContent(dspy.Signature):
     filtered_html = dspy.InputField(
         desc="Filtered HTML containing mainly textual content from article"
     )
-    source: Source = dspy.OutputField(desc="Source object with cleaned article text")
+    sourceExtract: SourceExtraction = dspy.OutputField(
+        desc="Source object with cleaned article text"
+    )

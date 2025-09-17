@@ -1,10 +1,12 @@
 from __future__ import annotations
 import hashlib
 from typing import TYPE_CHECKING, List, Literal
-from beanie import Document, Insert, Link, Replace, before_event
+from beanie import Document, Insert, Link, Replace, Update, before_event
 from bson import ObjectId
 from pydantic import BaseModel, Field
-from app.models.logs import LogMixin
+from datetime import datetime
+
+from app.audit.base import AuditedDocument
 
 if TYPE_CHECKING:
     from app.models.articles import Source
@@ -556,7 +558,7 @@ class IndustryOverviewExtract(BaseModel):
     summary: str = Field(description="Summary of the industry overview article.")
 
 
-class IndustryOverview(Document):
+class IndustryOverview(AuditedDocument):
     """Model to represent an industry overview article."""
 
     source: Link["Source"] | None = None
@@ -579,7 +581,7 @@ class IndustryOverview(Document):
             raise Exception(f"Failed to delete industry report: {e}")
 
 
-class IncidentReport(Document):
+class IncidentReport(AuditedDocument):
     """Model to represent an incident report."""
 
     incident_fingerprint: str | None = Field(
