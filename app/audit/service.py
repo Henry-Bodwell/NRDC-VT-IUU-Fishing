@@ -1,7 +1,12 @@
 from typing import Dict, List, Any, Optional
 from beanie import Document
 from .models import AuditLog
-from .strategies import AuditStrategy, JsonPatchStrategy, TextDiffStrategy
+from .strategies import (
+    AuditStrategy,
+    JsonPatchStrategy,
+    TextDiffStrategy,
+    ReferenceTrackingStrategy,
+)
 from .enums import OperationType, ChangeType
 from .context import AuditContext
 
@@ -9,11 +14,43 @@ from .context import AuditContext
 class AuditService:
     """Central service for managing audit operations"""
 
-    # Strategy registry
-    strategies: List[AuditStrategy] = [
-        TextDiffStrategy(),  # Check large text first
-        JsonPatchStrategy(),  # Fallback for everything else
-    ]
+    FIELD_HANDLING_CONFIG = {
+        "IncidentReport": {
+            "excluded": [],
+            "reference_only": ["sources", "primary_source"],
+            "full_audit": [],
+        },
+        "Source": {
+            "excluded": [],
+            "reference_only": ["incidents", "overview"],
+            "full_audit": [],
+        },
+        "IndustryOverview": {
+            "excluded": [],
+            "reference_only": ["source"],
+            "full_audit": [],
+        },
+    }
+
+    def __init__(self):
+        self.reference_strategy = ReferenceTrackingStrategy(
+            {
+                doc_type: config["reference_only"]
+                for doc_type, config in self.FIELD_HANDLING_CONFIG.items()
+            }
+        )
+
+        self.strategies: List[AuditStrategy] = [
+            self.reference_strategy,  # Check reference fields first
+            TextDiffStrategy(),  # Then large text
+            JsonPatchStrategy(),  # Fallback for everything else
+        ]
+
+    @classmethod
+    def _get_instance(cls):
+        if not hasattr(cls, "_instance"):
+            cls._instance = cls()
+        return cls._instance
 
     @classmethod
     async def log_create(cls, document: Document) -> AuditLog:
@@ -36,10 +73,13 @@ class AuditService:
         cls, document: Document, original_state: Dict[str, Any]
     ) -> Optional[AuditLog]:
         """Log document updates with field-level change detection"""
-        current_state = document.model_dump(exclude={"id"})
+        current_state = document.model_dump(exclude={"id", "_original_state"})
+        document_type = document.__class__.__name__
+
+        service = cls._get_instance()
 
         # Detect changes
-        changes = cls._detect_changes(original_state, current_state)
+        changes = service._detect_changes(original_state, current_state, document_type)
 
         if not changes:
             return None  # No changes detected
@@ -48,11 +88,13 @@ class AuditService:
         current_version = getattr(document, "version", 1)
 
         # Create change summary
-        change_summary = cls._create_change_summary(changes)
+        change_summary = cls._create_change_summary(
+            changes
+        )  # Shoulr this be service.create
 
         audit_entry = AuditLog(
             document_id=document.id,
-            document_type=document.__class__.__name__,
+            document_type=document_type,
             version=current_version,
             operation=OperationType.UPDATE,
             user_id=AuditContext.get_user(),
@@ -81,17 +123,22 @@ class AuditService:
         await audit_entry.insert()
         return audit_entry
 
-    @classmethod
     def _detect_changes(
-        cls, old_state: Dict[str, Any], new_state: Dict[str, Any]
+        self, old_state: Dict[str, Any], new_state: Dict[str, Any], document_type: str
     ) -> List[Dict[str, Any]]:
         """Detect and categorize changes between two document states"""
         changes = []
+
+        config = self.FIELD_HANDLING_CONFIG.get(document_type, {})
+        excluded_fields = set(config.get("excluded", []))
 
         # Get all fields that might have changed
         all_fields = set(old_state.keys()) | set(new_state.keys())
 
         for field_name in all_fields:
+            if field_name in excluded_fields:
+                continue  # Skip excluded fields
+
             old_value = old_state.get(field_name)
             new_value = new_state.get(field_name)
 
@@ -100,23 +147,33 @@ class AuditService:
                 continue
 
             # Findt appropriate strategy and compue changes
-            strategy = cls._select_strategy(old_value, new_value, field_name)
-            change_data = strategy.compute_changes(old_value, new_value, field_name)
+            strategy = self._select_strategy(
+                old_value, new_value, field_name, document_type
+            )
+            change_data = strategy.compute_changes(
+                old_value, new_value, field_name, document_type
+            )
             changes.append(change_data)
 
         return changes
 
-    @classmethod
     def _select_strategy(
-        cls, old_value: Any, new_value: Any, field_path: str
+        self, old_value: Any, new_value: Any, field_path: str, document_type: str
     ) -> AuditStrategy:
         """Select the appropriate audit strategy for the given field change"""
-        for strategy in cls.strategies:
-            if strategy.should_handle(old_value, new_value, field_path):
-                return strategy
+        for strategy in self.strategies:
+            if hasattr(strategy, "should_handle"):
+                if strategy.__class__.__name__ == "ReferenceTrackingStrategy":
+                    if strategy.should_handle(
+                        old_value, new_value, field_path, document_type
+                    ):
+                        return strategy
+                else:
+                    if strategy.should_handle(old_value, new_value, field_path):
+                        return strategy
 
         # Fallback to JSON patch
-        return cls.strategies[-1]
+        return self.strategies[-1]
 
     @classmethod
     def _create_change_summary(cls, changes: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -128,6 +185,13 @@ class AuditService:
             ),
             "text_diff_changes": len(
                 [c for c in changes if c.get("change_type") == ChangeType.TEXT_DIFF]
+            ),
+            "reference_changes": len(
+                [
+                    c
+                    for c in changes
+                    if c.get("change_type") == ChangeType.REFERENCE_CHANGE
+                ]
             ),
             "total_size_impact": 0,
         }

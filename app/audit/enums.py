@@ -10,3 +10,4 @@ class OperationType(str, Enum):
 class ChangeType(str, Enum):
     JSON_PATCH = "json_patch"
     TEXT_DIFF = "text_diff"
+    REFERENCE_CHANGE = "reference_change"

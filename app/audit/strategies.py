@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 import jsondiff
 from diff_match_patch import diff_match_patch
 from .enums import ChangeType
@@ -7,11 +7,13 @@ from .enums import ChangeType
 class AuditStrategy:
     """Base class for different audit strategies"""
 
-    def should_handle(self, old_value: Any, new_value: Any, field_path: str) -> bool:
+    def should_handle(
+        self, old_value: Any, new_value: Any, field_path: str, document_type=None
+    ) -> bool:
         raise NotImplementedError
 
     def compute_changes(
-        self, old_value: Any, new_value: Any, field_path: str
+        self, old_value: Any, new_value: Any, field_path: str, document_type=None
     ) -> Dict[str, Any]:
         raise NotImplementedError
 
@@ -92,3 +94,62 @@ class TextDiffStrategy(AuditStrategy):
         patches = self.dmp.patch_fromText(patch_text)
         result = self.dmp.patch_apply(patches, original_text)
         return result[0]  # Returns tuple (text, success_array)
+
+
+class ReferenceTrackingStrategy(AuditStrategy):
+    """Strategy for tracking only IDs of referenced objects"""
+
+    def __init__(self, reference_fields_config: Dict[str, List[str]]):
+        self.reference_fields_config = reference_fields_config
+
+    def should_handle(
+        self, old_value: Any, new_value: Any, field_path: str, document_type: str = None
+    ) -> bool:
+        """Check if this field should be handled as a reference field"""
+        if not document_type:
+            return False
+
+        reference_fields = self.reference_fields_config.get(document_type, [])
+        return field_path in reference_fields
+
+    def compute_changes(
+        self, old_value: Any, new_value: Any, field_path: str, document_type: str = None
+    ) -> Dict[str, Any]:
+        old_ids = self._extract_ids(old_value)
+        new_ids = self._extract_ids(new_value)
+
+        added_ids = list(set(new_ids) - set(old_ids))
+        removed_ids = list(set(old_ids) - set(new_ids))
+
+        return {
+            "change_type": ChangeType.REFERENCE,
+            "field_path": field_path,
+            "old_ids": old_ids,
+            "new_ids": new_ids,
+            "added_references": added_ids,
+            "removed_references": removed_ids,
+            "reference_count_change": len(new_ids) - len(old_ids),
+        }
+
+    def _extract_ids(self, value: Any) -> List[str]:
+        """Extract IDs from embedded objects or lists of objects"""
+        if value is None:
+            return []
+        if isinstance(value, list):
+            ids = []
+            for item in value:
+                if isinstance(item, dict):
+                    item_id = item.get("id") or item.get("_id")
+                    if item_id:
+                        ids.append(str(item_id))
+
+                elif hasattr(item, "id"):
+                    ids.append(str(getattr(item, "id")))
+            return ids
+
+        elif isinstance(value, dict):
+            item_id = value.get("id") or value.get("_id")
+            return [str(item_id)] if item_id else []
+        elif hasattr(value, "id"):
+            return [str(getattr(value, "id"))]
+        return []
