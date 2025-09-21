@@ -1,3 +1,4 @@
+import json
 from fastapi import (
     APIRouter,
     Body,
@@ -9,6 +10,7 @@ from fastapi import (
     UploadFile as FastAPIUploadFile,
     status,
 )
+from fastapi.responses import JSONResponse
 from pymongo import DESCENDING
 from starlette.datastructures import UploadFile
 from fastapi.encoders import jsonable_encoder
@@ -116,6 +118,8 @@ async def _handle_json_request(request, context_data):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.errors()
         )
+    except json.JSONDecodeError as e:
+        return JSONResponse({"error": "Invalid JSON format"}, status_code=400)
     except HTTPException:
         raise
     except Exception as e:
@@ -191,7 +195,7 @@ async def _check_for_existing_url(url: str) -> Source | None:
 @router.get("/incidents")
 async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()]):
     """
-    Retrieves a list of incident reports with pagination and filtering.
+    Retrieves a l ncident reports with pagination and filtering.
     """
     query_filters = {}
 
