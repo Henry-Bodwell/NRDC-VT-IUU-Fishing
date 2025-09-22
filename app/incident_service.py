@@ -2,7 +2,6 @@ import os
 from fastapi import File, HTTPException, status
 from app.models.incidents import IncidentReport, IndustryOverview
 from pymongo.errors import DuplicateKeyError
-from app.models.logs import LogContext
 from app.dspy_files.news_analysis import (
     AnalysisOrchestrator,
     PipelineOutput,

@@ -21,9 +21,7 @@ class ContentExtractor:
                 logging.warning(f"Source already exists for URL: {url}")
                 return existing_source
 
-            prediction = await self.scraper.process_url(url=url)
-            source = prediction.source
-            source.url = url
+            source = await self.scraper.process_url(url=url)
             source.category = "url"
 
             logger.info(f"Successfully extracted content from: {url}")
