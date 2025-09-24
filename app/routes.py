@@ -20,7 +20,7 @@ from app.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
 from app.source_service import SourceService
 from app.dspy_files.news_analysis import PipelineOutput
-from app.interfaces import GenRequest, IncidentFilters
+from app.interfaces import GenRequest, IncidentFilters, SourceFilters
 
 
 router = APIRouter()
@@ -292,10 +292,44 @@ async def update_incident_report(report_id: str, update_data: IncidentReport):
 
 
 # Source routes
-@router.get("/sources", response_model=List[Source])
-async def list_sources(skip: int = 0, limit: int = 25):
-    sources = await Source.find_all().skip(skip).limit(limit).to_list()
-    return sources
+@router.get("/sources")
+async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
+    """
+    Retrieves a list of sources with pagination and filtering.
+    """
+    query_filters = {}
+
+    if filter_query.source_type != "all":
+        query_filters["category"] = filter_query.source_type
+
+    if filter_query.verified != "all":
+        query_filters["verified"] = filter_query.verified == "true"
+
+    if filter_query.article_scope != "all":
+        query_filters["article_scope"] = filter_query.article_scope
+    sort_direction = DESCENDING
+    sort_field = filter_query.sort_by
+
+    logger.info(f"Query Filters: {query_filters}")
+    sources = (
+        await Source.find(query_filters, fetch_links=True, nesting_depth=1)
+        .sort([(sort_field, sort_direction)])
+        .skip(filter_query.skip)
+        .limit(filter_query.limit)
+        .to_list()
+    )
+
+    total_count = await Source.find(query_filters).count()
+
+    return {
+        "sources": sources,
+        "pagination": {
+            "total": total_count,
+            "skip": filter_query.skip,
+            "limit": filter_query.limit,
+            "has_more": (filter_query.skip + filter_query.limit) < total_count,
+        },
+    }
 
 
 @router.get("/sources/{source_id}", response_model=Source)
@@ -357,11 +391,6 @@ def valid_response(response: Optional[T], pydanticModel: Type[T]):
                 "message": f"Expected {pydanticModel.__name__}, got {type(response).__name__}",
             },
         )
-
-
-@router.get("/test")
-async def test_route():
-    return {"message": "Router is working!"}
 
 
 @router.get("/ping")
