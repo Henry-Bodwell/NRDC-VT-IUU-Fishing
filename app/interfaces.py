@@ -6,6 +6,7 @@ class GenRequest(BaseModel):
     url: str | None = None
     text: str | None = None
     title: str | None = None
+    user_id: str | None = None
 
     @model_validator(mode="after")
     def check_at_least_one_field(self):
@@ -17,7 +18,7 @@ class GenRequest(BaseModel):
 class IncidentFilters(BaseModel):
     limit: int = Field(default=25, gt=0, le=25)
     skip: int = Field(default=0, ge=0)
-    sort_by: Literal["created_at", "modified_at", "event_date"] = Field(
+    sort_by: Literal["created_at", "updated_at", "event_date"] = Field(
         default="created_at"
     )
     source_type: Literal["all", "url", "text_upload", "pdf"] = Field(default="all")
@@ -37,3 +38,7 @@ class IncidentFilters(BaseModel):
         "Other",
         "all",
     ] = Field(default="all")
+
+
+class SourceFilter(BaseModel):
+    pass

@@ -14,6 +14,7 @@ from starlette.datastructures import UploadFile
 from fastapi.encoders import jsonable_encoder
 from typing import Annotated, List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError, model_validator
+from app.audit.context import AuditContext
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
 from app.incident_service import IncidentService
@@ -41,12 +42,10 @@ async def create_incident_report(request: Request):
     """
     content_type = request.headers.get("content-type")
 
-    # Extract context data from request (adjust based on your auth/context setup)
     context_data = {
-        "acting_user_id": request.headers.get("x-user-id"),  # Adjust based on your auth
         "source": "api",
-        "request_id": request.headers.get("x-request-id"),
     }
+
     try:
         if content_type == "application/json":
             return await _handle_json_request(request, context_data)
@@ -96,21 +95,23 @@ async def _handle_json_request(request, context_data):
     try:
         json_payload = await request.json()
         payload = GenRequest(**json_payload)
-
-        if payload.url:
-            existing_source = await _check_for_existing_url(payload.url)
-            if existing_source:
-                logger.error(f"Source already exists for {payload.url}")
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Source already exists for {payload.url}",
-                )
-            output = await IncidentService.create_report_from_url(payload.url)
-        elif payload.text:
-            output = await IncidentService.create_report_from_text(payload.text)
-        else:
-            raise ValueError("Payload must include either 'text' or 'url'")
-        return _request_response(output)
+        if payload.user_id:
+            user = payload.user_id
+        with AuditContext.with_user(user):
+            if payload.url:
+                existing_source = await _check_for_existing_url(payload.url)
+                if existing_source:
+                    logger.error(f"Source already exists for {payload.url}")
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Source already exists for {payload.url}",
+                    )
+                output = await IncidentService.create_report_from_url(payload.url)
+            elif payload.text:
+                output = await IncidentService.create_report_from_text(payload.text)
+            else:
+                raise ValueError("Payload must include either 'text' or 'url'")
+            return _request_response(output)
     except ValidationError as e:
         logger.error(f"Validation error in request: {e}")
         raise HTTPException(
@@ -270,11 +271,11 @@ async def delete_incident(report_id: str):
 
 
 @router.put("/incidents/{report_id}", response_model=IncidentReport)
-async def update_incident_report(report_id: str, update_data: IncidentReport):
+async def update_incident_report(report_id: str, update_data: dict):
     """Updates an existing incident report by its ID."""
     try:
         updated_report = await IncidentService.update_report(
-            report_id=report_id, update_data=update_data.model_dump()
+            report_id=report_id, update_data=update_data
         )
         valid_response(updated_report, IncidentReport)
         return updated_report

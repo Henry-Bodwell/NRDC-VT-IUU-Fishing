@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 class AuditedDocument(Document):
     """Base class for all documents that need audit trails"""
 
-    # TODO make this work with list, maybe we need a source output doc and a source doc for dspy.
-
     # Basic audit fields stored in main document
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: Optional[str] = None

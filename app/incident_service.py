@@ -1,5 +1,6 @@
 import os
 from fastapi import File, HTTPException, status
+from pydantic import ValidationError
 from app.models.incidents import IncidentReport, IndustryOverview
 from pymongo.errors import DuplicateKeyError
 from app.dspy_files.news_analysis import (
@@ -159,12 +160,22 @@ class IncidentService:
         return results
 
     @staticmethod
+    def deep_merge(existing_dict: dict, update_dict: dict) -> dict:
+        """Recursively merge update_dict into existing_dict."""
+        result = existing_dict.copy()
+        for key, value in update_dict.items():
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
+                result[key] = IncidentService.deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    @staticmethod
     async def update_report(report_id: str, update_data: dict) -> IncidentReport:
-        # context = LogContext(
-        #     user_id=context_data.get("acting_user_id"),
-        #     action="edit_report",
-        #     source=context_data.get("source"),
-        # )
 
         logger.info(f"Updating report {report_id} with data: {update_data}")
 
@@ -175,16 +186,22 @@ class IncidentService:
                 detail=f"Report with ID {report_id} not found.",
             )
 
-        # report.set_log_context(context)
-        updates = _filter_valid_fields(IncidentReport, update_data)
+        existing_data = report.model_dump()
+        merged_data = IncidentService.deep_merge(existing_data, update_data)
+
+        updates = _filter_valid_fields(IncidentReport, merged_data)
         for field, value in updates.items():
             setattr(report, field, value)
-
-        # report.set_log_context(context)
 
         try:
             await report.save()
             logger.info(f"Successfully updated report {report_id}")
+        except ValidationError as ve:
+            logger.error(f"Validation error for report {report_id}: {ve}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Validation error: {ve}",
+            )
         except Exception as e:
             logger.error(f"Update failed for report {report_id}: {e}")
             raise HTTPException(

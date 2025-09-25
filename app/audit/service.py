@@ -88,9 +88,7 @@ class AuditService:
         current_version = getattr(document, "version", 1)
 
         # Create change summary
-        change_summary = cls._create_change_summary(
-            changes
-        )  # Shoulr this be service.create
+        change_summary = cls._create_change_summary(changes)
 
         audit_entry = AuditLog(
             document_id=document.id,
