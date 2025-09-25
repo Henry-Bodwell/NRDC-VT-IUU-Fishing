@@ -126,7 +126,7 @@ class ReferenceTrackingStrategy(AuditStrategy):
         removed_ids = list(set(old_ids) - set(new_ids))
 
         return {
-            "change_type": ChangeType.REFERENCE,
+            "change_type": ChangeType.REFERENCE_CHANGE,
             "field_path": field_path,
             "old_ids": old_ids,
             "new_ids": new_ids,

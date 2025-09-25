@@ -176,26 +176,40 @@ class IncidentService:
 
     @staticmethod
     async def update_report(report_id: str, update_data: dict) -> IncidentReport:
-
         logger.info(f"Updating report {report_id} with data: {update_data}")
 
         report = await IncidentReport.get(report_id)
         if not report:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Report with ID {report_id} not found.",
-            )
+            raise HTTPException(status_code=404, detail="Report not found")
 
+        # Apply business logic updates FIRST (before save/hooks)
         existing_data = report.model_dump()
         merged_data = IncidentService.deep_merge(existing_data, update_data)
 
+        # Exclude audit fields from the merge
+        audit_fields = {
+            "created_at",
+            "created_by",
+            "updated_at",
+            "updated_by",
+            "version",
+        }
         updates = _filter_valid_fields(IncidentReport, merged_data)
+
+        for audit_field in audit_fields:
+            updates.pop(audit_field, None)
+
+        # Apply business updates BEFORE save (so hooks can see the changes)
         for field, value in updates.items():
             setattr(report, field, value)
 
+        logger.info(
+            f"Before save - version: {report.version}, updated_at: {report.updated_at}"
+        )
+
         try:
-            await report.save()
-            logger.info(f"Successfully updated report {report_id}")
+
+            await report.replace()
         except ValidationError as ve:
             logger.error(f"Validation error for report {report_id}: {ve}")
             raise HTTPException(

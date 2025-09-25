@@ -45,9 +45,17 @@ class AuditedDocument(Document):
     @before_event([Update, Replace])
     async def update_audit_fields(self):
         """Update audit fields before save"""
+
+        logger.info(f"Updating audit fields for {self.__class__.__name__}")
+        logger.info(f"Current user: {AuditContext.get_user()}")
+        logger.info(f"Current time: {datetime.now(timezone.utc)}")
         self.updated_at = datetime.now(timezone.utc)
         self.updated_by = AuditContext.get_user()
         self.version += 1
+
+        logger.info(
+            f"Updated audit fields: updated_at={self.updated_at}, updated_by={self.updated_by}, version={self.version}"
+        )
 
     @before_event(Insert)
     async def set_creation_audit_fields(self):
