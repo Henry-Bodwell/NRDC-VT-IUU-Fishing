@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 class AuditedDocument(Document):
     """Base class for all documents that need audit trails"""
 
-    # TODO make this work with list, maybe we need a source output doc and a source doc for dspy.
-
     # Basic audit fields stored in main document
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: Optional[str] = None
@@ -26,19 +24,38 @@ class AuditedDocument(Document):
     @before_event([Update, Replace])
     async def capture_original_state(self):
         """Capture current state before changes for comparison"""
+        logger.info(
+            f"before_event: Capturing original state for {self.__class__.__name__}"
+        )
         if self.id:
             current_doc = await self.__class__.get(self.id)
             if current_doc:
                 self._original_state = current_doc.model_dump(
                     exclude={"_original_state"}
                 )
+                logger.info(
+                    f"Original state captured: {len(self._original_state)} fields"
+                )
+            else:
+                logger.warning(f"Could not fetch current document for id {self.id}")
+
+        else:
+            logger.warning("Document has no ID; cannot capture original state")
 
     @before_event([Update, Replace])
     async def update_audit_fields(self):
         """Update audit fields before save"""
+
+        logger.info(f"Updating audit fields for {self.__class__.__name__}")
+        logger.info(f"Current user: {AuditContext.get_user()}")
+        logger.info(f"Current time: {datetime.now(timezone.utc)}")
         self.updated_at = datetime.now(timezone.utc)
         self.updated_by = AuditContext.get_user()
         self.version += 1
+
+        logger.info(
+            f"Updated audit fields: updated_at={self.updated_at}, updated_by={self.updated_by}, version={self.version}"
+        )
 
     @before_event(Insert)
     async def set_creation_audit_fields(self):
@@ -72,9 +89,16 @@ class AuditedDocument(Document):
         # Import here to avoid circular imports
         from .service import AuditService
 
+        logger.info(f"after_event: Auditing update for {self.__class__.__name__}")
+        logger.info((f"Has original state: {self._original_state is not None}"))
+
         if self._original_state:
             try:
-                await AuditService.log_update(self, self._original_state)
+                entry = await AuditService.log_update(self, self._original_state)
+                if entry:
+                    logger.info(f"Audit log created with id {entry.id}")
+                else:
+                    logger.info("No changes detected; no audit log created")
             except Exception as e:
                 logger.warning(f"Audit logging failed for update: {e}")
 

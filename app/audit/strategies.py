@@ -21,14 +21,16 @@ class AuditStrategy:
 class JsonPatchStrategy(AuditStrategy):
     """Standard JSON Patch strategy for structured data"""
 
-    def should_handle(self, old_value: Any, new_value: Any, field_path: str) -> bool:
+    def should_handle(
+        self, old_value: Any, new_value: Any, field_path: str, document_type=None
+    ) -> bool:
         # Handle everything except large strings
         if isinstance(old_value, str) and isinstance(new_value, str):
             return max(len(old_value), len(new_value)) <= 1024
         return True
 
     def compute_changes(
-        self, old_value: Any, new_value: Any, field_path: str
+        self, old_value: Any, new_value: Any, field_path: str, document_type: str = None
     ) -> Dict[str, Any]:
         # Create minimal objects for jsondiff
         old_obj = {field_path.split(".")[-1]: old_value}
@@ -56,7 +58,9 @@ class TextDiffStrategy(AuditStrategy):
         self.dmp.Diff_Timeout = 1.0  # 1 second timeout
         self.dmp.Diff_EditCost = 4  # Balance between accuracy and performance
 
-    def should_handle(self, old_value: Any, new_value: Any, field_path: str) -> bool:
+    def should_handle(
+        self, old_value: Any, new_value: Any, field_path: str, document_type: str = None
+    ) -> bool:
         return (
             isinstance(old_value, str)
             and isinstance(new_value, str)
@@ -64,7 +68,7 @@ class TextDiffStrategy(AuditStrategy):
         )
 
     def compute_changes(
-        self, old_value: str, new_value: str, field_path: str
+        self, old_value: str, new_value: str, field_path: str, document_type: str = None
     ) -> Dict[str, Any]:
         # Compute character-level patches
         patches = self.dmp.patch_make(old_value, new_value)
@@ -122,7 +126,7 @@ class ReferenceTrackingStrategy(AuditStrategy):
         removed_ids = list(set(old_ids) - set(new_ids))
 
         return {
-            "change_type": ChangeType.REFERENCE,
+            "change_type": ChangeType.REFERENCE_CHANGE,
             "field_path": field_path,
             "old_ids": old_ids,
             "new_ids": new_ids,

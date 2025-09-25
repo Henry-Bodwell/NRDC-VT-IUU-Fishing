@@ -1,11 +1,10 @@
 from __future__ import annotations
 from datetime import datetime
 from typing import List, Literal
-from beanie import Document, Insert, Link, Replace, Update, before_event
-from bson import ObjectId
-from pydantic import BaseModel, Field, HttpUrl, model_validator
+from beanie import Insert, Link, Replace, before_event
+from pydantic import BaseModel, Field, model_validator
 import hashlib
-from pymongo import ASCENDING, DESCENDING, IndexModel
+from pymongo import ASCENDING, IndexModel
 from app.audit.base import AuditedDocument
 from app.models.incidents import IndustryOverview
 from typing import TYPE_CHECKING

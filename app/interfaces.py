@@ -6,6 +6,7 @@ class GenRequest(BaseModel):
     url: str | None = None
     text: str | None = None
     title: str | None = None
+    user_id: str | None = None
 
     @model_validator(mode="after")
     def check_at_least_one_field(self):
