@@ -1,0 +1,75 @@
+from typing import Type, TypeVar, Union
+from pydantic import ValidationError
+from fastapi import HTTPException, status
+import logging
+
+logger = logging.getLogger(__name__)
+T = TypeVar("T")
+
+
+class Service:
+    @staticmethod
+    def deep_merge(existing_dict: dict, update_dict: dict) -> dict:
+        """Recursively merge update_dict into existing_dict."""
+        result = existing_dict.copy()
+        for key, value in update_dict.items():
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
+                result[key] = Service.deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    @staticmethod
+    async def update_model(
+        model_cls: Type[T],
+        model_id: str,
+        update_data: dict,
+        model_name: str,
+    ) -> T:
+        logger.info(f"Updating {model_name} {model_id} with data: {update_data}")
+
+        # Get the instance
+        instance = await model_cls.get(model_id)
+        if not instance:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"{model_name.capitalize()} with ID {model_id} not found.",
+            )
+
+        existing_data = instance.model_dump()
+
+        merged_data = Service.deep_merge(existing_data, update_data)
+
+        updates = _filter_valid_fields(model_cls, merged_data)
+        if not updates:
+            logger.warning(f"No valid fields to update for {model_name} {model_id}")
+
+        for field, value in updates.items():
+            setattr(instance, field, value)
+
+        try:
+            await instance.replace()
+            logger.info(f"Successfully updated {model_name} {model_id}")
+        except ValidationError as ve:
+            logger.error(f"Validation error for {model_name} {model_id}: {ve}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Validation error: {ve}",
+            )
+        except Exception as e:
+            logger.error(f"Update failed for {model_name} {model_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update the {model_name}.",
+            )
+
+        return instance
+
+
+def _filter_valid_fields(model_class, updates: dict) -> dict:
+    valid_fields = set(model_class.model_fields.keys())
+    return {k: v for k, v in updates.items() if k in valid_fields}

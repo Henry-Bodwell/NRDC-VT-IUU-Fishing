@@ -17,9 +17,9 @@ from pydantic import BaseModel, ValidationError, model_validator
 from app.audit.context import AuditContext
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
-from app.incident_service import IncidentService
+from app.service.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
-from app.source_service import SourceService
+from app.service.source_service import SourceService
 from app.dspy_files.news_analysis import PipelineOutput
 from app.interfaces import GenRequest, IncidentFilters, SourceFilters
 
@@ -364,11 +364,25 @@ async def delete_source(source_id: str):
 
 
 @router.put("/sources/{source_id}", response_model=Source)
-async def update_source(source_id: str, update_data: Source):
-    updated_source = await SourceService.update_source(
-        source_id=source_id, update_data=update_data
-    )
-    return updated_source
+async def update_source(source_id: str, update_data: dict):
+    """Updates an existing incident report by its ID."""
+    try:
+        updated_source = await SourceService.update_source(
+            source_id=source_id, update_data=update_data
+        )
+        valid_response(updated_source, Source)
+        return updated_source
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "update_failed",
+                "message": "Failed to update source",
+                "details": str(e),
+            },
+        )
 
 
 def valid_response(response: Optional[T], pydanticModel: Type[T]):
