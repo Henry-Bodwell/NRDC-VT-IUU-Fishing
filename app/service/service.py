@@ -24,6 +24,30 @@ class Service:
         return result
 
     @staticmethod
+    async def delete(
+        model_cls: Type[T],
+        model_id: str,
+        model_name: str,
+    ) -> bool:
+        instance = await model_cls.get(model_id)
+        if not instance:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"{model_name} with ID {model_id} not found",
+            )
+
+        try:
+            await instance.delete()
+            logger.info(f"Successfully deleted {model_name} {model_id}")
+        except Exception as e:
+            logger.error(f"Deleted failed for {model_name} {model_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete the {model_name}.",
+            )
+        return True
+
+    @staticmethod
     async def update_model(
         model_cls: Type[T],
         model_id: str,

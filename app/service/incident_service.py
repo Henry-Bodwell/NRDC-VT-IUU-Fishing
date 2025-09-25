@@ -112,11 +112,6 @@ class IncidentService(Service):
 
     @staticmethod
     async def create_report_from_url(url: str) -> PipelineOutput:
-        # context = LogContext(
-        #     user_id=context_data.get("acting_user_id"),
-        #     action="new_report",
-        #     source=context_data.get("source"),
-        # )
 
         logger.info(f"Starting analysis for URL: {url}")
 
@@ -131,11 +126,6 @@ class IncidentService(Service):
     async def create_report_from_pdf(
         pdf_bytes: bytes, filename: str = "", context_data: dict = {}
     ) -> PipelineResult:
-        # context = LogContext(
-        #     user_id=context_data.get("acting_user_id"),
-        #     action="new_report",
-        #     source=context_data.get("source"),
-        # )
 
         logger.info(f"Starting analysis for file: {filename}")
         source = ContentExtractor.from_pdf(pdf_bytes)
@@ -166,22 +156,8 @@ class IncidentService(Service):
 
     @staticmethod
     async def delete_report(report_id: str) -> bool:
-        logger.info(f"Deleting report {report_id}")
-
-        report = await IncidentReport.get(report_id)
-        if not report:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Report with ID {report_id} not found.",
-            )
-
-        try:
-            await report.delete()
-            logger.info(f"Successfully deleted report {report_id}")
-        except Exception as e:
-            logger.error(f"Deletion failed for report {report_id}: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete the report.",
-            )
-        return True
+        return await Service.delete(
+            model_cls=IncidentReport,
+            model_id=report_id,
+            model_name="report",
+        )
