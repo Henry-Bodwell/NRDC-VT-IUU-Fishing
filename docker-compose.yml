@@ -9,7 +9,7 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017/iuuIncidents
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - FRONTEND_PORT=4000
+      - FRONTEND_PORT=${FRONTEND_PORT}
     depends_on:
       - mongo
   mongo:

@@ -15,14 +15,15 @@ class GenRequest(BaseModel):
         return self
 
 
-class IncidentFilters(BaseModel):
-    limit: int = Field(default=25, gt=0, le=25)
+class Filter(BaseModel):
+    limit: int = Field(default=25, gt=0, le=100)
     skip: int = Field(default=0, ge=0)
-    sort_by: Literal["created_at", "updated_at", "event_date"] = Field(
-        default="created_at"
-    )
+    sort_by: Literal["created_at", "modified_at"] = Field(default="created_at")
     source_type: Literal["all", "url", "text_upload", "pdf"] = Field(default="all")
     verified: Literal["all", "true", "false"] = Field(default="all")
+
+
+class IncidentFilters(Filter):
     status: Literal["all", "extracted", "user_input", "modified"] = Field(default="all")
     IUU_type: Literal[
         "Illegal Fishing",
@@ -40,5 +41,8 @@ class IncidentFilters(BaseModel):
     ] = Field(default="all")
 
 
-class SourceFilter(BaseModel):
-    pass
+class SourceFilters(Filter):
+    article_scope: Literal[
+        "all", "single_incident", "multiple_incidents", "industry_overview", "unrelated"
+    ] = Field(default="all")
+    verified: Literal["all", "true", "false"] = Field(default="all")

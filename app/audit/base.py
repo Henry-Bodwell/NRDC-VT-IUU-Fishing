@@ -24,12 +24,23 @@ class AuditedDocument(Document):
     @before_event([Update, Replace])
     async def capture_original_state(self):
         """Capture current state before changes for comparison"""
+        logger.info(
+            f"before_event: Capturing original state for {self.__class__.__name__}"
+        )
         if self.id:
             current_doc = await self.__class__.get(self.id)
             if current_doc:
                 self._original_state = current_doc.model_dump(
                     exclude={"_original_state"}
                 )
+                logger.info(
+                    f"Original state captured: {len(self._original_state)} fields"
+                )
+            else:
+                logger.warning(f"Could not fetch current document for id {self.id}")
+
+        else:
+            logger.warning("Document has no ID; cannot capture original state")
 
     @before_event([Update, Replace])
     async def update_audit_fields(self):
@@ -70,9 +81,16 @@ class AuditedDocument(Document):
         # Import here to avoid circular imports
         from .service import AuditService
 
+        logger.info(f"after_event: Auditing update for {self.__class__.__name__}")
+        logger.info((f"Has original state: {self._original_state is not None}"))
+
         if self._original_state:
             try:
-                await AuditService.log_update(self, self._original_state)
+                entry = await AuditService.log_update(self, self._original_state)
+                if entry:
+                    logger.info(f"Audit log created with id {entry.id}")
+                else:
+                    logger.info("No changes detected; no audit log created")
             except Exception as e:
                 logger.warning(f"Audit logging failed for update: {e}")
 
