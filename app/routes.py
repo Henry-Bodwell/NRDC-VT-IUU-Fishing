@@ -17,9 +17,10 @@ from pydantic import BaseModel, ValidationError, model_validator
 from app.audit.context import AuditContext
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
-from app.incident_service import IncidentService
+from app.service.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
-from app.source_service import SourceService
+from app.service.overview_service import OverviewService
+from app.service.source_service import SourceService
 from app.dspy_files.news_analysis import PipelineOutput
 from app.interfaces import GenRequest, IncidentFilters, SourceFilters
 
@@ -364,11 +365,106 @@ async def delete_source(source_id: str):
 
 
 @router.put("/sources/{source_id}", response_model=Source)
-async def update_source(source_id: str, update_data: Source):
-    updated_source = await SourceService.update_source(
-        source_id=source_id, update_data=update_data
+async def update_source(source_id: str, update_data: dict):
+    """Updates an existing incident report by its ID."""
+    try:
+        updated_source = await SourceService.update_source(
+            source_id=source_id, update_data=update_data
+        )
+        valid_response(updated_source, Source)
+        return updated_source
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "update_failed",
+                "message": "Failed to update source",
+                "details": str(e),
+            },
+        )
+
+
+# Overview routes
+
+
+@router.delete(
+    "/overviews/{overview_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_overview(overview_id: str):
+    try:
+        was_deleted = await OverviewService.delete_overview(overview_id)
+        if was_deleted:
+            return
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Industry overview not found",
+            )
+    except Exception as e:
+        logger.error(f"Error deleting industry overview {overview_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete industry overview.",
+        )
+
+
+@router.put("/overviews/{overview_id}", response_model=IndustryOverview)
+async def update_overview(overview_id: str, update_data: dict):
+    """Updates an existing industry overview by its ID."""
+    try:
+        updated_overview = await OverviewService.update_overview(
+            overview_id=overview_id, update_data=update_data
+        )
+        valid_response(updated_overview, IndustryOverview)
+        return updated_overview
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "update_failed",
+                "message": "Failed to update industry overview",
+                "details": str(e),
+            },
+        )
+
+
+@router.get("/overviews/{overview_id}", response_model=IndustryOverview)
+async def get_overview(overview_id: str):
+    overview = await IndustryOverview.get(overview_id)
+    valid_response(overview, IndustryOverview)
+    return overview
+
+
+@router.get("/overviews")
+async def list_overviews(limit: int = 25, skip: int = 0):
+    """
+    Retrieves a list of industry overviews with pagination.
+    """
+    overviews = (
+        await IndustryOverview.find({}, fetch_links=True, nesting_depth=1)
+        .sort([("created_at", DESCENDING)])
+        .skip(skip)
+        .limit(limit)
+        .to_list()
     )
-    return updated_source
+
+    total_count = await IndustryOverview.find({}).count()
+
+    return {
+        "overviews": overviews,
+        "pagination": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit,
+            "has_more": (skip + limit) < total_count,
+        },
+    }
 
 
 def valid_response(response: Optional[T], pydanticModel: Type[T]):

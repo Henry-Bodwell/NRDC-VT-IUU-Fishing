@@ -10,16 +10,12 @@ from app.dspy_files.news_analysis import (
 )
 import logging
 from app.dspy_files.content_extraction import ContentExtractor
+from app.service.service import Service, _filter_valid_fields
 
 logger = logging.getLogger(__name__)
 
 
-def _filter_valid_fields(model_class, updates: dict) -> dict:
-    valid_fields = set(model_class.model_fields.keys())
-    return {k: v for k, v in updates.items() if k in valid_fields}
-
-
-class IncidentService:
+class IncidentService(Service):
     """
     Service layer for incident reports. Allows for greater logging
     """
@@ -116,11 +112,6 @@ class IncidentService:
 
     @staticmethod
     async def create_report_from_url(url: str) -> PipelineOutput:
-        # context = LogContext(
-        #     user_id=context_data.get("acting_user_id"),
-        #     action="new_report",
-        #     source=context_data.get("source"),
-        # )
 
         logger.info(f"Starting analysis for URL: {url}")
 
@@ -135,11 +126,6 @@ class IncidentService:
     async def create_report_from_pdf(
         pdf_bytes: bytes, filename: str = "", context_data: dict = {}
     ) -> PipelineResult:
-        # context = LogContext(
-        #     user_id=context_data.get("acting_user_id"),
-        #     action="new_report",
-        #     source=context_data.get("source"),
-        # )
 
         logger.info(f"Starting analysis for file: {filename}")
         source = ContentExtractor.from_pdf(pdf_bytes)
@@ -160,97 +146,18 @@ class IncidentService:
         return results
 
     @staticmethod
-    def deep_merge(existing_dict: dict, update_dict: dict) -> dict:
-        """Recursively merge update_dict into existing_dict."""
-        result = existing_dict.copy()
-        for key, value in update_dict.items():
-            if (
-                key in result
-                and isinstance(result[key], dict)
-                and isinstance(value, dict)
-            ):
-                result[key] = IncidentService.deep_merge(result[key], value)
-            else:
-                result[key] = value
-        return result
-
-    @staticmethod
     async def update_report(report_id: str, update_data: dict) -> IncidentReport:
-        logger.info(f"Updating report {report_id} with data: {update_data}")
-
-        report = await IncidentReport.get(report_id)
-        if not report:
-            raise HTTPException(status_code=404, detail="Report not found")
-
-        # Apply business logic updates FIRST (before save/hooks)
-        existing_data = report.model_dump()
-        merged_data = IncidentService.deep_merge(existing_data, update_data)
-
-        # Exclude audit fields from the merge
-        audit_fields = {
-            "created_at",
-            "created_by",
-            "updated_at",
-            "updated_by",
-            "version",
-        }
-        updates = _filter_valid_fields(IncidentReport, merged_data)
-
-        for audit_field in audit_fields:
-            updates.pop(audit_field, None)
-
-        # Apply business updates BEFORE save (so hooks can see the changes)
-        for field, value in updates.items():
-            setattr(report, field, value)
-
-        logger.info(
-            f"Before save - version: {report.version}, updated_at: {report.updated_at}"
+        return await Service.update_model(
+            model_cls=IncidentReport,
+            model_id=report_id,
+            update_data=update_data,
+            model_name="report",
         )
-
-        try:
-
-            await report.replace()
-        except ValidationError as ve:
-            logger.error(f"Validation error for report {report_id}: {ve}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Validation error: {ve}",
-            )
-        except Exception as e:
-            logger.error(f"Update failed for report {report_id}: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update the report.",
-            )
-
-        return report
 
     @staticmethod
     async def delete_report(report_id: str) -> bool:
-        # context = LogContext(
-        #     user_id=context_data.get("acting_user_id"),
-        #     action="delete_report",
-        #     source=context_data.get("source"),
-        # )
-
-        logger.info(f"Deleting report {report_id}")
-
-        report = await IncidentReport.get(report_id)
-        if not report:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Report with ID {report_id} not found.",
-            )
-
-        # report.set_log_context(context)
-
-        try:
-            await report.delete()
-            logger.info(f"Successfully deleted report {report_id}")
-        except Exception as e:
-            logger.error(f"Deletion failed for report {report_id}: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete the report.",
-            )
-        return True
+        return await Service.delete(
+            model_cls=IncidentReport,
+            model_id=report_id,
+            model_name="report",
+        )
