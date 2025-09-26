@@ -1,3 +1,4 @@
+from beanie import PydanticObjectId
 from fastapi import (
     APIRouter,
     Body,
@@ -15,6 +16,7 @@ from fastapi.encoders import jsonable_encoder
 from typing import Annotated, List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError, model_validator
 from app.audit.context import AuditContext
+from app.audit.models import AuditLog
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
 from app.service.incident_service import IncidentService
@@ -387,8 +389,6 @@ async def update_source(source_id: str, update_data: dict):
 
 
 # Overview routes
-
-
 @router.delete(
     "/overviews/{overview_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -488,6 +488,62 @@ def valid_response(response: Optional[T], pydanticModel: Type[T]):
                 "message": f"Expected {pydanticModel.__name__}, got {type(response).__name__}",
             },
         )
+
+
+# Audit Logs
+@router.get("/logs/{document_id}")
+async def get_document_logs(document_id: str, limit: int = 25, skip: int = 0):
+    """Get all audit logs for a specific document by its ID."""
+    try:
+        object_id = PydanticObjectId(document_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid document_id format")
+
+    document_logs = (
+        await AuditLog.find(AuditLog.document_id == object_id)
+        .sort([("timestamp", DESCENDING)])
+        .skip(skip)
+        .limit(limit)
+        .to_list()
+    )
+
+    total_count = await AuditLog.find(AuditLog.document_id == document_id).count()
+
+    return {
+        "logs": document_logs,
+        "pagination": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit,
+            "has_more": (skip + limit) < total_count,
+        },
+    }
+
+
+@router.get("/logs")
+async def list_all_logs(limit: int = 25, skip: int = 0):
+    """
+    Retrieves a list of all logs with pagination.
+    """
+    document_logs = (
+        await AuditLog.find({})
+        .sort([("timestamp", DESCENDING)])
+        .skip(skip)
+        .limit(limit)
+        .to_list()
+    )
+
+    total_count = await AuditLog.find({}).count()
+
+    return {
+        "logs": document_logs,
+        "pagination": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit,
+            "has_more": (skip + limit) < total_count,
+        },
+    }
 
 
 @router.get("/ping")
