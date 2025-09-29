@@ -1,4 +1,5 @@
 import json
+from beanie import PydanticObjectId
 from fastapi import (
     APIRouter,
     Body,
@@ -16,13 +17,16 @@ from starlette.datastructures import UploadFile
 from fastapi.encoders import jsonable_encoder
 from typing import Annotated, List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError, model_validator
+from app.audit.context import AuditContext
+from app.audit.models import AuditLog
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
-from app.incident_service import IncidentService
+from app.service.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
-from app.source_service import SourceService
+from app.service.overview_service import OverviewService
+from app.service.source_service import SourceService
 from app.dspy_files.news_analysis import PipelineOutput
-from app.interfaces import GenRequest, IncidentFilters
+from app.interfaces import GenRequest, IncidentFilters, SourceFilters
 
 
 router = APIRouter()
@@ -43,12 +47,10 @@ async def create_incident_report(request: Request):
     """
     content_type = request.headers.get("content-type")
 
-    # Extract context data from request (adjust based on your auth/context setup)
     context_data = {
-        "acting_user_id": request.headers.get("x-user-id"),  # Adjust based on your auth
         "source": "api",
-        "request_id": request.headers.get("x-request-id"),
     }
+
     try:
         if content_type == "application/json":
             return await _handle_json_request(request, context_data)
@@ -98,21 +100,23 @@ async def _handle_json_request(request, context_data):
     try:
         json_payload = await request.json()
         payload = GenRequest(**json_payload)
-
-        if payload.url:
-            existing_source = await _check_for_existing_url(payload.url)
-            if existing_source:
-                logger.error(f"Source already exists for {payload.url}")
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Source already exists for {payload.url}",
-                )
-            output = await IncidentService.create_report_from_url(payload.url)
-        elif payload.text:
-            output = await IncidentService.create_report_from_text(payload.text)
-        else:
-            raise ValueError("Payload must include either 'text' or 'url'")
-        return _request_response(output)
+        if payload.user_id:
+            user = payload.user_id
+        with AuditContext.with_user(user):
+            if payload.url:
+                existing_source = await _check_for_existing_url(payload.url)
+                if existing_source:
+                    logger.error(f"Source already exists for {payload.url}")
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Source already exists for {payload.url}",
+                    )
+                output = await IncidentService.create_report_from_url(payload.url)
+            elif payload.text:
+                output = await IncidentService.create_report_from_text(payload.text)
+            else:
+                raise ValueError("Payload must include either 'text' or 'url'")
+            return _request_response(output)
     except ValidationError as e:
         logger.error(f"Validation error in request: {e}")
         raise HTTPException(
@@ -274,11 +278,11 @@ async def delete_incident(report_id: str):
 
 
 @router.put("/incidents/{report_id}", response_model=IncidentReport)
-async def update_incident_report(report_id: str, update_data: IncidentReport):
+async def update_incident_report(report_id: str, update_data: dict):
     """Updates an existing incident report by its ID."""
     try:
         updated_report = await IncidentService.update_report(
-            report_id=report_id, update_data=update_data.model_dump()
+            report_id=report_id, update_data=update_data
         )
         valid_response(updated_report, IncidentReport)
         return updated_report
@@ -296,10 +300,44 @@ async def update_incident_report(report_id: str, update_data: IncidentReport):
 
 
 # Source routes
-@router.get("/sources", response_model=List[Source])
-async def list_sources(skip: int = 0, limit: int = 25):
-    sources = await Source.find_all().skip(skip).limit(limit).to_list()
-    return sources
+@router.get("/sources")
+async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
+    """
+    Retrieves a list of sources with pagination and filtering.
+    """
+    query_filters = {}
+
+    if filter_query.source_type != "all":
+        query_filters["category"] = filter_query.source_type
+
+    if filter_query.verified != "all":
+        query_filters["verified"] = filter_query.verified == "true"
+
+    if filter_query.article_scope != "all":
+        query_filters["article_scope"] = filter_query.article_scope
+    sort_direction = DESCENDING
+    sort_field = filter_query.sort_by
+
+    logger.info(f"Query Filters: {query_filters}")
+    sources = (
+        await Source.find(query_filters, fetch_links=True, nesting_depth=1)
+        .sort([(sort_field, sort_direction)])
+        .skip(filter_query.skip)
+        .limit(filter_query.limit)
+        .to_list()
+    )
+
+    total_count = await Source.find(query_filters).count()
+
+    return {
+        "sources": sources,
+        "pagination": {
+            "total": total_count,
+            "skip": filter_query.skip,
+            "limit": filter_query.limit,
+            "has_more": (filter_query.skip + filter_query.limit) < total_count,
+        },
+    }
 
 
 @router.get("/sources/{source_id}", response_model=Source)
@@ -333,11 +371,104 @@ async def delete_source(source_id: str):
 
 
 @router.put("/sources/{source_id}", response_model=Source)
-async def update_source(source_id: str, update_data: Source):
-    updated_source = await SourceService.update_source(
-        source_id=source_id, update_data=update_data
+async def update_source(source_id: str, update_data: dict):
+    """Updates an existing incident report by its ID."""
+    try:
+        updated_source = await SourceService.update_source(
+            source_id=source_id, update_data=update_data
+        )
+        valid_response(updated_source, Source)
+        return updated_source
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "update_failed",
+                "message": "Failed to update source",
+                "details": str(e),
+            },
+        )
+
+
+# Overview routes
+@router.delete(
+    "/overviews/{overview_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_overview(overview_id: str):
+    try:
+        was_deleted = await OverviewService.delete_overview(overview_id)
+        if was_deleted:
+            return
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Industry overview not found",
+            )
+    except Exception as e:
+        logger.error(f"Error deleting industry overview {overview_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete industry overview.",
+        )
+
+
+@router.put("/overviews/{overview_id}", response_model=IndustryOverview)
+async def update_overview(overview_id: str, update_data: dict):
+    """Updates an existing industry overview by its ID."""
+    try:
+        updated_overview = await OverviewService.update_overview(
+            overview_id=overview_id, update_data=update_data
+        )
+        valid_response(updated_overview, IndustryOverview)
+        return updated_overview
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "update_failed",
+                "message": "Failed to update industry overview",
+                "details": str(e),
+            },
+        )
+
+
+@router.get("/overviews/{overview_id}", response_model=IndustryOverview)
+async def get_overview(overview_id: str):
+    overview = await IndustryOverview.get(overview_id)
+    valid_response(overview, IndustryOverview)
+    return overview
+
+
+@router.get("/overviews")
+async def list_overviews(limit: int = 25, skip: int = 0):
+    """
+    Retrieves a list of industry overviews with pagination.
+    """
+    overviews = (
+        await IndustryOverview.find({}, fetch_links=True, nesting_depth=1)
+        .sort([("created_at", DESCENDING)])
+        .skip(skip)
+        .limit(limit)
+        .to_list()
     )
-    return updated_source
+
+    total_count = await IndustryOverview.find({}).count()
+
+    return {
+        "overviews": overviews,
+        "pagination": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit,
+            "has_more": (skip + limit) < total_count,
+        },
+    }
 
 
 def valid_response(response: Optional[T], pydanticModel: Type[T]):
@@ -363,9 +494,60 @@ def valid_response(response: Optional[T], pydanticModel: Type[T]):
         )
 
 
-@router.get("/test")
-async def test_route():
-    return {"message": "Router is working!"}
+# Audit Logs
+@router.get("/logs/{document_id}")
+async def get_document_logs(document_id: str, limit: int = 25, skip: int = 0):
+    """Get all audit logs for a specific document by its ID."""
+    try:
+        object_id = PydanticObjectId(document_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid document_id format")
+
+    document_logs = (
+        await AuditLog.find(AuditLog.document_id == object_id)
+        .sort([("timestamp", DESCENDING)])
+        .skip(skip)
+        .limit(limit)
+        .to_list()
+    )
+
+    total_count = await AuditLog.find(AuditLog.document_id == document_id).count()
+
+    return {
+        "logs": document_logs,
+        "pagination": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit,
+            "has_more": (skip + limit) < total_count,
+        },
+    }
+
+
+@router.get("/logs")
+async def list_all_logs(limit: int = 25, skip: int = 0):
+    """
+    Retrieves a list of all logs with pagination.
+    """
+    document_logs = (
+        await AuditLog.find({})
+        .sort([("timestamp", DESCENDING)])
+        .skip(skip)
+        .limit(limit)
+        .to_list()
+    )
+
+    total_count = await AuditLog.find({}).count()
+
+    return {
+        "logs": document_logs,
+        "pagination": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit,
+            "has_more": (skip + limit) < total_count,
+        },
+    }
 
 
 @router.get("/ping")

@@ -1,26 +1,31 @@
 from __future__ import annotations
 import hashlib
 from typing import TYPE_CHECKING, List, Literal
-from beanie import Document, Insert, Link, Replace, before_event
+from beanie import Document, Insert, Link, Replace, Update, before_event
 from bson import ObjectId
 from pydantic import BaseModel, Field
-from app.models.logs import LogMixin
+from datetime import datetime
+
+from app.audit.base import AuditedDocument
 
 if TYPE_CHECKING:
     from app.models.articles import Source
 
 
 subtype_behavior = """
-        - Illegal Fishing: 'Exceeding catch quotas', 'Keeping undersized fish', 'Catching unauthorized or prohibited species', 'Prohibited fishing gear', 'Fishing in closed areas or closed seasons'
-        - Illegal Fishing Associated Activities: 'Invalid permit','Obscuring vessel identity', 'Unauthorized transhipment', 'falsifying documents, excepting fish/transshipment license', 'Objstructing inspectors', 'illegal bycatch practices'
-        - Unreported Catch: 'Un/underreported catch weight', 'Un/underreported discards/bycatch', 'Misreported catch species', 'Misreported location', 'Misreported gear'
-        - Unreported Catch Associated Activities: 'Unreported transshipment activities'
-        - Unregulated Actors: 'Stateless vessel', 'Fishing under flag not party to RFMO' 
-        - Unregulated Areas or Stocks: 'Operating for stock or in places to avoid international regulation'
-        - Seafood Fraud of Mislabeling: 'Species', 'Production information', 'Processing information'
-        - Forced Labor or Labor Abuse: 'Wage/Pay', 'Excessive overtime', 'Restriction of movement', 'Abusive living conditions', 'Abusive working conditions', 'Violence', 'Intimidation', 'ID Rentention', 'Deception', 'Isolation', 'Abuse of Vulnerability'
-        - Circumventing Prohibitions or Sanctions: 'Sanctions', 'Prohibitions'
-        - Illegal Aquacultural Practices: 'Unapproved/non-native species', 'Illegal sourcing', 'Unlicensed/Unauthorized farm', 'Stolen Products'
+        {
+            Illegal Fishing: ['Exceeding catch quotas', 'Keeping undersized fish', 'Catching unauthorized or prohibited species', 'Prohibited fishing gear', 'Fishing in closed areas or closed seasons'],
+            Illegal Fishing Associated Activities: ['Invalid permit','Obscuring vessel identity', 'Unauthorized transhipment', 'falsifying documents, excepting fish/transshipment license', 'Objstructing inspectors', 'illegal bycatch practices'],
+            Unreported Catch: ['Un/underreported catch weight', 'Un/underreported discards/bycatch', 'Misreported catch species', 'Misreported location', 'Misreported gear'],
+            Unreported Catch Associated Activities: ['Unreported transshipment activities'],
+            Unregulated Actors: ['Stateless vessel', 'Fishing under flag not party to RFMO'],
+            Unregulated Areas or Stocks: ['Operating for stock or in places to avoid international regulation'],
+            Seafood Fraud of Mislabeling: ['Species', 'Production information', 'Processing information'],
+            Forced Labor or Labor Abuse: ['Wage/Pay', 'Excessive overtime', 'Restriction of movement', 'Abusive living conditions', 'Abusive working conditions', 'Violence', 'Intimidation', 'ID Rentention', 'Deception', 'Isolation', 'Abuse of Vulnerability'],
+            Circumventing Prohibitions or Sanctions: ['Sanctions', 'Prohibitions'],
+            Illegal Aquacultural Practices: ['Unapproved/non-native species', 'Illegal sourcing', 'Unlicensed/Unauthorized farm', 'Stolen Products']
+        }
+        - 
         """
 
 
@@ -28,6 +33,10 @@ subtype_behavior = """
 class Species(BaseModel):
     """Model to represent a single species involved in an incident."""
 
+    verified: bool = Field(
+        default=False,
+        description="Whether the species identification has been verified by a human, leave false",
+    )
     speciesCommonName: str | None = Field(
         default=None,
         description="The common name of the species (e.g., 'Bluefin Tuna').",
@@ -56,6 +65,10 @@ class Species(BaseModel):
 class CrewMember(BaseModel):
     """Model to represent a crew member involved in an incident."""
 
+    verified: bool = Field(
+        default=False,
+        description="Whether the Crew Section has been verified by a human, leave false",
+    )
     name: str = Field(..., description="Name of the crew member.")
     nationality: str | None = Field(
         default=None, description="Nationality of the crew member, if available."
@@ -104,10 +117,19 @@ class IUUClassification(BaseModel):
         ...,
         description="Reason for the IUU incident, e.g., overfishing, habitat destruction, if other please specify what the IUU type should be and why.",
     )
+    verified: bool = Field(
+        default=False,
+        description="Whether the IUU Classification Section has been verified by a human, leave false",
+    )
 
 
 class EventData(BaseModel):
     """Structured information about the primary event of an IUU incident. ie the event that triggered the article."""
+
+    verified: bool = Field(
+        default=False,
+        description="Whether the Event Section has been verified by a human, leave false",
+    )
 
     eventCategory: str = Field(
         ...,
@@ -129,6 +151,11 @@ class EventData(BaseModel):
 class CatchSourceData(BaseModel):
     """The structured information extracted from an article about catch and source of an incident."""
 
+    verified: bool = Field(
+        default=False,
+        description="Whether the Catch/Source Section has been verified by a human, leave false",
+    )
+
     # Who
     vesselName: str | None = Field(
         default=None, description="Name of the vessel involved"
@@ -139,9 +166,14 @@ class CatchSourceData(BaseModel):
     vesselFlag: str | None = Field(
         default=None, description="Flag state of the vessel involved"
     )
+    mmsiNumber: str | None = Field(
+        default=None,
+        description="Maritime Mobile Service Identity (MMSI) number of the vessel involved, if available",
+    )
     internationalRadioCallSign: str | None = Field(
         default=None, description="Call Sign of the vessel involved, if available"
     )
+
     rmfoVesselNumber: str | None = Field(
         default=None,
         description="Regional Fisheries Management Organization (RFMO) vessel number, if available",
@@ -297,6 +329,11 @@ class CatchSourceData(BaseModel):
 class AquacultureData(BaseModel):
     """Model to represent aquaculture data in an IUU incident."""
 
+    verified: bool = Field(
+        default=False,
+        description="Whether the Aquaculture Section has been verified by a human, leave false",
+    )
+
     farmName: str | None = Field(
         default=None, description="Name of the aquaculture farm, if available"
     )
@@ -331,6 +368,11 @@ class AquacultureData(BaseModel):
 
 class TransshipmentData(BaseModel):
     """Model to represent transshipment data in an IUU incident."""
+
+    verified: bool = Field(
+        default=False,
+        description="Whether the Section has been verified by a human, leave false",
+    )
 
     vesselName: str | None = Field(
         default=None, description="Name of the transshipment vessel, if available"
@@ -370,6 +412,11 @@ class TransshipmentData(BaseModel):
 class AggregationData(BaseModel):
     """Model to represent aggregation data in an IUU incident."""
 
+    verified: bool = Field(
+        default=False,
+        description="Whether the Section has been verified by a human, leave false",
+    )
+
     aggregatorName: str | None = Field(
         default=None,
         description="Name of the aggregator involved in the incident, if available",
@@ -385,6 +432,11 @@ class AggregationData(BaseModel):
 
 class LandingData(BaseModel):
     """Model to represent landing data in an IUU incident."""
+
+    verified: bool = Field(
+        default=False,
+        description="Whether the Section has been verified by a human, leave false",
+    )
 
     authorization: str | None = Field(
         default=None, description="Authorization for landing, if available"
@@ -406,6 +458,11 @@ class LandingData(BaseModel):
 
 class ProductData(BaseModel):
     """Model to represent products in an IUU incident."""
+
+    verified: bool = Field(
+        default=False,
+        description="Whether the Section has been verified by a human, leave false",
+    )
 
     productType: str | None = Field(
         default=None, description="Type of product processed, if available"
@@ -446,6 +503,11 @@ class ProductData(BaseModel):
 class TradeData(BaseModel):
     """Model to represent trade data in an IUU incident."""
 
+    verified: bool = Field(
+        default=False,
+        description="Whether the Section has been verified by a human, leave false",
+    )
+
     exporterInformation: str | None = Field(
         default=None, description="Information about the exporter, if available"
     )
@@ -456,6 +518,11 @@ class TradeData(BaseModel):
 
 class DistributionData(BaseModel):
     """Model to represent distribution data in an IUU incident."""
+
+    verified: bool = Field(
+        default=False,
+        description="Whether the Section has been verified by a human, leave false",
+    )
 
     firstBuyer: str | None = Field(
         default=None, description="Name of the first buyer, if available"
@@ -556,7 +623,7 @@ class IndustryOverviewExtract(BaseModel):
     summary: str = Field(description="Summary of the industry overview article.")
 
 
-class IndustryOverview(Document):
+class IndustryOverview(AuditedDocument):
     """Model to represent an industry overview article."""
 
     source: Link["Source"] | None = None
@@ -579,7 +646,7 @@ class IndustryOverview(Document):
             raise Exception(f"Failed to delete industry report: {e}")
 
 
-class IncidentReport(Document):
+class IncidentReport(AuditedDocument):
     """Model to represent an incident report."""
 
     incident_fingerprint: str | None = Field(

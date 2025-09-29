@@ -2,6 +2,7 @@ import os
 from pymongo import AsyncMongoClient
 from beanie import init_beanie
 
+from app.audit.models import AuditLog
 from app.models.incidents import IndustryOverview
 
 
@@ -25,6 +26,7 @@ async def init_db():
             IncidentReport,
             Source,
             IndustryOverview,
+            AuditLog,
         ],  # Pass all Beanie Documents here
     )
     print("Database initialized successfully.")

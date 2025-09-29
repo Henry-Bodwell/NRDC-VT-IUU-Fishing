@@ -1,13 +1,12 @@
 from __future__ import annotations
 from datetime import datetime
 from typing import List, Literal
-from beanie import Document, Insert, Link, Replace, before_event
-from bson import ObjectId
-from pydantic import BaseModel, Field, HttpUrl, model_validator
+from beanie import Insert, Link, Replace, before_event
+from pydantic import BaseModel, Field, model_validator
 import hashlib
-from pymongo import ASCENDING, DESCENDING, IndexModel
+from pymongo import ASCENDING, IndexModel
+from app.audit.base import AuditedDocument
 from app.models.incidents import IndustryOverview
-from app.models.logs import LogMixin
 from typing import TYPE_CHECKING
 
 
@@ -49,7 +48,30 @@ class ArticleScopeClassification(BaseModel):
     )
 
 
-class Source(Document):
+class SourceExtraction(BaseModel):
+    url: str | None = Field(default=None, description="URL of the article to analyze.")
+    article_title: str | None = Field(
+        default=None, description="Title of the article if available."
+    )
+    article_text: str = Field(
+        ..., description="Text content of the article to analyze."
+    )
+    article_scope: ArticleScopeClassification | None = Field(
+        default=None, description="Scope classification of the article"
+    )
+
+    author: str | None = Field(default=None, description="Author or organization")
+    publisher: str | None = Field(
+        default=None, description="Publisher of the article if available"
+    )
+    publication_date: datetime | None = Field(
+        default=None, description="When the source was published"
+    )
+
+    seperated_incident_text: List[str] = Field(default_factory=list)
+
+
+class Source(AuditedDocument):
     url: str | None = Field(default=None, description="URL of the article to analyze.")
     article_title: str | None = Field(
         default=None, description="Title of the article if available."
