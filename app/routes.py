@@ -98,8 +98,28 @@ async def _handle_json_request(request, context_data):
         payload = GenRequest(**json_payload)
         if payload.user_id:
             user = payload.user_id
+        else:
+            user = "anonymous"
         with AuditContext.with_user(user):
-            if payload.url:
+            if payload.text:
+                author = payload.author if payload.author else ""
+                title = payload.title if payload.title else ""
+                publisher = payload.publisher if payload.publisher else ""
+                publication_date = (
+                    payload.publication_date if payload.publication_date else None
+                )
+                url = payload.url if payload.url else ""
+
+                output = await IncidentService.create_report_from_text(
+                    payload.text,
+                    url,
+                    author,
+                    title,
+                    publisher,
+                    publication_date,
+                )
+            elif payload.url:
+
                 existing_source = await _check_for_existing_url(payload.url)
                 if existing_source:
                     logger.error(f"Source already exists for {payload.url}")
@@ -108,8 +128,6 @@ async def _handle_json_request(request, context_data):
                         detail=f"Source already exists for {payload.url}",
                     )
                 output = await IncidentService.create_report_from_url(payload.url)
-            elif payload.text:
-                output = await IncidentService.create_report_from_text(payload.text)
             else:
                 raise ValueError("Payload must include either 'text' or 'url'")
             return _request_response(output)

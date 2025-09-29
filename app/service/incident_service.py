@@ -137,10 +137,24 @@ class IncidentService(Service):
         return results
 
     @staticmethod
-    async def create_report_from_text(text: str) -> PipelineResult:
+    async def create_report_from_text(
+        text: str,
+        url: str = "",
+        author: str = "",
+        title: str = "",
+        publisher: str = "",
+        date=None,
+    ) -> PipelineResult:
         logger.info(f"Starting analysis for text: {text[:50]}")
         orchestrator = IncidentService._get_orchestrator()
-        output = await orchestrator.run_full_analysis_from_text(text=text)
+        output = await orchestrator.run_full_analysis_from_text(
+            text=text,
+            url=url,
+            author=author,
+            title=title,
+            publisher=publisher,
+            publication_date=date,
+        )
 
         results = await IncidentService._create_report(output)
         return results

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
@@ -6,6 +7,9 @@ class GenRequest(BaseModel):
     url: str | None = None
     text: str | None = None
     title: str | None = None
+    author: str | None = None
+    publisher: str | None = None
+    publication_date: datetime | None = None
     user_id: str | None = None
 
     @model_validator(mode="after")
