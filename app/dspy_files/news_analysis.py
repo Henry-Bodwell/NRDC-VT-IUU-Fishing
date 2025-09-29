@@ -86,7 +86,15 @@ class AnalysisOrchestrator:
 
         return await self.analysis_from_source(source=source)
 
-    async def run_full_analysis_from_text(self, text: str) -> PipelineOutput:
+    async def run_full_analysis_from_text(
+        self,
+        text: str,
+        url: str = "",
+        author: str = "",
+        title: str = "",
+        publisher: str = "",
+        publication_date: str = None,
+    ) -> PipelineOutput:
         if len(text) < 50:
             return PipelineOutput(
                 status=PipelineResult.INVALID_INPUT,
@@ -94,7 +102,15 @@ class AnalysisOrchestrator:
             )
         try:
             logging.info(f"Starting analysis for: {text[:50]}...")
-            source = Source(article_text=text, category="text_upload")
+            source = Source(
+                article_text=text,
+                url=url,
+                article_title=title,
+                author=author,
+                publisher=publisher,
+                publication_date=publication_date,
+                category="text_upload",
+            )
             existing_source = await Source.find_one(
                 {"article_hash": source.article_hash}
             )
