@@ -106,13 +106,13 @@ async def _handle_json_request(request, context_data):
             user = "anonymous"
         with AuditContext.with_user(user):
             if payload.text:
-                author = payload.author if payload.author else ""
-                title = payload.title if payload.title else ""
-                publisher = payload.publisher if payload.publisher else ""
+                author = payload.author if payload.author else None
+                title = payload.title if payload.title else None
+                publisher = payload.publisher if payload.publisher else None
                 publication_date = (
                     payload.publication_date if payload.publication_date else None
                 )
-                url = payload.url if payload.url else ""
+                url = payload.url if payload.url else None
 
                 output = await IncidentService.create_report_from_text(
                     payload.text,
