@@ -292,7 +292,7 @@ class ConfigBuilder:
             Path to saved file
         """
         if output_dir is None:
-            output_dir = Path("./config/sites")
+            output_dir = Path("./webScraper/config/sites")
 
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / f"{config.site_name}.yaml"

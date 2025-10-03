@@ -1,0 +1,51 @@
+site_name: oceana
+base_url: https://oceana.org
+search_url: https://oceana.org
+selectors:
+  search_input: input[name="s"]
+  search_button: null
+  result_links: h2.entry-title a
+  result_title: h2.entry-title a
+  result_snippet: div.entry-summary
+  next_page: null
+  detail_title: div.tb-container > p.tb-heading:first-of-type
+  detail_content: div.tb-fields-and-text
+  detail_date: null
+  detail_author: null
+  detail_tags: null
+  custom:
+    popup_close: a.button_close
+    search_icon: span.search-item a
+rate_limit:
+  requests_per_minute: 20
+  delay_range:
+  - 1.0
+  - 5.0
+  max_concurrent: 1
+  respect_robots_txt: true
+pagination:
+  enabled: true
+  next_button: null
+  max_pages: null
+  pagination_type: infinite_scroll
+  scroll_pause_time: 2000
+  max_scrolls: 10
+  url_pattern: null
+authentication:
+  required: false
+  auth_type: none
+  login_url: null
+  username_field: null
+  password_field: null
+  submit_button: null
+  credentials_env_var: null
+javascript_required: false
+wait_for_selector: null
+wait_for_timeout: 30000
+headers: {}
+cookies: []
+metadata:
+  description: Oceana is the largest international advocacy organization dedicated
+    solely to ocean conservation.
+  category: NGO
+  primary_content_type: Text
