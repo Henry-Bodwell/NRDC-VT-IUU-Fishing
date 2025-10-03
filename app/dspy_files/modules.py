@@ -44,7 +44,7 @@ class IncidentAnalysisModule(dspy.Module):
                     sub_out = {
                         "sources": [source],
                         "parsed_data": output.extracted_data,
-                        "classification": output.classication,
+                        "classification": output.classification,
                     }
                     return_object.append(sub_out)
 

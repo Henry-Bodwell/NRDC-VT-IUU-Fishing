@@ -12,6 +12,7 @@ from app.dspy_files.news_analysis import (
 import logging
 from app.dspy_files.content_extraction import ContentExtractor
 from app.service.service import Service, _filter_valid_fields
+from app.audit.context import AuditContext
 
 logger = logging.getLogger(__name__)
 
@@ -196,26 +197,30 @@ class IncidentService(Service):
             logger.error(f"Task {task_id} not found")
             return
 
+        # Define progress callback that updates the task
+        async def progress_callback(stage: str, percent: int):
+            await task.update_progress(stage, percent)
+            logger.info(f"Task {task_id}: {stage} - {percent}%")
+
         try:
-            # Stage 1: Content Extraction (0-30%)
-            await task.update_progress("content_extraction", 10)
-            logger.info(f"Task {task_id}: Starting content extraction")
+            logger.info(f"Task {task_id}: Starting analysis")
 
             # Get orchestrator
             orchestrator = IncidentService._get_orchestrator()
 
-            # Stage 2: Extract content based on input type (10-30%)
+            # Run analysis with progress callback (handles 0-80% progress)
             if input_type == "url":
-                await task.update_progress("content_extraction", 20)
                 output = await orchestrator.run_full_analysis_from_url(
-                    url=kwargs["url"]
+                    url=kwargs["url"],
+                    progress_callback=progress_callback
                 )
             elif input_type == "pdf":
-                await task.update_progress("content_extraction", 20)
                 source = ContentExtractor.from_pdf(kwargs["pdf_bytes"])
-                output = await orchestrator.analysis_from_source(source=source)
+                output = await orchestrator.analysis_from_source(
+                    source=source,
+                    progress_callback=progress_callback
+                )
             elif input_type == "text":
-                await task.update_progress("content_extraction", 20)
                 output = await orchestrator.run_full_analysis_from_text(
                     text=kwargs["text"],
                     url=kwargs.get("url", None),
@@ -223,25 +228,21 @@ class IncidentService(Service):
                     title=kwargs.get("title", None),
                     publisher=kwargs.get("publisher", None),
                     publication_date=kwargs.get("date", None),
+                    progress_callback=progress_callback
                 )
             else:
                 raise ValueError(f"Invalid input_type: {input_type}")
 
-            # Stage 3: Classification complete (30-40%)
-            await task.update_progress("classification", 40)
-            logger.info(
-                f"Task {task_id}: Classification complete - {output.source.article_scope if output.source else 'unknown'}"
-            )
-
-            # Stage 4: Analysis (40-70%)
-            await task.update_progress("analysis", 60)
-            logger.info(f"Task {task_id}: Running analysis")
-
-            # Stage 5: Saving to database (70-90%)
-            await task.update_progress("saving", 80)
+            # Stage: Saving to database (80-90%)
+            await progress_callback("saving", 85)
             logger.info(f"Task {task_id}: Saving to database")
 
-            results = await IncidentService._create_report(output)
+            # Get user_id from task and set audit context
+            user_id = task.user_id if task.user_id else "anonymous"
+            with AuditContext.with_user(user_id):
+                results = await IncidentService._create_report(output)
+
+            await progress_callback("saving", 95)
 
             # Stage 6: Check if pipeline succeeded
             result_data = {

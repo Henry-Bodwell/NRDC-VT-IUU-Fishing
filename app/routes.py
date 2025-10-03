@@ -257,7 +257,7 @@ async def _check_for_existing_url(url: str) -> Source | None:
 @router.get("/incidents")
 async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()]):
     """
-    Retrieves a l ncident reports with pagination and filtering.
+    Retrieves a l incident reports with pagination and filtering.
     """
     query_filters = {}
 
