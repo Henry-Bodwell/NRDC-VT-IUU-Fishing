@@ -89,11 +89,11 @@ class AnalysisOrchestrator:
     async def run_full_analysis_from_text(
         self,
         text: str,
-        url: str = "",
-        author: str = "",
-        title: str = "",
-        publisher: str = "",
-        publication_date: str = None,
+        url: str | None = None,
+        author: str | None = None,
+        title: str | None = None,
+        publisher: str | None = None,
+        publication_date: str | None = None,
     ) -> PipelineOutput:
         if len(text) < 50:
             return PipelineOutput(

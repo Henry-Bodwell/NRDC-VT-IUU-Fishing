@@ -2,6 +2,7 @@ import os
 from fastapi import File, HTTPException, status
 from pydantic import ValidationError
 from app.models.incidents import IncidentReport, IndustryOverview
+from app.models.task import TaskStatus
 from pymongo.errors import DuplicateKeyError
 from app.dspy_files.news_analysis import (
     AnalysisOrchestrator,
@@ -175,3 +176,102 @@ class IncidentService(Service):
             model_id=report_id,
             model_name="report",
         )
+
+    @staticmethod
+    async def run_analysis_with_task_tracking(
+        task_id: str,
+        input_type: str,
+        **kwargs,
+    ):
+        """
+        Wrapper that runs the analysis pipeline with task progress tracking.
+
+        Args:
+            task_id: The task ID to update with progress
+            input_type: "url", "pdf", or "text"
+            **kwargs: Arguments to pass to the appropriate create_report method
+        """
+        task = await TaskStatus.find_one(TaskStatus.task_id == task_id)
+        if not task:
+            logger.error(f"Task {task_id} not found")
+            return
+
+        try:
+            # Stage 1: Content Extraction (0-30%)
+            await task.update_progress("content_extraction", 10)
+            logger.info(f"Task {task_id}: Starting content extraction")
+
+            # Get orchestrator
+            orchestrator = IncidentService._get_orchestrator()
+
+            # Stage 2: Extract content based on input type (10-30%)
+            if input_type == "url":
+                await task.update_progress("content_extraction", 20)
+                output = await orchestrator.run_full_analysis_from_url(
+                    url=kwargs["url"]
+                )
+            elif input_type == "pdf":
+                await task.update_progress("content_extraction", 20)
+                source = ContentExtractor.from_pdf(kwargs["pdf_bytes"])
+                output = await orchestrator.analysis_from_source(source=source)
+            elif input_type == "text":
+                await task.update_progress("content_extraction", 20)
+                output = await orchestrator.run_full_analysis_from_text(
+                    text=kwargs["text"],
+                    url=kwargs.get("url", None),
+                    author=kwargs.get("author", None),
+                    title=kwargs.get("title", None),
+                    publisher=kwargs.get("publisher", None),
+                    publication_date=kwargs.get("date", None),
+                )
+            else:
+                raise ValueError(f"Invalid input_type: {input_type}")
+
+            # Stage 3: Classification complete (30-40%)
+            await task.update_progress("classification", 40)
+            logger.info(
+                f"Task {task_id}: Classification complete - {output.source.article_scope if output.source else 'unknown'}"
+            )
+
+            # Stage 4: Analysis (40-70%)
+            await task.update_progress("analysis", 60)
+            logger.info(f"Task {task_id}: Running analysis")
+
+            # Stage 5: Saving to database (70-90%)
+            await task.update_progress("saving", 80)
+            logger.info(f"Task {task_id}: Saving to database")
+
+            results = await IncidentService._create_report(output)
+
+            # Stage 6: Check if pipeline succeeded
+            result_data = {
+                "status": results.status,
+                "source_id": str(results.source.id) if results.source else None,
+                "incident_ids": (
+                    [str(i.id) for i in results.incidents] if results.incidents else []
+                ),
+                "industry_overview_id": (
+                    str(results.industry_overview.id)
+                    if results.industry_overview
+                    else None
+                ),
+                "article_scope": (
+                    results.source.article_scope if results.source else None
+                ),
+                "error_message": results.error_message,
+            }
+
+            # Check if the pipeline actually succeeded
+            if results.is_success or results.is_unrelated or results.status == PipelineResult.DUPLICATE_HASHED_TEXT:
+                await task.mark_completed(result_data)
+                logger.info(f"Task {task_id}: Completed successfully with status {results.status}")
+            else:
+                # Pipeline failed - mark task as failed
+                error_msg = results.error_message or f"Pipeline failed with status: {results.status}"
+                await task.mark_failed(error_msg)
+                logger.error(f"Task {task_id}: Failed with status {results.status}: {error_msg}")
+
+        except Exception as e:
+            logger.error(f"Task {task_id} failed with error: {str(e)}")
+            await task.mark_failed(str(e))
+            raise

@@ -2,6 +2,7 @@ import json
 from beanie import PydanticObjectId
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Body,
     Depends,
     Query,
@@ -21,6 +22,7 @@ from app.audit.context import AuditContext
 from app.audit.models import AuditLog
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.articles import Source
+from app.models.task import TaskStatus
 from app.service.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
 from app.service.overview_service import OverviewService
@@ -38,24 +40,19 @@ T = TypeVar("T", bound=BaseModel)
 
 
 # Incident Routes
-@router.post(
-    "/incidents", response_model=PipelineOutput, status_code=status.HTTP_201_CREATED
-)
-async def create_incident_report(request: Request):
+@router.post("/incidents", status_code=status.HTTP_202_ACCEPTED)
+async def create_incident_report(request: Request, background_tasks: BackgroundTasks):
     """
     Submits a URL or file for analysis and saves the resulting incident report to database.
+    Returns a task_id immediately for status polling.
     """
     content_type = request.headers.get("content-type")
 
-    context_data = {
-        "source": "api",
-    }
-
     try:
         if content_type == "application/json":
-            return await _handle_json_request(request, context_data)
+            return await _handle_json_request(request, background_tasks)
         elif content_type and content_type.startswith("multipart/form-data"):
-            return await _handle_file_request(request, context_data)
+            return await _handle_file_request(request, background_tasks)
         else:
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -64,10 +61,10 @@ async def create_incident_report(request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error inserting incident report: {e}")
+        logger.error(f"Error creating task: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to insert incident report. {e}",
+            detail=f"Failed to create task. {e}",
         )
 
 
@@ -96,45 +93,69 @@ def _request_response(pipeline_output: PipelineOutput):
     )
 
 
-async def _handle_json_request(request, context_data):
+async def _handle_json_request(request, background_tasks: BackgroundTasks):
     try:
         json_payload = await request.json()
         payload = GenRequest(**json_payload)
-        if payload.user_id:
-            user = payload.user_id
+        user_id = payload.user_id if payload.user_id else "anonymous"
+
+        # Create task
+        task = TaskStatus(
+            task_type="incident_analysis",
+            user_id=user_id,
+            status="pending",
+        )
+
+        if payload.text:
+            task.input_params = {
+                "input_type": "text",
+                "text": (
+                    payload.text[:100] + "..."
+                    if len(payload.text) > 100
+                    else payload.text
+                ),
+                "url": payload.url if payload.url else None,
+            }
+            await task.insert()
+
+            # Schedule background task
+            background_tasks.add_task(
+                IncidentService.run_analysis_with_task_tracking,
+                task_id=task.task_id,
+                input_type="text",
+                text=payload.text,
+                url=payload.url if payload.url else None,
+                author=payload.author if payload.author else None,
+                title=payload.title if payload.title else None,
+                publisher=payload.publisher if payload.publisher else None,
+                date=payload.publication_date if payload.publication_date else None,
+            )
+
+        elif payload.url:
+            # Check for existing URL
+            existing_source = await _check_for_existing_url(payload.url)
+            if existing_source:
+                logger.error(f"Source already exists for {payload.url}")
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Source already exists for {payload.url}",
+                )
+
+            task.input_params = {"input_type": "url", "url": payload.url}
+            await task.insert()
+
+            # Schedule background task
+            background_tasks.add_task(
+                IncidentService.run_analysis_with_task_tracking,
+                task_id=task.task_id,
+                input_type="url",
+                url=payload.url,
+            )
         else:
-            user = "anonymous"
-        with AuditContext.with_user(user):
-            if payload.text:
-                author = payload.author if payload.author else None
-                title = payload.title if payload.title else None
-                publisher = payload.publisher if payload.publisher else None
-                publication_date = (
-                    payload.publication_date if payload.publication_date else None
-                )
-                url = payload.url if payload.url else None
+            raise ValueError("Payload must include either 'text' or 'url'")
 
-                output = await IncidentService.create_report_from_text(
-                    payload.text,
-                    url,
-                    author,
-                    title,
-                    publisher,
-                    publication_date,
-                )
-            elif payload.url:
+        return {"task_id": task.task_id, "status": "pending"}
 
-                existing_source = await _check_for_existing_url(payload.url)
-                if existing_source:
-                    logger.error(f"Source already exists for {payload.url}")
-                    raise HTTPException(
-                        status_code=409,
-                        detail=f"Source already exists for {payload.url}",
-                    )
-                output = await IncidentService.create_report_from_url(payload.url)
-            else:
-                raise ValueError("Payload must include either 'text' or 'url'")
-            return _request_response(output)
     except ValidationError as e:
         logger.error(f"Validation error in request: {e}")
         raise HTTPException(
@@ -152,15 +173,21 @@ async def _handle_json_request(request, context_data):
         )
 
 
-async def _handle_file_request(request: Request, context_data: dict) -> dict:
+async def _handle_file_request(
+    request: Request, background_tasks: BackgroundTasks
+) -> dict:
     """Handle multipart file request"""
     try:
         form = await request.form()
-        logger.info(f"Form recevied with keys: {list(form.keys())}")
+        logger.info(f"Form received with keys: {list(form.keys())}")
         pdf_file = None
+        user_id = "anonymous"
+
         for key, value in form.items():
             logger.info(f"Key: {key}, Value type: {type(value)}, Value: {value}")
-            if isinstance(value, (UploadFile, FastAPIUploadFile)):
+            if key == "user_id" and isinstance(value, str):
+                user_id = value
+            elif isinstance(value, (UploadFile, FastAPIUploadFile)):
                 if not value.filename:
                     continue
 
@@ -185,11 +212,24 @@ async def _handle_file_request(request: Request, context_data: dict) -> dict:
 
         pdf_bytes = await pdf_file.read()
 
-        output = await IncidentService.create_report_from_pdf(
-            pdf_bytes, pdf_file.filename
+        # Create task
+        task = TaskStatus(
+            task_type="incident_analysis",
+            user_id=user_id,
+            status="pending",
+            input_params={"input_type": "pdf", "filename": pdf_file.filename},
+        )
+        await task.insert()
+
+        # Schedule background task
+        background_tasks.add_task(
+            IncidentService.run_analysis_with_task_tracking,
+            task_id=task.task_id,
+            input_type="pdf",
+            pdf_bytes=pdf_bytes,
         )
 
-        return _request_response(output)
+        return {"task_id": task.task_id, "status": "pending"}
 
     except HTTPException:
         raise
@@ -565,6 +605,79 @@ async def list_all_logs(limit: int = 25, skip: int = 0):
             "limit": limit,
             "has_more": (skip + limit) < total_count,
         },
+    }
+
+
+# Task Routes
+@router.get("/tasks")
+async def list_tasks(
+    user_id: Optional[str] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
+    limit: int = 25,
+    skip: int = 0,
+):
+    """
+    List all tasks with optional filtering by user_id and status.
+    """
+    query_filters = {}
+
+    if user_id:
+        query_filters["user_id"] = user_id
+
+    if status_filter:
+        query_filters["status"] = status_filter
+
+    tasks = (
+        await TaskStatus.find(query_filters)
+        .sort([("created_at", DESCENDING)])
+        .skip(skip)
+        .limit(limit)
+        .to_list()
+    )
+
+    total_count = await TaskStatus.find(query_filters).count()
+
+    return {
+        "tasks": [
+            {
+                "task_id": task.task_id,
+                "status": task.status,
+                "task_type": task.task_type,
+                "progress": task.progress,
+                "created_at": task.created_at,
+                "updated_at": task.updated_at,
+            }
+            for task in tasks
+        ],
+        "pagination": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit,
+            "has_more": (skip + limit) < total_count,
+        },
+    }
+
+
+@router.get("/tasks/{task_id}")
+async def get_task_status(task_id: str):
+    """
+    Get the status of a background task by its ID.
+    """
+    task = await TaskStatus.find_one(TaskStatus.task_id == task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    return {
+        "task_id": task.task_id,
+        "status": task.status,
+        "progress": task.progress,
+        "result": task.result,
+        "error": task.error,
+        "created_at": task.created_at,
+        "updated_at": task.updated_at,
     }
 
 

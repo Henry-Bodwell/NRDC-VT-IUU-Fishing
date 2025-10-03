@@ -4,6 +4,7 @@ from beanie import init_beanie
 
 from app.audit.models import AuditLog
 from app.models.incidents import IndustryOverview
+from app.models.task import TaskStatus
 
 
 MONGO_URI = os.getenv("MONGO_URI")
@@ -27,6 +28,7 @@ async def init_db():
             Source,
             IndustryOverview,
             AuditLog,
+            TaskStatus,
         ],  # Pass all Beanie Documents here
     )
     print("Database initialized successfully.")
