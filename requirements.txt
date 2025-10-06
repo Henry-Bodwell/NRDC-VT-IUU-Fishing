@@ -5,6 +5,7 @@ fastapi==0.116.1
 numpy==2.3.2
 pandas==2.3.2
 playwright==1.54.0
+pytest-playwright-asyncio==0.7.1
 pydantic==2.11.7
 pymongo==4.14.1
 pymupdf==1.26.4
