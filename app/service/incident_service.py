@@ -2,6 +2,7 @@ import os
 from fastapi import File, HTTPException, status
 from pydantic import ValidationError
 from app.models.incidents import IncidentReport, IndustryOverview
+from app.models.task import TaskStatus
 from pymongo.errors import DuplicateKeyError
 from app.dspy_files.news_analysis import (
     AnalysisOrchestrator,
@@ -11,6 +12,7 @@ from app.dspy_files.news_analysis import (
 import logging
 from app.dspy_files.content_extraction import ContentExtractor
 from app.service.service import Service, _filter_valid_fields
+from app.audit.context import AuditContext
 
 logger = logging.getLogger(__name__)
 
@@ -175,3 +177,102 @@ class IncidentService(Service):
             model_id=report_id,
             model_name="report",
         )
+
+    @staticmethod
+    async def run_analysis_with_task_tracking(
+        task_id: str,
+        input_type: str,
+        **kwargs,
+    ):
+        """
+        Wrapper that runs the analysis pipeline with task progress tracking.
+
+        Args:
+            task_id: The task ID to update with progress
+            input_type: "url", "pdf", or "text"
+            **kwargs: Arguments to pass to the appropriate create_report method
+        """
+        task = await TaskStatus.find_one(TaskStatus.task_id == task_id)
+        if not task:
+            logger.error(f"Task {task_id} not found")
+            return
+
+        # Define progress callback that updates the task
+        async def progress_callback(stage: str, percent: int):
+            await task.update_progress(stage, percent)
+            logger.info(f"Task {task_id}: {stage} - {percent}%")
+
+        try:
+            logger.info(f"Task {task_id}: Starting analysis")
+
+            # Get orchestrator
+            orchestrator = IncidentService._get_orchestrator()
+
+            # Run analysis with progress callback (handles 0-80% progress)
+            if input_type == "url":
+                output = await orchestrator.run_full_analysis_from_url(
+                    url=kwargs["url"],
+                    progress_callback=progress_callback
+                )
+            elif input_type == "pdf":
+                source = ContentExtractor.from_pdf(kwargs["pdf_bytes"])
+                output = await orchestrator.analysis_from_source(
+                    source=source,
+                    progress_callback=progress_callback
+                )
+            elif input_type == "text":
+                output = await orchestrator.run_full_analysis_from_text(
+                    text=kwargs["text"],
+                    url=kwargs.get("url", None),
+                    author=kwargs.get("author", None),
+                    title=kwargs.get("title", None),
+                    publisher=kwargs.get("publisher", None),
+                    publication_date=kwargs.get("date", None),
+                    progress_callback=progress_callback
+                )
+            else:
+                raise ValueError(f"Invalid input_type: {input_type}")
+
+            # Stage: Saving to database (80-90%)
+            await progress_callback("saving", 85)
+            logger.info(f"Task {task_id}: Saving to database")
+
+            # Get user_id from task and set audit context
+            user_id = task.user_id if task.user_id else "anonymous"
+            with AuditContext.with_user(user_id):
+                results = await IncidentService._create_report(output)
+
+            await progress_callback("saving", 95)
+
+            # Stage 6: Check if pipeline succeeded
+            result_data = {
+                "status": results.status,
+                "source_id": str(results.source.id) if results.source else None,
+                "incident_ids": (
+                    [str(i.id) for i in results.incidents] if results.incidents else []
+                ),
+                "industry_overview_id": (
+                    str(results.industry_overview.id)
+                    if results.industry_overview
+                    else None
+                ),
+                "article_scope": (
+                    results.source.article_scope if results.source else None
+                ),
+                "error_message": results.error_message,
+            }
+
+            # Check if the pipeline actually succeeded
+            if results.is_success or results.is_unrelated or results.status == PipelineResult.DUPLICATE_HASHED_TEXT:
+                await task.mark_completed(result_data)
+                logger.info(f"Task {task_id}: Completed successfully with status {results.status}")
+            else:
+                # Pipeline failed - mark task as failed
+                error_msg = results.error_message or f"Pipeline failed with status: {results.status}"
+                await task.mark_failed(error_msg)
+                logger.error(f"Task {task_id}: Failed with status {results.status}: {error_msg}")
+
+        except Exception as e:
+            logger.error(f"Task {task_id} failed with error: {str(e)}")
+            await task.mark_failed(str(e))
+            raise

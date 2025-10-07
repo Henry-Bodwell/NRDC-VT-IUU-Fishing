@@ -35,7 +35,7 @@ class IncidentAnalysisModule(dspy.Module):
                     "classification": classification,
                 }
             elif source.article_scope.articleType == "Multiple Incidents":
-                source.seperated_incident_text = await self.multiIncident.acall(
+                source.seperated_incident_text = await self.multiIncidentText.acall(
                     text=source.article_text
                 )
                 return_object = []
@@ -44,7 +44,7 @@ class IncidentAnalysisModule(dspy.Module):
                     sub_out = {
                         "sources": [source],
                         "parsed_data": output.extracted_data,
-                        "classification": output.classication,
+                        "classification": output.classification,
                     }
                     return_object.append(sub_out)
 
