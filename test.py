@@ -1,7 +1,11 @@
-from webScraper import scrape_site
+from webScraper.scrapers.sites.oceana_scraper import scrape_oceana
+
 import asyncio
 
-results = asyncio.run(
-    scrape_site("doj_gov", "illegal fishing", max_results=10, headless=True)
-)
-print(results)
+
+async def main():
+    results = await scrape_oceana("illegal fishing", max_results=2, headless=False)
+    print(results)
+
+
+asyncio.run(main())

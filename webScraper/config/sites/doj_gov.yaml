@@ -5,25 +5,25 @@ selectors:
   search_input: input[name="query"]
   search_button: button[type="submit"]
   result_links: a.result-title-link
-  result_title: null
-  result_snippet: null
-  next_page: null
-  detail_title: null
-  detail_content: null
-  detail_date: null
+  result_title: h2.result-title-label
+  result_snippet: div.result-desc
+  next_page: a.usa-pagination__next-page
+  detail_title: h1.page-title
+  detail_content: div.field_body
+  detail_date: div.node-date
   detail_author: null
-  detail_tags: null
+  detail_tags: div.field__item
   custom: {}
 rate_limit:
   requests_per_minute: 20
   delay_range:
   - 1
-  - 3
+  - 5
   max_concurrent: 1
   respect_robots_txt: true
 pagination:
-  enabled: false
-  next_button: null
+  enabled: true
+  next_button: a.usa-pagination__next-page
   max_pages: null
   pagination_type: button
   url_pattern: null
