@@ -63,7 +63,7 @@ class AnalysisOrchestrator:
     async def run_full_analysis_from_url(
         self,
         url: str,
-        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> PipelineOutput:
         """
         Orchestrates the end-to-end process of URL -> Text -> Analysis -> Format -> Verify.
@@ -101,7 +101,9 @@ class AnalysisOrchestrator:
                 status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
             )
 
-        return await self.analysis_from_source(source=source, progress_callback=progress_callback)
+        return await self.analysis_from_source(
+            source=source, progress_callback=progress_callback
+        )
 
     async def run_full_analysis_from_text(
         self,
@@ -111,7 +113,7 @@ class AnalysisOrchestrator:
         title: str | None = None,
         publisher: str | None = None,
         publication_date: str | None = None,
-        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> PipelineOutput:
         """
         Orchestrates analysis from raw text.
@@ -167,12 +169,14 @@ class AnalysisOrchestrator:
             return PipelineOutput(
                 status=PipelineResult.FAILED_EXTRACTION, error_message=str(e)
             )
-        return await self.analysis_from_source(source=source, progress_callback=progress_callback)
+        return await self.analysis_from_source(
+            source=source, progress_callback=progress_callback
+        )
 
     async def analysis_from_source(
         self,
         source: Source,
-        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> PipelineOutput:
         """
         Run analysis pipeline on a source document.
@@ -250,7 +254,7 @@ class AnalysisOrchestrator:
         self,
         prediction: dspy.Prediction,
         source: Source,
-        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> PipelineOutput:
         """Process industry overview prediction"""
         logger.info(f"Article from {source.id} is an industry overview")
@@ -275,14 +279,16 @@ class AnalysisOrchestrator:
                 industry_overview=overview,
             )
         except Exception as e:
-            logger.error(f"Error creating IndustryOverview: {type(e).__name__}: {str(e)}")
+            logger.error(
+                f"Error creating IndustryOverview: {type(e).__name__}: {str(e)}"
+            )
             raise
 
     async def _process_multiple_incidents(
         self,
         prediction: dspy.Prediction,
         source: Source,
-        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> PipelineOutput:
         """Process multiple incidents prediction"""
         logger.info(f"Article from {source.id} contains multiple incidents")
@@ -302,7 +308,9 @@ class AnalysisOrchestrator:
             )
             processed = await self._process_incident_prediction(sub_prediction, source)
             if not processed:
-                logger.error(f"Failed to process incident prediction for {incident.get('parsed_data')}")
+                logger.error(
+                    f"Failed to process incident prediction for {incident.get('parsed_data')}"
+                )
             incident_list.append(processed)
 
             # Update progress incrementally (60-80%)
@@ -320,7 +328,7 @@ class AnalysisOrchestrator:
         self,
         prediction: dspy.Prediction,
         source: Source,
-        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> PipelineOutput:
         """Process single incident prediction"""
         if progress_callback:

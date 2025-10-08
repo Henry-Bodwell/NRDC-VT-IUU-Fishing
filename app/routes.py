@@ -116,6 +116,23 @@ async def _handle_json_request(request, background_tasks: BackgroundTasks):
                 ),
                 "url": payload.url if payload.url else None,
             }
+            if payload.url:
+                existing_source = await _check_for_existing_url(payload.url)
+                if existing_source:
+                    logger.error(f"Source already exists for {payload.url}")
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Source already exists for {payload.url}",
+                    )
+
+            existing_text = await _check_for_existing_text(payload.text)
+            if existing_text:
+                logger.error(f"Source already exists for {payload.text[:50]}...")
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Source already exists for {payload.text[:50]}...",
+                )
+
             await task.insert()
 
             # Schedule background task
@@ -239,6 +256,20 @@ async def _handle_file_request(
             status_code=500,
             detail="An unexpected error occurred while processing the file.",
         )
+
+
+async def _check_for_existing_text(text: str) -> Source | None:
+    """
+    Check if a source already exists for the given text by comparing article_hash.
+    """
+    try:
+        import hashlib
+        article_hash = hashlib.sha256(text.encode()).hexdigest()
+        existing = await Source.find_one(Source.article_hash == article_hash)
+        return existing
+    except Exception as e:
+        logger.warning(f"Error checking for existing text: {e}")
+        return None
 
 
 async def _check_for_existing_url(url: str) -> Source | None:
