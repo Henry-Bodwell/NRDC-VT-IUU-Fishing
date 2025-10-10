@@ -15,7 +15,9 @@ class TextToStructuredData(dspy.Signature):
     source: Source = dspy.InputField(
         desc="Base source data containing URL and article text."
     )
-    extracted_data: ExtractedIncidentData = dspy.OutputField()
+    extracted_data: ExtractedIncidentData = dspy.OutputField(
+        desc="Structured incident data. ALWAYS extract species information when fish, seafood, or marine animals are mentioned in the article."
+    )
     classification: IncidentClassification = dspy.OutputField()
 
 
@@ -30,7 +32,9 @@ class MultipleIncidentSignature(dspy.Signature):
 
 class MultipleIncidentToStructured(dspy.Signature):
     text: str = dspy.InputField(desc="Article Text to extract and classify")
-    extracted_data: ExtractedIncidentData = dspy.OutputField()
+    extracted_data: ExtractedIncidentData = dspy.OutputField(
+        desc="Structured incident data. ALWAYS extract species information when fish, seafood, or marine animals are mentioned in the text."
+    )
     classification: IncidentClassification = dspy.OutputField()
 
 

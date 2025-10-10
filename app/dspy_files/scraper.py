@@ -257,7 +257,23 @@ class ArticleExtractionPipeline:
             try:
                 logger.info("Processing with DSPy...")
                 extraction = await self.cleaner.acall(filtered_html=filtered_html)
+
+                # Check if extraction has sourceExtract
+                if not hasattr(extraction, 'sourceExtract') or extraction.sourceExtract is None:
+                    logger.error(f"DSPy extraction missing sourceExtract attribute")
+                    logger.error(f"Extraction type: {type(extraction)}")
+                    logger.error(f"Extraction attributes: {dir(extraction)}")
+                    raise ValueError("DSPy failed to extract source data")
+
                 extract = extraction.sourceExtract
+
+                # Check if extract has article_text
+                if not hasattr(extract, 'article_text') or not extract.article_text:
+                    logger.error(f"sourceExtract missing article_text")
+                    logger.error(f"sourceExtract type: {type(extract)}")
+                    logger.error(f"sourceExtract content: {extract}")
+                    raise ValueError("DSPy failed to extract article text")
+
                 result = Source(
                     url=url,
                     article_title=title,
