@@ -9,7 +9,7 @@ from datetime import datetime
 from app.audit.base import AuditedDocument
 
 if TYPE_CHECKING:
-    from app.models.articles import Source
+    from app.models.sources import Source
 
 
 subtype_behavior = """

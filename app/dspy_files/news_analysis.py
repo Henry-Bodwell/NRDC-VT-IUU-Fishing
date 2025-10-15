@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from app.dspy_files.content_extraction import ContentExtractor
 from app.dspy_files.analysis_pipeline import AnalysisPipeline
 from app.dspy_files.postprocessing import format_report
-from app.models.articles import Source
+from app.models.sources import Source
 from app.models.incidents import IncidentReport, IndustryOverview
 
 import logging

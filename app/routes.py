@@ -21,7 +21,7 @@ from pydantic import BaseModel, ValidationError, model_validator
 from app.audit.context import AuditContext
 from app.audit.models import AuditLog
 from app.models.incidents import IncidentReport, IndustryOverview
-from app.models.articles import Source
+from app.models.sources import Source
 from app.models.task import TaskStatus
 from app.service.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError

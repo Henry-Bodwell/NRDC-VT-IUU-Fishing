@@ -6,7 +6,7 @@ from app.models.incidents import (
     IncidentClassification,
     IndustryOverviewExtract,
 )
-from app.models.articles import ArticleScopeClassification, Source, SourceExtraction
+from app.models.sources import ArticleScopeClassification, Source, SourceExtraction
 
 
 class TextToStructuredData(dspy.Signature):

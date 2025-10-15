@@ -6,7 +6,7 @@ from app.dspy_files.signatures import (
     TextToStructuredData,
     IndustryOverviewSignature,
 )
-from app.models.articles import Source
+from app.models.sources import Source
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,10 @@ class IncidentAnalysisModule(dspy.Module):
                 output = await self.extractAndClassify.acall(source=source)
 
                 # Check if output has extracted_data before validation
-                if not hasattr(output, 'extracted_data') or output.extracted_data is None:
+                if (
+                    not hasattr(output, "extracted_data")
+                    or output.extracted_data is None
+                ):
                     raise Exception(
                         "DSPy output missing extracted_data for single incident analysis"
                     )
@@ -59,7 +62,10 @@ class IncidentAnalysisModule(dspy.Module):
                     output = await self.multiIncidentClass.acall(text=incident_text)
 
                     # Check if output has extracted_data before validation
-                    if not hasattr(output, 'extracted_data') or output.extracted_data is None:
+                    if (
+                        not hasattr(output, "extracted_data")
+                        or output.extracted_data is None
+                    ):
                         logger.error(
                             f"DSPy output missing extracted_data for incident text: {incident_text[:100]}..."
                         )
@@ -90,14 +96,30 @@ class IncidentAnalysisModule(dspy.Module):
 
         # Check if text mentions fish/seafood/marine animals
         fish_keywords = [
-            'fish', 'tuna', 'salmon', 'shark', 'shrimp', 'lobster', 'crab',
-            'seafood', 'vessel', 'catch', 'fishing', 'marine', 'ocean',
-            'species', 'aquatic', 'shellfish', 'squid', 'anchovy', 'sardine'
+            "fish",
+            "tuna",
+            "salmon",
+            "shark",
+            "shrimp",
+            "lobster",
+            "crab",
+            "seafood",
+            "vessel",
+            "catch",
+            "fishing",
+            "marine",
+            "ocean",
+            "species",
+            "aquatic",
+            "shellfish",
+            "squid",
+            "anchovy",
+            "sardine",
         ]
         mentions_fish = any(keyword in text_lower for keyword in fish_keywords)
 
         # Log warning if species missing when fish/seafood mentioned
-        species_involved = getattr(extracted_data, 'speciesInvolved', None)
+        species_involved = getattr(extracted_data, "speciesInvolved", None)
         if mentions_fish and (species_involved is None or len(species_involved) == 0):
             logger.warning(
                 "Text mentions fish/seafood but no species were extracted. "
@@ -106,27 +128,42 @@ class IncidentAnalysisModule(dspy.Module):
 
         # Check for product mentions (fins, fillets, etc.)
         product_keywords = [
-            'fin', 'fillet', 'steak', 'meat', 'product', 'processed',
-            'frozen', 'canned', 'dried', 'smoked', 'whole', 'dressed'
+            "fin",
+            "fillet",
+            "steak",
+            "meat",
+            "product",
+            "processed",
+            "frozen",
+            "canned",
+            "dried",
+            "smoked",
+            "whole",
+            "dressed",
         ]
         mentions_product = any(keyword in text_lower for keyword in product_keywords)
 
         # Log warning if products missing when species + products mentioned
-        products_involved = getattr(extracted_data, 'productsInvolved', None)
-        if species_involved and len(species_involved) > 0 and mentions_product and (products_involved is None or len(products_involved) == 0):
+        products_involved = getattr(extracted_data, "productsInvolved", None)
+        if (
+            species_involved
+            and len(species_involved) > 0
+            and mentions_product
+            and (products_involved is None or len(products_involved) == 0)
+        ):
             logger.warning(
                 "Text mentions species and seafood products but productsInvolved is empty. "
                 "Consider extracting product information."
             )
 
         # Log warning if vessel name missing when vessel mentioned
-        vessel_keywords = ['vessel', 'ship', 'boat', 'trawler', 'seiner']
+        vessel_keywords = ["vessel", "ship", "boat", "trawler", "seiner"]
         mentions_vessel = any(keyword in text_lower for keyword in vessel_keywords)
 
-        catch_source = getattr(extracted_data, 'catchSourceInformation', None)
+        catch_source = getattr(extracted_data, "catchSourceInformation", None)
         if mentions_vessel and catch_source:
-            vessel_name = getattr(catch_source, 'vesselName', None)
-            vessel_id = getattr(catch_source, 'vesselUniqueID', None)
+            vessel_name = getattr(catch_source, "vesselName", None)
+            vessel_id = getattr(catch_source, "vesselUniqueID", None)
             if not vessel_name and not vessel_id:
                 logger.warning(
                     "Text mentions vessels but no vessel name or ID was extracted. "
@@ -134,7 +171,7 @@ class IncidentAnalysisModule(dspy.Module):
                 )
 
         # Log warning if event data is missing
-        event_data = getattr(extracted_data, 'eventData', None)
+        event_data = getattr(extracted_data, "eventData", None)
         if not event_data:
             logger.warning(
                 "No event data extracted. Consider extracting event category and resolution."

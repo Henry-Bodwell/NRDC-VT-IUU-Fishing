@@ -2,7 +2,7 @@ from typing import List
 import dspy
 from app.dspy_files.config import setup_dspy
 from app.dspy_files.source_scope import SourceScope
-from app.models.articles import Source
+from app.models.sources import Source
 from app.dspy_files.modules import IncidentAnalysisModule, IndustryOverviewModule
 import logging
 

@@ -1,7 +1,7 @@
 from typing import Dict
 import app.dspy_files.functions as fn
 from app.dspy_files.scraper import ArticleExtractionPipeline
-from app.models.articles import Source
+from app.models.sources import Source
 import logging
 
 logger = logging.getLogger(__name__)

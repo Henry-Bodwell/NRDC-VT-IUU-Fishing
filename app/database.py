@@ -14,7 +14,7 @@ async def init_db():
     """
     Initializes the Beanie connection to the database.
     """
-    from app.models.articles import Source
+    from app.models.sources import Source
     from app.models.incidents import IncidentReport
 
     if not MONGO_URI:

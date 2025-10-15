@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup, Comment, Tag
 from typing import List, Set
 import dspy
 from app.dspy_files.signatures import CleanArticleContent
-from app.models.articles import Source
+from app.models.sources import Source
 from app.dspy_files.config import setup_dspy
 import logging
 
@@ -259,7 +259,10 @@ class ArticleExtractionPipeline:
                 extraction = await self.cleaner.acall(filtered_html=filtered_html)
 
                 # Check if extraction has sourceExtract
-                if not hasattr(extraction, 'sourceExtract') or extraction.sourceExtract is None:
+                if (
+                    not hasattr(extraction, "sourceExtract")
+                    or extraction.sourceExtract is None
+                ):
                     logger.error(f"DSPy extraction missing sourceExtract attribute")
                     logger.error(f"Extraction type: {type(extraction)}")
                     logger.error(f"Extraction attributes: {dir(extraction)}")
@@ -268,7 +271,7 @@ class ArticleExtractionPipeline:
                 extract = extraction.sourceExtract
 
                 # Check if extract has article_text
-                if not hasattr(extract, 'article_text') or not extract.article_text:
+                if not hasattr(extract, "article_text") or not extract.article_text:
                     logger.error(f"sourceExtract missing article_text")
                     logger.error(f"sourceExtract type: {type(extract)}")
                     logger.error(f"sourceExtract content: {extract}")
