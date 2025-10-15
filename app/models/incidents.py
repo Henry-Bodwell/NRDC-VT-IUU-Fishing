@@ -147,15 +147,15 @@ class EventData(BaseModel):
     )
 
 
-class CatchSourceData(BaseModel):
-    """The structured information extracted from an article about catch and source of an incident."""
+class VesselData(BaseModel):
+    """Vessel identification, ownership, and tracking information."""
 
     verified: bool = Field(
         default=False,
-        description="Whether the Catch/Source Section has been verified by a human, leave false",
+        description="Whether the vessel information has been verified by a human, leave false",
     )
 
-    # Who
+    # Vessel Identity
     vesselName: str | None = Field(
         default=None,
         description="The verbal moniker used to visually identify a fishing vessel and register it in official databases.",
@@ -174,11 +174,12 @@ class CatchSourceData(BaseModel):
     internationalRadioCallSign: str | None = Field(
         default=None, description="Call Sign of the vessel involved, if available"
     )
-
     rmfoVesselNumber: str | None = Field(
         default=None,
         description="Regional Fisheries Management Organization (RFMO) vessel number, if available",
     )
+
+    # Vessel Tracking
     satelitteVesselTrackingAuthority: str | None = Field(
         default=None,
         description="Authority responsible for satellite tracking of the vessel, if available",
@@ -186,6 +187,12 @@ class CatchSourceData(BaseModel):
     publicVesselRegistryLink: str | None = Field(
         default=None, description="Link to the public vessel registry, if available"
     )
+    AisVmsCoverageRate: str | None = Field(
+        default=None,
+        description="The percentage or rate of time the vessel was covered by AIS/VMS tracking, if available",
+    )
+
+    # Vessel Ownership
     vesselCaptain: str | None = Field(
         default=None, description="Name of the vessel captain, if available"
     )
@@ -196,6 +203,33 @@ class CatchSourceData(BaseModel):
         default=None,
         description="The name, nationality, and ID numbers of the individual person(s), or the entity/company details, that ultimately benefit from or control the vessel or its operations, if available",
     )
+
+
+class CrewLaborData(BaseModel):
+    """Crew composition, recruitment, and labor welfare information."""
+
+    verified: bool = Field(
+        default=False,
+        description="Whether the crew/labor information has been verified by a human, leave false",
+    )
+
+    # Crew Composition
+    crewList: List[CrewMember] | None = Field(
+        default=None,
+        description="List of crew members involved in the incident, if available",
+    )
+    genderOfWorkers: str | None = Field(
+        default=None, description="gender make up of crew involved, if available"
+    )
+    migrantWorkers: bool | None = Field(
+        default=None,
+        description="Whether migrant workers were involved in the incident, if available",
+    )
+    migrantWorkersDetails: str | None = Field(
+        default=None, description="% of crew migrant workers make up, if available"
+    )
+
+    # Recruitment
     recruitmentAgency: bool | None = Field(
         default=None,
         description="Name of the recruitment agency for the crew, if available",
@@ -208,96 +242,8 @@ class CatchSourceData(BaseModel):
         default=None,
         description="Name of trade union or workers' organization, if available",
     )
-    migrantWorkers: bool | None = Field(
-        default=None,
-        description="Whether migrant workers were involved in the incident, if available",
-    )
-    migrantWorkersDetails: str | None = Field(
-        default=None, description="% of crew migrant workers make up, if available"
-    )
 
-    genderOfWorkers: str | None = Field(
-        default=None, description="gender make up of crew involved, if available"
-    )
-    crewList: List[CrewMember] | None = Field(
-        default=None,
-        description="List of crew members involved in the incident, if available",
-    )
-    fisheryImporvementProject: str | None = Field(
-        default=None,
-        description="The publicly-listed name of the Fishery Improvement Project (FIP) relevant to the harvest event, if available",
-    )
-    # When
-    catchDate: str | None = Field(
-        default=None,
-        description="The calendar date(s) when the seafood capture occurred during the vessel's voyage, if available",
-    )
-    vesselTripDates: str | None = Field(
-        default=None,
-        description="The calendar start and end dates of the vessel's voyage, from when the hold was last empty until the seafood is discharged, if available",
-    )
-    timeAtSea: str | None = Field(
-        default=None, description="Time spent at sea during the incident, if available"
-    )
-    # Where
-    catchArea: str | None = Field(
-        default=None,
-        description="The geographic location of harvest, specified by the FAO Major Fishing Area code, and identifying the jurisdiction as either a national Exclusive Economic Zone (including the name of the coastal country) or the High Seas, if available",
-    )
-    authoristionToFish: str | None = Field(
-        default=None,
-        description="Unique number associated with a regulatory document, from the relevant authority, granting permission for wild-capture of seafood by a fisher or fishing vessel, if available",
-    )
-    validLicense: bool | None = Field(
-        default=None,
-        description="Whether the vessel had a valid fishing license, if available",
-    )
-    licensedDateRange: str | None = Field(
-        default=None,
-        description="The period of time during which the fishing license is valid., if available",
-    )
-    licensedFishingArea: str | None = Field(
-        default=None,
-        description="The geographic area(s) covered by the license (e.g., a specific area, the flag state's entire EEZ, and/or the high seas), if available",
-    )
-    coastalZoneEntryAndExit: str | None = Field(
-        default=None,
-        description="The entry and exit points for a coastal zone, typically specified in the fishing license, if available",
-    )
-    availabilityOfCatchCoordinates: str | None = Field(
-        default=None,
-        description="The GPS coordinates for the catch location, if available",
-    )
-    AisVmsCoverageRate: str | None = Field(
-        default=None,
-        description="The percentage or rate of time the vessel was covered by AIS/VMS tracking, if available",
-    )
-
-    # How
-    fishingMethod: str | None = Field(
-        default=None,
-        description="The specific equipment used to extract or capture seafood from the water, if available",
-    )
-    productionMethod: str | None = Field(
-        default=None,
-        description="The categorization of the general harvest method on the spectrum ranging from wild-capture to captive-culture, if available",
-    )
-    harvestCertification: str | None = Field(
-        default=None,
-        description="The name of the harvest standards body and the unique identifier associated with the certified entity for the seafood, if available",
-    )
-    partyToUNFSA: bool | None = Field(
-        default=None,
-        description="Whether the vessel is a party to the United Nations Fish Stocks Agreement (UNFSA), if available",
-    )
-    cardedUnderEUIUURegulation: bool | None = Field(
-        default=None,
-        description="Whether the vessel is carded under the EU IUU Regulation, if available",
-    )
-    inNOAABinannualReport: bool | None = Field(
-        default=None,
-        description="Whether the vessel is in the NOAA biannual report, if available",
-    )
+    # Labor Welfare
     hasHumanWelfarePolicy: bool | None = Field(
         default=None,
         description="Whether the vessel there is human welfare, labor, or anti-slavery policy in place on a vessel/trip, if available",
@@ -314,6 +260,8 @@ class CatchSourceData(BaseModel):
         default=None,
         description="Details on the grievance mechanism in place, if available",
     )
+
+    # Inspections and Safety
     safetyInspection: bool | None = Field(
         default=None,
         description="Whether a safety inspection was conducted, if available",
@@ -334,6 +282,8 @@ class CatchSourceData(BaseModel):
         default=None,
         description="Details from Health and safety records on occurrence of accidents, illnesses, or fatalities, if available",
     )
+
+    # Work Conditions
     workContracts: bool | None = Field(
         default=None, description="Whether work contracts were provided, if available"
     )
@@ -343,6 +293,101 @@ class CatchSourceData(BaseModel):
     )
     hasWifi: bool | None = Field(
         default=None, description="Whether the vessel has Wi-Fi access, if available"
+    )
+
+
+class CatchData(BaseModel):
+    """Information about when, where, and how fishing occurred."""
+
+    verified: bool = Field(
+        default=False,
+        description="Whether the catch information has been verified by a human, leave false",
+    )
+
+    # When
+    catchDate: str | None = Field(
+        default=None,
+        description="The calendar date(s) when the seafood capture occurred during the vessel's voyage, if available",
+    )
+    vesselTripDates: str | None = Field(
+        default=None,
+        description="The calendar start and end dates of the vessel's voyage, from when the hold was last empty until the seafood is discharged, if available",
+    )
+    timeAtSea: str | None = Field(
+        default=None, description="Time spent at sea during the incident, if available"
+    )
+
+    # Where
+    catchArea: str | None = Field(
+        default=None,
+        description="The geographic location of harvest, specified by the FAO Major Fishing Area code, and identifying the jurisdiction as either a national Exclusive Economic Zone (including the name of the coastal country) or the High Seas, if available",
+    )
+    coastalZoneEntryAndExit: str | None = Field(
+        default=None,
+        description="The entry and exit points for a coastal zone, typically specified in the fishing license, if available",
+    )
+    availabilityOfCatchCoordinates: str | None = Field(
+        default=None,
+        description="The GPS coordinates for the catch location, if available",
+    )
+
+    # How
+    fishingMethod: str | None = Field(
+        default=None,
+        description="The specific equipment used to extract or capture seafood from the water, if available",
+    )
+    productionMethod: str | None = Field(
+        default=None,
+        description="The categorization of the general harvest method on the spectrum ranging from wild-capture to captive-culture, if available",
+    )
+    harvestCertification: str | None = Field(
+        default=None,
+        description="The name of the harvest standards body and the unique identifier associated with the certified entity for the seafood, if available",
+    )
+    fisheryImporvementProject: str | None = Field(
+        default=None,
+        description="The publicly-listed name of the Fishery Improvement Project (FIP) relevant to the harvest event, if available",
+    )
+
+
+class ComplianceData(BaseModel):
+    """Licensing, authorization, and regulatory compliance information."""
+
+    verified: bool = Field(
+        default=False,
+        description="Whether the compliance information has been verified by a human, leave false",
+    )
+
+    # Licensing
+    authoristionToFish: str | None = Field(
+        default=None,
+        description="Unique number associated with a regulatory document, from the relevant authority, granting permission for wild-capture of seafood by a fisher or fishing vessel, if available",
+    )
+    validLicense: bool | None = Field(
+        default=None,
+        description="Whether the vessel had a valid fishing license, if available",
+    )
+    licensedDateRange: str | None = Field(
+        default=None,
+        description="The period of time during which the fishing license is valid., if available",
+    )
+    licensedFishingArea: str | None = Field(
+        default=None,
+        description="The geographic area(s) covered by the license (e.g., a specific area, the flag state's entire EEZ, and/or the high seas), if available",
+    )
+
+    # Regulatory Status
+    partyToUNFSA: bool | None = Field(
+        default=None,
+        description="Whether the vessel is a party to the United Nations Fish Stocks Agreement (UNFSA), if available",
+    )
+    cardedUnderEUIUURegulation: bool | None = Field(
+        default=None,
+        description="Whether the vessel is carded under the EU IUU Regulation, if available",
+    )
+    inNOAABinannualReport: bool | None = Field(
+        default=None,
+        description="Whether the vessel is in the NOAA biannual report, if available",
     )
 
 
@@ -592,9 +637,21 @@ class DistributionData(BaseModel):
 class ExtractedIncidentData(BaseModel):
     """Model to represent the structured information extracted from an article about an IUU incident."""
 
-    catchSourceInformation: CatchSourceData | None = Field(
+    vesselInformation: VesselData | None = Field(
         default=None,
-        description="Structured information about the  catch involved in the incident.",
+        description="Vessel identification, ownership, and tracking information.",
+    )
+    crewLaborInformation: CrewLaborData | None = Field(
+        default=None,
+        description="Crew composition, recruitment, and labor welfare information.",
+    )
+    catchInformation: CatchData | None = Field(
+        default=None,
+        description="Information about when, where, and how fishing occurred.",
+    )
+    complianceInformation: ComplianceData | None = Field(
+        default=None,
+        description="Licensing, authorization, and regulatory compliance information.",
     )
     aquacultureInformation: AquacultureData | None = Field(
         default=None,

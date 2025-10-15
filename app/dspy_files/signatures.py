@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List
 import dspy
+from pydantic import BaseModel, Field
 from app.models.incidents import (
     ExtractedIncidentData,
     IncidentClassification,
@@ -70,3 +71,63 @@ class CleanArticleContent(dspy.Signature):
     sourceExtract: SourceExtraction = dspy.OutputField(
         desc="Source object with cleaned article text"
     )
+
+
+# Information presence detection
+class InformationPresence(BaseModel):
+    """Flags indicating which types of information are present in the article."""
+
+    has_vessel_info: bool = Field(
+        default=False,
+        description="Does article mention vessel details (name, flag, identifiers, ownership)?",
+    )
+    has_crew_labor_info: bool = Field(
+        default=False,
+        description="Does article mention crew members, recruitment, labor conditions, or welfare policies?",
+    )
+    has_catch_info: bool = Field(
+        default=False,
+        description="Does article specify when/where/how fishing occurred (dates, locations, methods)?",
+    )
+    has_compliance_info: bool = Field(
+        default=False,
+        description="Does article mention licenses, permits, or regulatory compliance status?",
+    )
+    has_species_info: bool = Field(
+        default=False,
+        description="Does article mention specific fish species or catch details?",
+    )
+    has_event_details: bool = Field(
+        default=False,
+        description="Does article describe an enforcement event (seizure, arrest, fine, investigation)?",
+    )
+    has_transshipment: bool = Field(
+        default=False,
+        description="Does article mention transshipment or transfer of catch between vessels?",
+    )
+    has_aquaculture: bool = Field(
+        default=False,
+        description="Does article involve fish farms or aquaculture operations?",
+    )
+    has_trade_distribution: bool = Field(
+        default=False,
+        description="Does article mention seafood trade, import/export, or distribution chains?",
+    )
+    has_iuu_classification: bool = Field(
+        default=False,
+        description="Does article clearly describe illegal, unreported, or unregulated fishing activities?",
+    )
+
+
+class InformationPresenceSignature(dspy.Signature):
+    """Identifies which categories of information are present in an article about IUU fishing."""
+
+    text: str = dspy.InputField(desc="Article text to analyze for information presence")
+    presence: InformationPresence = dspy.OutputField(
+        desc="Flags indicating which types of information are present in the article"
+    )
+
+
+class ClassifyIncident(dspy.Signature):
+    text: str = dspy.InputField(desc="Article text to classify")
+    classication: IncidentClassification = dspy.OutputField()

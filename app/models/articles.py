@@ -89,6 +89,12 @@ class Source(AuditedDocument):
         default="", description="Hash of article text for deduplication"
     )
 
+    # Information presence flags (for debugging and optimization)
+    information_presence: dict | None = Field(
+        default=None,
+        description="Flags indicating which types of information are present in the article",
+    )
+
     author: str | None = Field(default=None, description="Author or organization")
     publisher: str | None = Field(
         default=None, description="Publisher of the article if available"
