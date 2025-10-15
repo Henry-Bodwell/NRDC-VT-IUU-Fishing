@@ -21,7 +21,7 @@ from pydantic import BaseModel, ValidationError, model_validator
 from app.audit.context import AuditContext
 from app.audit.models import AuditLog
 from app.models.incidents import IncidentReport, IndustryOverview
-from app.models.articles import Source
+from app.models.sources import Source
 from app.models.task import TaskStatus
 from app.service.incident_service import IncidentService
 from pymongo.errors import DuplicateKeyError
@@ -264,6 +264,7 @@ async def _check_for_existing_text(text: str) -> Source | None:
     """
     try:
         import hashlib
+
         article_hash = hashlib.sha256(text.encode()).hexdigest()
         existing = await Source.find_one(Source.article_hash == article_hash)
         return existing
@@ -439,11 +440,10 @@ async def get_source(source_id: str):
 @router.delete(
     "/sources/{source_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_class=Response,
 )
 async def delete_source(source_id: str):
     try:
-        was_deleted = await SourceService.delete(source_id)
+        was_deleted = await SourceService.delete_source(source_id)
         if was_deleted:
             return
         else:

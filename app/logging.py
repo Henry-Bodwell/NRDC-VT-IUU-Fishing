@@ -21,5 +21,9 @@ def setup_logging():
         ],
     )
 
+    # Suppress LiteLLM logs
+    logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
 
 setup_logging()

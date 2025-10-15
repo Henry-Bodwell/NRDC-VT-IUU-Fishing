@@ -139,3 +139,45 @@ class Source(AuditedDocument):
         if self.article_text:
             self.article_hash = hashlib.sha256(self.article_text.encode()).hexdigest()
         # self.updated_at = datetime.utcnow()
+
+    async def delete(self):
+        """Override delete method to prevent orphan incidents and clean up relationships"""
+        try:
+            # Import here to avoid circular imports
+            from app.models.incidents import IncidentReport
+
+            # Fetch all incidents linked to this source
+            if self.incidents:
+                for incident_link in self.incidents:
+                    # Fetch the linked incident if it's a Link object
+                    incident = await incident_link.fetch() if hasattr(incident_link, 'fetch') else incident_link
+
+                    if incident:
+                        # Fetch full incident with all sources to check count
+                        full_incident = await IncidentReport.get(incident.id, fetch_links=True)
+                        if full_incident:
+                            # Count how many sources this incident has
+                            source_count = len(full_incident.sources) if full_incident.sources else 0
+
+                            # If this is the only source, delete the incident
+                            if source_count <= 1:
+                                await full_incident.delete()
+                            else:
+                                # Remove this source from the incident's source list
+                                await full_incident.remove_source(self)
+
+            # Clean up overview relationship if it exists
+            if self.overview:
+                overview = await self.overview.fetch()
+                if overview:
+                    overview.source = None
+                    await overview.save()
+
+            # Clear relationships before deleting
+            self.incidents = []
+            self.overview = None
+
+            # Call parent delete method
+            await super().delete()
+        except Exception as e:
+            raise Exception(f"Failed to delete source: {e}")
