@@ -1,10 +1,12 @@
 from webScraper.scrapers.sites.oceana_scraper import scrape_oceana
+from webScraper.scrapers.generic_scraper import GenericScraper
 
 import asyncio
 
 
 async def main():
-    results = await scrape_oceana("illegal fishing", max_results=2, headless=False)
+    scraper = GenericScraper("doj_gov", headless=False)
+    results = await scraper.scrape("illegal fishing", max_results=15)
     print(results)
 
 
