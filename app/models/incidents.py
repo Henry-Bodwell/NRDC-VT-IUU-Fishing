@@ -9,7 +9,7 @@ from datetime import datetime
 from app.audit.base import AuditedDocument
 
 if TYPE_CHECKING:
-    from app.models.articles import Source
+    from app.models.sources import Source
 
 
 subtype_behavior = """
@@ -31,7 +31,7 @@ subtype_behavior = """
 
 # Pydantic models
 class Species(BaseModel):
-    """Model to represent a single species involved in an incident."""
+    """Model to represent a single species involved in an incident, if there is a product there should be a species."""
 
     verified: bool = Field(
         default=False,
@@ -41,20 +41,17 @@ class Species(BaseModel):
         default=None,
         description="The common name of the species (e.g., 'Bluefin Tuna').",
     )
+    aggregateCommonName: str | None = Field(
+        default=None,
+        description="Common name aggregate for the species, for example: speciesCommonName:aggregateCommonName::hammerhead shark:shark, or north florida hoppers:shrimp",
+    )
     scientificName: str | None = Field(
         default=None,
         description="The scientific name of the species (e.g., 'Thunnus thynnus').",
     )
-    aggregateCommonName: str | None = Field(
-        default=None,
-        description="speciesCommonName:aggregateCommonName::hammerhead shark:shark, or north florida hoppers:shrimp",
-    )
+
     ASFISCode: str | None = Field(
         default=None, description="ASFIS 3-Aplha code of the species, if available."
-    )
-    productType: str | None = Field(
-        default=None,
-        description="Form of the product (e.g., 'Fins', 'Fillets', 'Whole'), if available.",
     )
     liveWeight: str | None = Field(
         default=None,
@@ -138,8 +135,8 @@ class EventData(BaseModel):
     eventDate: str | None = Field(
         default=None, description="Date of the primary event (e.g., '2023-10-01')."
     )
-    eventLocation: str = Field(
-        ...,
+    eventLocation: str | None = Field(
+        default=None,
         description="Where did the primary event occur? (e.g., 'Pacific Ocean', 'Port of XYZ').",
     )
     resolution: str = Field(
@@ -578,11 +575,13 @@ class ExtractedIncidentData(BaseModel):
         description="Structured information about the primary event of the incident, if available.",
     )
 
-    speciesInvolved: List[Species] = Field(
-        description="List of species involved in the incident"
+    speciesInvolved: List[Species] | None = Field(
+        default=None,
+        description="List of ALL species involved in the incident. This is REQUIRED - always extract species when fish, seafood, marine animals, or aquatic products are mentioned. Include common name and/or scientific name for each species.",
     )
-    productsInvolved: List[ProductData] = Field(
-        description="List of products involved in the incident"
+    productsInvolved: List[ProductData] | None = Field(
+        default=None,
+        description="List of products involved in the incident. If products are mentioned, corresponding species should be included in speciesInvolved.",
     )
 
     chainOfCustody: str | None = Field(
@@ -592,7 +591,9 @@ class ExtractedIncidentData(BaseModel):
         default=None, description="Sanitary license ID, if available"
     )
 
-    description: str = Field(description="Short summary of the incident")
+    description: str | None = Field(
+        default=None, description="Short summary of the incident"
+    )
 
 
 class IncidentClassification(BaseModel):
@@ -744,13 +745,17 @@ class IncidentReport(AuditedDocument):
         """Override delete method to handle source removal"""
         try:
             for source in self.sources:
-                self.remove_source(source)
+                await self.remove_source(source)
 
             self.sources = []
             self.primary_source = None
             await super().delete()
         except Exception as e:
             raise Exception(f"Failed to delete incident report: {e}")
+
+    @before_event([Update, Replace])
+    async def set_modified(self):
+        self.status = "modified"
 
     @classmethod
     async def find_potential_duplicates(

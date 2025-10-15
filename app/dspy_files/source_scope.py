@@ -1,5 +1,5 @@
 import dspy
-from app.models.articles import Source
+from app.models.sources import Source
 from app.dspy_files.signatures import ArticleClassificationSignature
 import logging
 

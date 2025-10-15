@@ -1,5 +1,5 @@
 from typing import Type, TypeVar, Union
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 from fastapi import HTTPException, status
 import logging
 
@@ -56,24 +56,38 @@ class Service:
     ) -> T:
         logger.info(f"Updating {model_name} {model_id} with data: {update_data}")
 
-        # Get the instance
-        instance = await model_cls.get(model_id)
+        # Get the instance with links
+        instance = await model_cls.get(model_id, fetch_links=True)
         if not instance:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"{model_name.capitalize()} with ID {model_id} not found.",
             )
 
-        existing_data = instance.model_dump()
-
-        merged_data = Service.deep_merge(existing_data, update_data)
-
-        updates = _filter_valid_fields(model_cls, merged_data)
+        # Filter to only valid fields
+        updates = _filter_valid_fields(model_cls, update_data)
         if not updates:
             logger.warning(f"No valid fields to update for {model_name} {model_id}")
 
+        # Apply updates by recursively merging nested dicts
         for field, value in updates.items():
-            setattr(instance, field, value)
+            current_value = getattr(instance, field, None)
+
+            # Convert Pydantic models to dicts for merging
+            if isinstance(current_value, BaseModel):
+                current_dict = current_value.model_dump()
+            elif isinstance(current_value, dict):
+                current_dict = current_value
+            else:
+                current_dict = None
+
+            # If both current and new values are dicts, deep merge them
+            if current_dict is not None and isinstance(value, dict):
+                merged_value = Service.deep_merge(current_dict, value)
+                setattr(instance, field, merged_value)
+            else:
+                # Otherwise, directly set the value
+                setattr(instance, field, value)
 
         try:
             await instance.replace()

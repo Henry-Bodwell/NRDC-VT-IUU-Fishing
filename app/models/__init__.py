@@ -1,4 +1,4 @@
-from app.models.articles import Source
+from app.models.sources import Source
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.dspy_files.news_analysis import PipelineOutput
 
