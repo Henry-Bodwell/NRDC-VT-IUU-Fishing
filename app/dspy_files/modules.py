@@ -92,21 +92,26 @@ class IncidentAnalysisModule(dspy.Module):
                 split_result = await self.multiIncidentText.acall(
                     text=source.article_text
                 )
-                separated_texts = split_result.seperated_incident_text
-                source.seperated_incident_text = separated_texts
+                incident_passages = split_result.incident_passages
+                source.incident_passages = incident_passages
 
                 return_object = []
-                for (
-                    incident_text
-                ) in source.seperated_incident_text.seperated_incident_text:
-                    # Detect presence for each incident
+                for passage in incident_passages:
+                    # Detect presence for each incident's target passage
                     incident_presence_output = await self.presenceDetector.acall(
-                        text=incident_text
+                        text=passage.target_passage
                     )
                     incident_presence = incident_presence_output.presence
 
+                    # Create combined text with clear instructions
+                    # This gives the LLM both the specific incident passage and full context
+                    combined_text = self._create_multi_incident_extraction_text(
+                        passage.target_passage, passage.full_context
+                    )
+
+                    # Extract from the combined text
                     extracted_data = await self._extract_conditionally(
-                        incident_text, incident_presence
+                        combined_text, incident_presence
                     )
 
                     sub_out = {
@@ -120,6 +125,30 @@ class IncidentAnalysisModule(dspy.Module):
 
         except Exception as e:
             raise Exception(f"Error during extraction and classification: {str(e)}")
+
+    def _create_multi_incident_extraction_text(
+        self, target_passage: str, full_context: str
+    ) -> str:
+        """
+        Combines target passage and full context with clear extraction instructions.
+
+        This format tells the LLM:
+        1. Focus on extracting information about entities mentioned in the TARGET PASSAGE
+        2. Use FULL CONTEXT only for supporting details (dates, locations, etc.)
+        """
+        return f"""EXTRACTION INSTRUCTIONS:
+        Extract information ONLY about entities (vessels, people, events, species, products) that are mentioned in the TARGET PASSAGE below.
+
+        If supporting details (like dates, locations, regulatory agencies, etc.) are mentioned elsewhere in the FULL CONTEXT, you may use them to enrich the extraction - but ONLY for entities found in the TARGET PASSAGE.
+
+        Do NOT extract information about entities that appear only in the FULL CONTEXT but not in the TARGET PASSAGE.
+
+        ===== TARGET PASSAGE (Extract from THIS incident) =====
+        {target_passage}
+
+        ===== FULL CONTEXT (Use only for supporting details) =====
+        {full_context}
+        """
 
     async def _extract_conditionally(self, text: str, presence) -> dict:
         """

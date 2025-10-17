@@ -20,7 +20,12 @@ from app.models.incidents import (
     LandingData,
     ProductData,
 )
-from app.models.sources import ArticleScopeClassification, Source, SourceExtraction
+from app.models.sources import (
+    ArticleScopeClassification,
+    Source,
+    SourceExtraction,
+    IncidentPassage,
+)
 
 
 class TextToStructuredData(dspy.Signature):
@@ -33,19 +38,6 @@ class TextToStructuredData(dspy.Signature):
         desc="Structured incident data. ALWAYS extract species information when fish, seafood, or marine animals are mentioned in the article."
     )
     classification: IncidentClassification = dspy.OutputField()
-
-
-class IncidentPassage(BaseModel):
-    """Model representing a single incident's target passage within a multi-incident article."""
-
-    target_passage: str = Field(
-        ...,
-        description="The specific text passage that describes this unique incident (the key details about this particular incident)"
-    )
-    full_context: str = Field(
-        ...,
-        description="The complete article text for reference and context during extraction"
-    )
 
 
 class MultipleIncidentSignature(dspy.Signature):
@@ -236,7 +228,9 @@ class ExtractEventData(dspy.Signature):
 class ExtractTransshipmentData(dspy.Signature):
     """Extract transshipment vessel and transfer operation information from text."""
 
-    text: str = dspy.InputField(desc="Article text containing transshipment information")
+    text: str = dspy.InputField(
+        desc="Article text containing transshipment information"
+    )
     transshipment_data: TransshipmentData = dspy.OutputField(
         desc="Extracted transshipment vessel details, authorization, dates, and locations of transfer operations"
     )
