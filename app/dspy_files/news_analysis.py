@@ -59,6 +59,8 @@ class AnalysisOrchestrator:
     def __init__(self, api_key: str):
         self.extractor = ContentExtractor(api_key=api_key)
         self.pipeline = AnalysisPipeline(api_key=api_key)
+        # Store the LM for use in dspy.context()
+        self.lm = self.pipeline.lm
 
     async def run_full_analysis_from_url(
         self,
@@ -80,7 +82,9 @@ class AnalysisOrchestrator:
             if progress_callback:
                 await progress_callback("content_extraction", 10)
 
-            source = await self.extractor.from_url(url)
+            # Use dspy.context() for async task execution
+            with dspy.context(lm=self.lm):
+                source = await self.extractor.from_url(url)
 
             if progress_callback:
                 await progress_callback("content_extraction", 20)
@@ -189,66 +193,68 @@ class AnalysisOrchestrator:
             f"Running analysis for source (article_hash): {source.article_hash}"
         )
 
-        # Stage 2: Classification (20-40%)
-        if progress_callback:
-            await progress_callback("classification", 30)
+        # Use dspy.context() for async task execution
+        with dspy.context(lm=self.lm):
+            # Stage 2: Classification (20-40%)
+            if progress_callback:
+                await progress_callback("classification", 30)
 
-        try:
-            prediction = await self.pipeline.run(source)
-            if not prediction:
+            try:
+                prediction = await self.pipeline.run(source)
+                if not prediction:
+                    return PipelineOutput(
+                        status=PipelineResult.FAILED_ANALYSIS,
+                        sources=source,
+                        error_message="Analysis Pipeline returned no result",
+                    )
+            except Exception as e:
+                logging.error(f"Analysis failed for {source.id}: {e}")
                 return PipelineOutput(
                     status=PipelineResult.FAILED_ANALYSIS,
-                    sources=source,
-                    error_message="Analysis Pipeline returned no result",
+                    source=source,
+                    error_message=str(e),
                 )
-        except Exception as e:
-            logging.error(f"Analysis failed for {source.id}: {e}")
-            return PipelineOutput(
-                status=PipelineResult.FAILED_ANALYSIS,
-                source=source,
-                error_message=str(e),
-            )
 
-        if progress_callback:
-            await progress_callback("classification", 40)
+            if progress_callback:
+                await progress_callback("classification", 40)
 
-        # Stage 3: Analysis & Formatting (40-80%)
-        if progress_callback:
-            await progress_callback("analysis", 50)
+            # Stage 3: Analysis & Formatting (40-80%)
+            if progress_callback:
+                await progress_callback("analysis", 50)
 
-        try:
-            scope = source.article_scope.articleType
-            if scope == "Unrelated to IUU Fishing":
-                logger.info(f"Article from {source.id} is unrelated to IUU fishing")
+            try:
+                scope = source.article_scope.articleType
+                if scope == "Unrelated to IUU Fishing":
+                    logger.info(f"Article from {source.id} is unrelated to IUU fishing")
+                    return PipelineOutput(
+                        status=PipelineResult.UNRELATED_CONTENT, source=source
+                    )
+                elif scope == "Industry Overview":
+                    return await self._process_industry_overview(
+                        prediction, source, progress_callback
+                    )
+                elif scope == "Multiple Incidents":
+                    return await self._process_multiple_incidents(
+                        prediction, source, progress_callback
+                    )
+                elif scope == "Single Incident":
+                    return await self._process_single_incident(
+                        prediction, source, progress_callback
+                    )
+
+            except Exception as e:
+                error_details = {
+                    "exception_type": type(e).__name__,
+                    "exception_message": str(e),
+                    "traceback": traceback.format_exc(),
+                }
+                logger.error(f"Error processing prediction: {error_details}")
+
                 return PipelineOutput(
-                    status=PipelineResult.UNRELATED_CONTENT, source=source
+                    status=PipelineResult.FAILED_FORMATTING,
+                    source=source,
+                    error_message=f"{type(e).__name__}: {str(e)}",
                 )
-            elif scope == "Industry Overview":
-                return await self._process_industry_overview(
-                    prediction, source, progress_callback
-                )
-            elif scope == "Multiple Incidents":
-                return await self._process_multiple_incidents(
-                    prediction, source, progress_callback
-                )
-            elif scope == "Single Incident":
-                return await self._process_single_incident(
-                    prediction, source, progress_callback
-                )
-
-        except Exception as e:
-            error_details = {
-                "exception_type": type(e).__name__,
-                "exception_message": str(e),
-                "traceback": traceback.format_exc(),
-            }
-            logger.error(f"Error processing prediction: {error_details}")
-
-            return PipelineOutput(
-                status=PipelineResult.FAILED_FORMATTING,
-                source=source,
-                error_message=f"{type(e).__name__}: {str(e)}",
-            )
 
     async def _process_industry_overview(
         self,

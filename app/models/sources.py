@@ -14,6 +14,19 @@ if TYPE_CHECKING:
     from app.models.incidents import IncidentReport
 
 
+class IncidentPassage(BaseModel):
+    """Model representing a single incident's target passage within a multi-incident article."""
+
+    target_passage: str = Field(
+        ...,
+        description="The specific text passage that describes this unique incident (the key details about this particular incident)",
+    )
+    full_context: str = Field(
+        ...,
+        description="The complete article text for reference and context during extraction",
+    )
+
+
 class ArticleData(BaseModel):
     """Pydantic model for validated article data"""
 
@@ -85,6 +98,12 @@ class Source(AuditedDocument):
 
     seperated_incident_text: List[str] = Field(default_factory=list)
 
+    # For multiple incidents: stores the separated passages with full context
+    incident_passages: List["IncidentPassage"] | None = Field(
+        default=None,
+        description="For articles with multiple incidents, contains the target passage for each incident plus full article context",
+    )
+
     article_hash: str = Field(
         default="", description="Hash of article text for deduplication"
     )
@@ -150,14 +169,24 @@ class Source(AuditedDocument):
             if self.incidents:
                 for incident_link in self.incidents:
                     # Fetch the linked incident if it's a Link object
-                    incident = await incident_link.fetch() if hasattr(incident_link, 'fetch') else incident_link
+                    incident = (
+                        await incident_link.fetch()
+                        if hasattr(incident_link, "fetch")
+                        else incident_link
+                    )
 
                     if incident:
                         # Fetch full incident with all sources to check count
-                        full_incident = await IncidentReport.get(incident.id, fetch_links=True)
+                        full_incident = await IncidentReport.get(
+                            incident.id, fetch_links=True
+                        )
                         if full_incident:
                             # Count how many sources this incident has
-                            source_count = len(full_incident.sources) if full_incident.sources else 0
+                            source_count = (
+                                len(full_incident.sources)
+                                if full_incident.sources
+                                else 0
+                            )
 
                             # If this is the only source, delete the incident
                             if source_count <= 1:
