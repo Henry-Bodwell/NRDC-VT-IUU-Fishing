@@ -321,6 +321,10 @@ class EventData(BaseModel):
         default=None,
         description="Where did the primary event occur? (e.g., 'Pacific Ocean', 'Port of XYZ').",
     )
+    eventCountry: str = Field(
+        ...,
+        description="What country was this event? NA if The primary event did not occur in a country",
+    )
     resolution: str = Field(
         ...,
         description="What was the outcome or resolution, if mentioned? (e.g., 'Vessel Detained', 'Crew Fined $10,000', 'Charges Dropped').",
@@ -874,13 +878,11 @@ class ExtractedIncidentData(BaseModel):
         description="Structured information about the primary event of the incident, if available.",
     )
 
-    speciesInvolved: List[Species] | None = Field(
-        default=None,
-        description="List of ALL species involved in the incident. This is REQUIRED - always extract species when fish, seafood, marine animals, or aquatic products are mentioned. Include common name and/or scientific name for each species.",
+    speciesInvolved: List[Species] = Field(
+        description="List of species involved in the incident"
     )
-    productsInvolved: List[ProductData] | None = Field(
-        default=None,
-        description="List of products involved in the incident. If products are mentioned, corresponding species should be included in speciesInvolved.",
+    productsInvolved: List[ProductData] = Field(
+        description="List of products involved in the incident"
     )
 
     chainOfCustody: str | None = Field(
@@ -890,9 +892,7 @@ class ExtractedIncidentData(BaseModel):
         default=None, description="Sanitary license ID, if available"
     )
 
-    description: str | None = Field(
-        default=None, description="Short summary of the incident"
-    )
+    description: str = Field(description="Short summary of the incident")
 
 
 class IncidentClassification(BaseModel):
@@ -917,9 +917,7 @@ class IndustryOverviewExtract(BaseModel):
         ..., description="List of companies mentioned in the overview."
     )
     incidents: List[ExtractedIncidentData] = Field(
-        ...,
-        description="List of incidents mentioned in the overview.",
-        default_factory=list,
+        ..., description="List of incidents mentioned in the overview."
     )
 
     summary: str = Field(description="Summary of the industry overview article.")
@@ -1046,17 +1044,13 @@ class IncidentReport(AuditedDocument):
         """Override delete method to handle source removal"""
         try:
             for source in self.sources:
-                await self.remove_source(source)
+                self.remove_source(source)
 
             self.sources = []
             self.primary_source = None
             await super().delete()
         except Exception as e:
             raise Exception(f"Failed to delete incident report: {e}")
-
-    @before_event([Update, Replace])
-    async def set_modified(self):
-        self.status = "modified"
 
     @classmethod
     async def find_potential_duplicates(
@@ -1065,9 +1059,10 @@ class IncidentReport(AuditedDocument):
         # Could use vessel name, location proximity, date proximity, etc.
         # TODO
         """Find potential duplicate incidents based on similarity"""
-        vessel_name = getattr(incident_data.vesselInformation, "vesselName", None)
+        vessel_name = getattr(incident_data.catchSourceInformation, "vesselName", None)
         if vessel_name:
             return await cls.find(
-                cls.extracted_information.vesselInformation.vesselName == vessel_name
+                cls.extracted_information.catchSourceInformation.vesselName
+                == vessel_name
             ).to_list()
         return []
