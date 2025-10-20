@@ -195,7 +195,9 @@ class ExtractCrewData(dspy.Signature):
 class ExtractLaborStandards(dspy.Signature):
     """Extract labor welfare policies, safety inspections, and working conditions from text."""
 
-    text: str = dspy.InputField(desc="Article text containing labor standards information")
+    text: str = dspy.InputField(
+        desc="Article text containing labor standards information"
+    )
     labor_standards: LaborStandards = dspy.OutputField(
         desc="Extracted labor welfare policies, inspections, work conditions, and safety records"
     )
