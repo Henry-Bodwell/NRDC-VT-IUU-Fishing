@@ -1,7 +1,8 @@
 import os
 import asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from app.logging import setup_logging
 from app.database import init_db
@@ -63,6 +64,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler to ensure all unhandled exceptions return JSON responses.
+    """
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": "internal_server_error",
+            "message": "An unexpected error occurred while processing the request.",
+            "details": str(exc),
+        },
+    )
 
 
 @app.get("/", tags=["Root"])

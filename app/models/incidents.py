@@ -37,9 +37,7 @@ UNREPORTED_CATCH_SUBTYPES = Literal[
     "Misreported gear",
 ]
 
-UNREPORTED_CATCH_ASSOCIATED_SUBTYPES = Literal[
-    "Unreported transshipment activities",
-]
+UNREPORTED_CATCH_ASSOCIATED_SUBTYPES = Literal["Unreported transshipment activities",]
 
 UNREGULATED_ACTORS_SUBTYPES = Literal[
     "Stateless vessel",
@@ -261,7 +259,9 @@ class SanctionsClassification(BaseModel):
 class IllegalAquacultureClassification(BaseModel):
     """Violations in aquaculture/fish farming operations"""
 
-    IUUType: Literal["Illegal Aquacultural Practices"] = "Illegal Aquacultural Practices"
+    IUUType: Literal["Illegal Aquacultural Practices"] = (
+        "Illegal Aquacultural Practices"
+    )
     IUUSubType: List[AQUACULTURE_SUBTYPES] | None = Field(
         default=None,
         description='ALL violations found. Options: "Unapproved/non-native species", "Illegal sourcing", "Unlicensed/Unauthorized farm", "Stolen products"',
@@ -321,6 +321,10 @@ class EventData(BaseModel):
         default=None,
         description="Where did the primary event occur? (e.g., 'Pacific Ocean', 'Port of XYZ').",
     )
+    eventCountry: str = Field(
+        ...,
+        description="What country was this event? NA if The primary event did not occur in a country",
+    )
     resolution: str = Field(
         ...,
         description="What was the outcome or resolution, if mentioned? (e.g., 'Vessel Detained', 'Crew Fined $10,000', 'Charges Dropped').",
@@ -367,10 +371,6 @@ class VesselData(BaseModel):
     publicVesselRegistryLink: str | None = Field(
         default=None, description="Link to the public vessel registry, if available"
     )
-    AisVmsCoverageRate: str | None = Field(
-        default=None,
-        description="The percentage or rate of time the vessel was covered by AIS/VMS tracking, if available",
-    )
 
     # Vessel Ownership
     vesselCaptain: str | None = Field(
@@ -385,7 +385,7 @@ class VesselData(BaseModel):
     )
 
 
-class CrewLaborData(BaseModel):
+class CrewData(BaseModel):
     """Crew composition, recruitment, and labor welfare information."""
 
     verified: bool = Field(
@@ -410,7 +410,7 @@ class CrewLaborData(BaseModel):
     )
 
     # Recruitment
-    recruitmentAgency: bool | None = Field(
+    recruitmentAgency: str | None = Field(
         default=None,
         description="Name of the recruitment agency for the crew, if available",
     )
@@ -423,6 +423,8 @@ class CrewLaborData(BaseModel):
         description="Name of trade union or workers' organization, if available",
     )
 
+
+class LaborStandards(BaseModel):
     # Labor Welfare
     hasHumanWelfarePolicy: bool | None = Field(
         default=None,
@@ -441,7 +443,6 @@ class CrewLaborData(BaseModel):
         description="Details on the grievance mechanism in place, if available",
     )
 
-    # Inspections and Safety
     safetyInspection: bool | None = Field(
         default=None,
         description="Whether a safety inspection was conducted, if available",
@@ -450,6 +451,7 @@ class CrewLaborData(BaseModel):
         default=None,
         description="Findings of the safety inspection, if available",
     )
+
     thirdPartyInspection: bool | None = Field(
         default=None,
         description="Whether independent third-party social inspections were performed, if available",
@@ -463,7 +465,6 @@ class CrewLaborData(BaseModel):
         description="Details from Health and safety records on occurrence of accidents, illnesses, or fatalities, if available",
     )
 
-    # Work Conditions
     workContracts: bool | None = Field(
         default=None, description="Whether work contracts were provided, if available"
     )
@@ -502,31 +503,26 @@ class CatchData(BaseModel):
         default=None,
         description="The geographic location of harvest, specified by the FAO Major Fishing Area code, and identifying the jurisdiction as either a national Exclusive Economic Zone (including the name of the coastal country) or the High Seas, if available",
     )
+    catchCountry: str | None = Field(
+        default=None, description="Country where the catch was made, if available"
+    )
     coastalZoneEntryAndExit: str | None = Field(
         default=None,
         description="The entry and exit points for a coastal zone, typically specified in the fishing license, if available",
     )
-    availabilityOfCatchCoordinates: str | None = Field(
+    catchCoordinates: str | None = Field(
         default=None,
         description="The GPS coordinates for the catch location, if available",
+    )
+    AisVmsCoverageRate: str | None = Field(
+        default=None,
+        description="The percentage or rate of time the vessel was covered by AIS/VMS tracking, if available",
     )
 
     # How
     fishingMethod: str | None = Field(
         default=None,
         description="The specific equipment used to extract or capture seafood from the water, if available",
-    )
-    productionMethod: str | None = Field(
-        default=None,
-        description="The categorization of the general harvest method on the spectrum ranging from wild-capture to captive-culture, if available",
-    )
-    harvestCertification: str | None = Field(
-        default=None,
-        description="The name of the harvest standards body and the unique identifier associated with the certified entity for the seafood, if available",
-    )
-    fisheryImporvementProject: str | None = Field(
-        default=None,
-        description="The publicly-listed name of the Fishery Improvement Project (FIP) relevant to the harvest event, if available",
     )
 
 
@@ -539,6 +535,7 @@ class ComplianceData(BaseModel):
     )
 
     # Licensing
+
     authoristionToFish: str | None = Field(
         default=None,
         description="Unique number associated with a regulatory document, from the relevant authority, granting permission for wild-capture of seafood by a fisher or fishing vessel, if available",
@@ -555,11 +552,23 @@ class ComplianceData(BaseModel):
         default=None,
         description="The geographic area(s) covered by the license (e.g., a specific area, the flag state's entire EEZ, and/or the high seas), if available",
     )
+    harvestCertification: str | None = Field(
+        default=None,
+        description="The name of the harvest standards body and the unique identifier associated with the certified entity for the seafood, if available",
+    )
+    fisheryImporvementProject: str | None = Field(
+        default=None,
+        description="The publicly-listed name of the Fishery Improvement Project (FIP) relevant to the harvest event, if available",
+    )
 
     # Regulatory Status
     partyToUNFSA: bool | None = Field(
         default=None,
         description="Whether the vessel is a party to the United Nations Fish Stocks Agreement (UNFSA), if available",
+    )
+    partyToPMSA: bool | None = Field(
+        default=None,
+        description="Whether the vessel is a party to the Port State Measures Agreement (PMSA), if available",
     )
     cardedUnderEUIUURegulation: bool | None = Field(
         default=None,
@@ -660,6 +669,9 @@ class TransshipmentData(BaseModel):
     locationOfTransshipment: str | None = Field(
         default=None, description="Location of transshipment, if available"
     )
+    countryOfTransshipment: str | None = Field(
+        default=None, description="Country of transshipment, if available"
+    )
 
 
 class AggregationData(BaseModel):
@@ -707,10 +719,6 @@ class LandingData(BaseModel):
         default=None,
         description="The location where the seafood was first discharged to land, if available",
     )
-    partyToPMSA: bool | None = Field(
-        default=None,
-        description="Whether the vessel is a party to the Port State Measures Agreement (PMSA), if available",
-    )
 
 
 class ProductData(BaseModel):
@@ -724,6 +732,10 @@ class ProductData(BaseModel):
     productType: str | None = Field(
         default=None,
         description="A commercial short-hand reference indicating the degree to which the seafood has been transformed from its original living form, if available",
+    )
+    productionMethod: str | None = Field(
+        default=None,
+        description="The categorization of the general harvest method on the spectrum ranging from wild-capture to captive-culture, if available",
     )
     species: List[Species] | None = Field(
         default=None,
@@ -821,9 +833,13 @@ class ExtractedIncidentData(BaseModel):
         default=None,
         description="Vessel identification, ownership, and tracking information.",
     )
-    crewLaborInformation: CrewLaborData | None = Field(
+    crewInformation: CrewData | None = Field(
         default=None,
-        description="Crew composition, recruitment, and labor welfare information.",
+        description="Crew composition and recruitment information.",
+    )
+    laborStandards: LaborStandards | None = Field(
+        default=None,
+        description="Labor welfare policies, safety inspections, and working conditions.",
     )
     catchInformation: CatchData | None = Field(
         default=None,
@@ -862,13 +878,11 @@ class ExtractedIncidentData(BaseModel):
         description="Structured information about the primary event of the incident, if available.",
     )
 
-    speciesInvolved: List[Species] | None = Field(
-        default=None,
-        description="List of ALL species involved in the incident. This is REQUIRED - always extract species when fish, seafood, marine animals, or aquatic products are mentioned. Include common name and/or scientific name for each species.",
+    speciesInvolved: List[Species] = Field(
+        description="List of species involved in the incident"
     )
-    productsInvolved: List[ProductData] | None = Field(
-        default=None,
-        description="List of products involved in the incident. If products are mentioned, corresponding species should be included in speciesInvolved.",
+    productsInvolved: List[ProductData] = Field(
+        description="List of products involved in the incident"
     )
 
     chainOfCustody: str | None = Field(
@@ -878,9 +892,7 @@ class ExtractedIncidentData(BaseModel):
         default=None, description="Sanitary license ID, if available"
     )
 
-    description: str | None = Field(
-        default=None, description="Short summary of the incident"
-    )
+    description: str = Field(description="Short summary of the incident")
 
 
 class IncidentClassification(BaseModel):
@@ -905,9 +917,7 @@ class IndustryOverviewExtract(BaseModel):
         ..., description="List of companies mentioned in the overview."
     )
     incidents: List[ExtractedIncidentData] = Field(
-        ...,
-        description="List of incidents mentioned in the overview.",
-        default_factory=list,
+        ..., description="List of incidents mentioned in the overview."
     )
 
     summary: str = Field(description="Summary of the industry overview article.")
@@ -1034,17 +1044,13 @@ class IncidentReport(AuditedDocument):
         """Override delete method to handle source removal"""
         try:
             for source in self.sources:
-                await self.remove_source(source)
+                self.remove_source(source)
 
             self.sources = []
             self.primary_source = None
             await super().delete()
         except Exception as e:
             raise Exception(f"Failed to delete incident report: {e}")
-
-    @before_event([Update, Replace])
-    async def set_modified(self):
-        self.status = "modified"
 
     @classmethod
     async def find_potential_duplicates(
@@ -1053,9 +1059,10 @@ class IncidentReport(AuditedDocument):
         # Could use vessel name, location proximity, date proximity, etc.
         # TODO
         """Find potential duplicate incidents based on similarity"""
-        vessel_name = getattr(incident_data.vesselInformation, "vesselName", None)
+        vessel_name = getattr(incident_data.catchSourceInformation, "vesselName", None)
         if vessel_name:
             return await cls.find(
-                cls.extracted_information.vesselInformation.vesselName == vessel_name
+                cls.extracted_information.catchSourceInformation.vesselName
+                == vessel_name
             ).to_list()
         return []

@@ -7,7 +7,8 @@ from app.models.incidents import (
     IncidentClassification,
     IndustryOverviewExtract,
     VesselData,
-    CrewLaborData,
+    CrewData,
+    LaborStandards,
     CatchData,
     ComplianceData,
     Species,
@@ -111,9 +112,13 @@ class InformationPresence(BaseModel):
         default=False,
         description="Does article mention vessel details (name, flag, identifiers, ownership)?",
     )
-    has_crew_labor_info: bool = Field(
+    has_crew_info: bool = Field(
         default=False,
-        description="Does article mention crew members, recruitment, labor conditions, or welfare policies?",
+        description="Does article mention crew members, crew composition, recruitment channels, or migrant workers?",
+    )
+    has_labor_standards: bool = Field(
+        default=False,
+        description="Does article mention labor conditions, welfare policies, safety inspections, work contracts, or working conditions?",
     )
     has_catch_info: bool = Field(
         default=False,
@@ -178,12 +183,23 @@ class ExtractVesselData(dspy.Signature):
     )
 
 
-class ExtractCrewLaborData(dspy.Signature):
-    """Extract crew composition, recruitment, labor welfare, and working conditions information from text."""
+class ExtractCrewData(dspy.Signature):
+    """Extract crew composition and recruitment information from text."""
 
-    text: str = dspy.InputField(desc="Article text containing crew/labor information")
-    crew_labor_data: CrewLaborData = dspy.OutputField(
-        desc="Extracted crew member details, recruitment channels, welfare policies, inspections, and work conditions"
+    text: str = dspy.InputField(desc="Article text containing crew information")
+    crew_data: CrewData = dspy.OutputField(
+        desc="Extracted crew member details, composition, recruitment channels, and migrant worker information"
+    )
+
+
+class ExtractLaborStandards(dspy.Signature):
+    """Extract labor welfare policies, safety inspections, and working conditions from text."""
+
+    text: str = dspy.InputField(
+        desc="Article text containing labor standards information"
+    )
+    labor_standards: LaborStandards = dspy.OutputField(
+        desc="Extracted labor welfare policies, inspections, work conditions, and safety records"
     )
 
 

@@ -7,7 +7,8 @@ from app.dspy_files.signatures import (
     IndustryOverviewSignature,
     InformationPresenceSignature,
     ExtractVesselData,
-    ExtractCrewLaborData,
+    ExtractCrewData,
+    ExtractLaborStandards,
     ExtractCatchData,
     ExtractComplianceData,
     ExtractSpeciesData,
@@ -40,7 +41,8 @@ class IncidentAnalysisModule(dspy.Module):
 
         # Focused extractors (conditional based on presence)
         self.extract_vessel = dspy.ChainOfThought(ExtractVesselData)
-        self.extract_crew_labor = dspy.ChainOfThought(ExtractCrewLaborData)
+        self.extract_crew = dspy.ChainOfThought(ExtractCrewData)
+        self.extract_labor_standards = dspy.ChainOfThought(ExtractLaborStandards)
         self.extract_catch = dspy.ChainOfThought(ExtractCatchData)
         self.extract_compliance = dspy.ChainOfThought(ExtractComplianceData)
         self.extract_species = dspy.ChainOfThought(ExtractSpeciesData)
@@ -166,14 +168,23 @@ class IncidentAnalysisModule(dspy.Module):
             logger.info("Skipping vessel extraction (not present)")
             extracted["vesselInformation"] = None
 
-        # Extract crew/labor info (if present)
-        if presence.has_crew_labor_info:
-            logger.info("Extracting crew/labor information...")
-            crew_output = await self.extract_crew_labor.acall(text=text)
-            extracted["crewLaborInformation"] = crew_output.crew_labor_data
+        # Extract crew info (if present)
+        if presence.has_crew_info:
+            logger.info("Extracting crew information...")
+            crew_output = await self.extract_crew.acall(text=text)
+            extracted["crewInformation"] = crew_output.crew_data
         else:
-            logger.info("Skipping crew/labor extraction (not present)")
-            extracted["crewLaborInformation"] = None
+            logger.info("Skipping crew extraction (not present)")
+            extracted["crewInformation"] = None
+
+        # Extract labor standards (if present)
+        if presence.has_labor_standards:
+            logger.info("Extracting labor standards information...")
+            labor_output = await self.extract_labor_standards.acall(text=text)
+            extracted["laborStandards"] = labor_output.labor_standards
+        else:
+            logger.info("Skipping labor standards extraction (not present)")
+            extracted["laborStandards"] = None
 
         # Extract catch info (if present)
         if presence.has_catch_info:
@@ -335,10 +346,10 @@ class IncidentAnalysisModule(dspy.Module):
         vessel_keywords = ["vessel", "ship", "boat", "trawler", "seiner"]
         mentions_vessel = any(keyword in text_lower for keyword in vessel_keywords)
 
-        catch_source = getattr(extracted_data, "catchSourceInformation", None)
-        if mentions_vessel and catch_source:
-            vessel_name = getattr(catch_source, "vesselName", None)
-            vessel_id = getattr(catch_source, "vesselUniqueID", None)
+        vessel_info = getattr(extracted_data, "vesselInformation", None)
+        if mentions_vessel and vessel_info:
+            vessel_name = getattr(vessel_info, "vesselName", None)
+            vessel_id = getattr(vessel_info, "vesselUniqueID", None)
             if not vessel_name and not vessel_id:
                 logger.warning(
                     "Text mentions vessels but no vessel name or ID was extracted. "
