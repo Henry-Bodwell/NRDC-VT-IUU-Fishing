@@ -35,16 +35,29 @@ class ContentExtractor:
     @staticmethod
     def from_pdf(pdf_bytes: bytes) -> Source:
         """Extracts text from a PDF file."""
-        response = fn.read_pdf(pdf_bytes)
-        text = response.get("text")
-        author = response.get("metadata", {}).get("author")
-        title = response.get("metadata", {}).get("title")
-        # date = response.get("metadata", {}).get("date")
-        source = Source(
-            article_text=text, author=author, article_title=title, category="pdf"
-        )
-        logger.info(f"Source from PDF: {source}")
-        return source
+        try:
+            response = fn.read_pdf(pdf_bytes)
+            text = response.get("text")
+
+            if not text or not text.strip():
+                logger.error("No text extracted from PDF")
+                raise ValueError("Failed to extract text from PDF. Document may be empty or corrupted.")
+
+            author = response.get("metadata", {}).get("author")
+            title = response.get("metadata", {}).get("title")
+            # date = response.get("metadata", {}).get("date")
+            source = Source(
+                article_text=text, author=author, article_title=title, category="pdf"
+            )
+            logger.info(f"Successfully extracted content from PDF")
+            return source
+
+        except ValueError as e:
+            logger.error(f"PDF text extraction failed: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to extract content from PDF: {e}")
+            raise
 
     @staticmethod
     def from_image(self, image_path: str, language: str = "eng") -> tuple[str, str]:

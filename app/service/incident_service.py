@@ -2,6 +2,7 @@ import os
 from fastapi import File, HTTPException, status
 from pydantic import ValidationError
 from app.models.incidents import IncidentReport, IndustryOverview
+from app.models.sources import Source
 from app.models.task import TaskStatus
 from pymongo.errors import DuplicateKeyError
 from app.dspy_files.news_analysis import (
@@ -86,6 +87,19 @@ class IncidentService(Service):
         try:
             await source.insert()
             logger.info(f"Successfully saved source: {source.id}")
+        except DuplicateKeyError as e:
+            logger.warning(f"Source with same content already exists (hash: {source.article_hash}). Fetching existing source.")
+            # Fetch the existing source instead of failing
+            existing_source = await Source.find_one(Source.article_hash == source.article_hash)
+            if existing_source:
+                output.source = existing_source
+                output.status = PipelineResult.DUPLICATE_HASHED_TEXT
+                logger.info(f"Using existing source: {existing_source.id}")
+                return output
+            else:
+                # This shouldn't happen, but handle it just in case
+                logger.error(f"DuplicateKeyError but couldn't find existing source: {e}")
+                raise e
         except Exception as e:
             logger.error(f"Database save failed for {source.id}: {e}")
             raise e
