@@ -303,16 +303,16 @@ IUUClassification = (
 
 
 class EventData(BaseModel):
-    """Structured information about the primary event of an IUU incident. ie the event that triggered the article."""
+    """Structured information about the primary event and enforcement act of an IUU incident. ie the event that triggered the article."""
 
     verified: bool = Field(
         default=False,
         description="Whether the Event Section has been verified by a human, leave false",
     )
 
-    eventCategory: str = Field(
+    enforcementCategory: str = Field(
         ...,
-        description="Categorize the primary event (e.g., 'Seizure', 'Arrest', 'Investigation Initiated', 'Fine Issued').",
+        description="Categorize the enforcement event (e.g., 'Seizure', 'Arrest', 'Investigation Initiated', 'Fine Issued').",
     )
     eventDate: str | None = Field(
         default=None, description="Date of the primary event (e.g., '2023-10-01')."
@@ -321,6 +321,24 @@ class EventData(BaseModel):
         default=None,
         description="Where did the primary event occur? (e.g., 'Pacific Ocean', 'Port of XYZ').",
     )
+    eventLocationCategory: (
+        Literal["EEZ", "High Seas", "Inland Water", "Land"] | None
+    ) = Field(default=None, description="Category of where the primary act took place")
+
+    enforcementLocation: str | None = Field(
+        default=None,
+        description="Where did the enforcement event occur? Where were the people caught if so (e.g., 'Somali EEZ', 'Port of XYZ').",
+    )
+    enforcementLocationCategory: (
+        Literal["EEZ", "High Seas", "Inland Water", "Land"] | None
+    ) = Field(
+        default=None, description="Category of where the enforcement act took place"
+    )
+
+    primaryOffender: Literal["Vessel", "Corporate Actor", "Individual"] | None = Field(
+        default=None, description="Who was the primary actor"
+    )
+
     resolution: str = Field(
         ...,
         description="What was the outcome or resolution, if mentioned? (e.g., 'Vessel Detained', 'Crew Fined $10,000', 'Charges Dropped').",
