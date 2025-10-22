@@ -18,6 +18,7 @@ from app.dspy_files.signatures import (
     ExtractTradeDistributionData,
     ExtractProductData,
     ExtractIUUClassification,
+    SummarizeIncident,
 )
 import logging
 from app.models.sources import Source
@@ -54,6 +55,7 @@ class IncidentAnalysisModule(dspy.Module):
         )
         self.extract_products = dspy.ChainOfThought(ExtractProductData)
         self.extract_classification = dspy.ChainOfThought(ExtractIUUClassification)
+        self.summarize_incident = dspy.ChainOfThought(SummarizeIncident)
 
     async def aforward(self, source: Source) -> dict:
         """
@@ -111,9 +113,11 @@ class IncidentAnalysisModule(dspy.Module):
                         passage.target_passage, passage.full_context
                     )
 
-                    # Extract from the combined text
+                    # Extract from the combined text, passing the target_passage for summary
                     extracted_data = await self._extract_conditionally(
-                        combined_text, incident_presence
+                        combined_text,
+                        incident_presence,
+                        summary_text=passage.target_passage,
                     )
 
                     sub_out = {
@@ -152,10 +156,18 @@ class IncidentAnalysisModule(dspy.Module):
         {full_context}
         """
 
-    async def _extract_conditionally(self, text: str, presence) -> dict:
+    async def _extract_conditionally(
+        self, text: str, presence, summary_text: str = None
+    ) -> dict:
         """
         Extract information conditionally based on presence flags.
         Only runs extractors for categories that are detected as present.
+
+        Args:
+            text: The full text to extract from (may include extraction instructions)
+            presence: Information presence flags
+            summary_text: Optional separate text to use for the description/summary field.
+                         If not provided, uses the first 200 chars of text.
         """
         extracted = {}
 
@@ -268,7 +280,17 @@ class IncidentAnalysisModule(dspy.Module):
         # Add other fields with defaults
         extracted["chainOfCustody"] = None
         extracted["sanitaryLicenseID"] = None
-        extracted["description"] = text[:200] + "..."  # Short summary
+
+        # Generate a proper summary using DSPy
+        # Use summary_text if provided (for multi-incident), otherwise use the full text
+        logger.info("Generating incident summary...")
+        if not summary_text:
+            summary_output = await self.summarize_incident.acall(text=text)
+            extracted["description"] = summary_output.summary
+        else:
+            extracted["description"] = summary_text[:400] + (
+                "..." if len(summary_text) > 400 else ""
+            )
 
         return extracted
 

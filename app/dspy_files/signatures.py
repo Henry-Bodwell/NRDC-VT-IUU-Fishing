@@ -195,7 +195,9 @@ class ExtractCrewData(dspy.Signature):
 class ExtractLaborStandards(dspy.Signature):
     """Extract labor welfare policies, safety inspections, and working conditions from text."""
 
-    text: str = dspy.InputField(desc="Article text containing labor standards information")
+    text: str = dspy.InputField(
+        desc="Article text containing labor standards information"
+    )
     labor_standards: LaborStandards = dspy.OutputField(
         desc="Extracted labor welfare policies, inspections, work conditions, and safety records"
     )
@@ -294,4 +296,17 @@ class ExtractIUUClassification(dspy.Signature):
     text: str = dspy.InputField(desc="Article text describing IUU fishing activities")
     classification: IncidentClassification = dspy.OutputField(
         desc="Classification of IUU types and subtypes with reasoning based on the incident behaviors"
+    )
+
+
+class SummarizeIncident(dspy.Signature):
+    """Generate a concise summary of an IUU fishing incident from the article text.
+
+    The summary should capture the key facts: who (vessel/people), what (violation type),
+    when (date), where (location), and outcome (enforcement action/resolution).
+    """
+
+    text: str = dspy.InputField(desc="Article text or incident passage describing an IUU fishing incident")
+    summary: str = dspy.OutputField(
+        desc="A concise 2-3 sentence summary capturing the key facts of the incident: who was involved, what violation occurred, when and where it happened, and what enforcement action was taken"
     )

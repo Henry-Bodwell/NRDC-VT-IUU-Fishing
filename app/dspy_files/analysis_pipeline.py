@@ -70,4 +70,10 @@ class AnalysisPipeline:
 
         except Exception as e:
             logger.error(f"Error during analysis pipeline for '{source.url}': {e}")
+            # Inspect DSPy history to debug truncation issues
+            try:
+                logger.info("Inspecting DSPy interaction history...")
+                dspy.inspect_history(n=1)  # Shows last interaction
+            except Exception as inspect_error:
+                logger.warning(f"Could not inspect DSPy history: {inspect_error}")
             raise

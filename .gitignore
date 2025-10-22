@@ -182,4 +182,15 @@ cython_debug/
 
 *.csv
 *.xlsx
+
+# clusterKDEs
+/clusterKDEs/clusterOutputs/
+
+# R stuff
+*.Rhistory
+*.Rproj
 .Rproj.user
+
+# MISC
+*.DS_Store
+
