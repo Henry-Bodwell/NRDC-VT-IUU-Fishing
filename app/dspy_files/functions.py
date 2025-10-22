@@ -27,7 +27,7 @@ def verify_sci_name(common_name: str, predicted_sci_name: str) -> bool:
     return False
 
 
-def extract_text_pdf(pdf_byes: bytes) -> Dict[str, any]:
+def extract_text_pdf(pdf_bytes: bytes) -> Dict[str, any]:
     """
     Extracts text and metadata from PDF using PyMuPDF.
 
@@ -39,7 +39,7 @@ def extract_text_pdf(pdf_byes: bytes) -> Dict[str, any]:
         Dictionary containing extracted text and metadata
     """
     try:
-        doc = fitz.open(stream=pdf_byes, filetype="pdf")
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         full_text = ""
 
         for page_num in range(len(doc)):
@@ -130,7 +130,12 @@ def needs_ocr_sampled(
 
         return len(total_text) < min_text_length
 
+    except fitz.FileDataError as e:
+        logger.error(f"Invalid or corrupted PDF file: {e}")
+        raise ValueError("PDF file is corrupted or invalid")
     except Exception as e:
+        logger.warning(f"Error checking PDF text content, defaulting to OCR: {e}")
+        # If we can't determine, assume OCR is needed as a fallback
         return True
 
 
@@ -140,7 +145,7 @@ def read_pdf(pdf_bytes: bytes) -> Dict[str, any]:
         return ocr_pdf_with_pytesseract(pdf_bytes)
     else:
         logger.info("PDF appears to contain text; using text extraction.")
-        return read_pdf(pdf_bytes)
+        return extract_text_pdf(pdf_bytes)
 
 
 def verify_name_against_asfis(common_name: str, predicted_sci_name: str) -> bool:

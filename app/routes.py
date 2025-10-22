@@ -229,6 +229,43 @@ async def _handle_file_request(
 
         pdf_bytes = await pdf_file.read()
 
+        # Validate PDF file size (max 50MB)
+        MAX_PDF_SIZE = 50 * 1024 * 1024  # 50MB in bytes
+        if len(pdf_bytes) > MAX_PDF_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"PDF file too large. Maximum size is 50MB, received {len(pdf_bytes) / (1024 * 1024):.2f}MB",
+            )
+
+        # Validate minimum file size to ensure it's not empty
+        if len(pdf_bytes) < 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="PDF file appears to be empty or corrupted",
+            )
+
+        # Check for duplicate PDF by extracting text and computing hash
+        # We need to extract text first because the database stores hash of extracted text, not PDF bytes
+        from app.dspy_files.content_extraction import ContentExtractor
+        import hashlib
+
+        try:
+            temp_source = ContentExtractor.from_pdf(pdf_bytes)
+            if temp_source.article_text:
+                text_hash = hashlib.sha256(temp_source.article_text.encode()).hexdigest()
+                existing_source = await Source.find_one(Source.article_hash == text_hash)
+                if existing_source:
+                    logger.warning(f"PDF with same content already exists: {pdf_file.filename} (hash: {text_hash})")
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"A source with identical content already exists (ID: {existing_source.id})",
+                    )
+        except HTTPException:
+            raise
+        except Exception as e:
+            # If text extraction fails here, let it continue - the background task will handle the error
+            logger.warning(f"Could not check for duplicate during upload (will check later): {e}")
+
         # Create task
         task = TaskStatus(
             task_type="incident_analysis",
