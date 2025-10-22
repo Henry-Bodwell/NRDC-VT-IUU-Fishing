@@ -1,6 +1,7 @@
 from typing import Type, TypeVar, Union
 from pydantic import ValidationError, BaseModel
 from fastapi import HTTPException, status
+from beanie import Link
 import logging
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,9 @@ class Service:
         if not updates:
             logger.warning(f"No valid fields to update for {model_name} {model_id}")
 
+        # Check for Link fields and reject partial updates
+        _validate_no_link_updates(model_cls, updates, model_name)
+
         # Apply updates by recursively merging nested dicts
         for field, value in updates.items():
             current_value = getattr(instance, field, None)
@@ -111,3 +115,53 @@ class Service:
 def _filter_valid_fields(model_class, updates: dict) -> dict:
     valid_fields = set(model_class.model_fields.keys())
     return {k: v for k, v in updates.items() if k in valid_fields}
+
+
+def _validate_no_link_updates(model_cls, updates: dict, model_name: str):
+    """
+    Validates that no Link fields are being partially updated.
+    Link fields represent relationships to other documents and should be updated
+    by modifying the linked document directly.
+
+    Raises HTTPException if Link field updates are detected.
+    """
+    link_fields = []
+
+    for field_name in updates.keys():
+        field_info = model_cls.model_fields.get(field_name)
+        if field_info:
+            # Check if the field annotation contains Link
+            annotation = str(field_info.annotation)
+            if 'Link[' in annotation or 'List[Link[' in annotation:
+                link_fields.append(field_name)
+
+    if link_fields:
+        # Build helpful error message with endpoint suggestions
+        field_list = ", ".join(link_fields)
+
+        # Provide specific guidance based on the field
+        suggestions = []
+        for field in link_fields:
+            if 'source' in field.lower():
+                suggestions.append(f"To update source data, use PUT /api/sources/{{source_id}}")
+            elif 'incident' in field.lower():
+                suggestions.append(f"To update incident data, use PUT /api/incidents/{{incident_id}}")
+            elif 'overview' in field.lower():
+                suggestions.append(f"To update overview data, use PUT /api/overviews/{{overview_id}}")
+
+        suggestion_text = " ".join(set(suggestions)) if suggestions else "Update the linked document directly using its specific endpoint."
+
+        logger.warning(
+            f"Attempted to update Link field(s) '{field_list}' on {model_name}. "
+            f"Link fields cannot be partially updated."
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "invalid_update",
+                "message": f"Cannot update Link field(s): {field_list}",
+                "suggestion": suggestion_text,
+                "rejected_fields": link_fields,
+            },
+        )
