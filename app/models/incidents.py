@@ -310,8 +310,8 @@ class EventData(BaseModel):
         description="Whether the Event Section has been verified by a human, leave false",
     )
 
-    enforcementCategory: str = Field(
-        ...,
+    enforcementCategory: str | None = Field(
+        default=None,
         description="Categorize the enforcement event (e.g., 'Seizure', 'Arrest', 'Investigation Initiated', 'Fine Issued').",
     )
     eventDate: str | None = Field(
@@ -321,8 +321,8 @@ class EventData(BaseModel):
         default=None,
         description="Where did the primary event occur? (e.g., 'Pacific Ocean', 'Port of XYZ').",
     )
-    eventCountry: str = Field(
-        ...,
+    eventCountry: str | None = Field(
+        default=None,
         description="What country was this event? NA if The primary event did not occur in a country",
     )
     eventLocationCategory: (
@@ -333,8 +333,8 @@ class EventData(BaseModel):
         default=None,
         description="Where did the enforcement event occur? Where were the people caught if so (e.g., 'Somali EEZ', 'Port of XYZ').",
     )
-    enforcementCountry: str = Field(
-        ...,
+    enforcementCountry: str | None = Field(
+        default=None,
         description="What country was this enforcement event? NA if The enforcement event did not occur in a country",
     )
     enforcementLocationCategory: (
