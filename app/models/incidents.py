@@ -18,13 +18,10 @@ ILLEGAL_FISHING_SUBTYPES = Literal[
     "Catching unauthorized or prohibited species",
     "Prohibited fishing gear",
     "Fishing in closed areas or closed seasons",
-]
-
-ILLEGAL_FISHING_ASSOCIATED_SUBTYPES = Literal[
-    "Invalid permit",
+    "Invalid permit or license",
     "Obscuring vessel identity",
     "Unauthorized transhipment",
-    "Falsifying documents (excepting fish/transshipment license)",
+    "Falsifying Authorizations",
     "Obstructing inspectors",
     "Illegal bycatch practices",
 ]
@@ -35,9 +32,8 @@ UNREPORTED_CATCH_SUBTYPES = Literal[
     "Misreported catch species",
     "Misreported location",
     "Misreported gear",
+    "Unreported transshipment activities",
 ]
-
-UNREPORTED_CATCH_ASSOCIATED_SUBTYPES = Literal["Unreported transshipment activities",]
 
 UNREGULATED_ACTORS_SUBTYPES = Literal[
     "Stateless vessel",
@@ -75,7 +71,7 @@ SANCTIONS_SUBTYPES = Literal[
 
 AQUACULTURE_SUBTYPES = Literal[
     "Unapproved/non-native species",
-    "Illegal sourcing",
+    "Illegal sourcing of seed/broodstock",
     "Unlicensed/Unauthorized farm",
     "Stolen products",
 ]
@@ -289,11 +285,11 @@ class OtherIUUClassification(BaseModel):
 # Pydantic will automatically select the correct model based on the IUUType field
 IUUClassification = (
     IllegalFishingClassification
-    | IllegalFishingAssociatedClassification
+    | IllegalFishingAssociatedClassification  # Roll up
     | UnreportedCatchClassification
-    | UnreportedCatchAssociatedClassification
+    | UnreportedCatchAssociatedClassification  # ROll up
     | UnregulatedActorsClassification
-    | UnregulatedAreasClassification
+    | UnregulatedAreasClassification  # Roll up
     | SeafoodFraudClassification
     | ForcedLaborClassification
     | SanctionsClassification
