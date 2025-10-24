@@ -247,6 +247,10 @@ class IncidentService(Service):
             else:
                 raise ValueError(f"Invalid input_type: {input_type}")
 
+            # Set source_type if provided
+            if "source_type" in kwargs and output.source:
+                output.source.source_type = kwargs["source_type"]
+
             # Stage: Saving to database (80-90%)
             await progress_callback("saving", 85)
             logger.info(f"Task {task_id}: Saving to database")

@@ -11,6 +11,9 @@ class GenRequest(BaseModel):
     publisher: str | None = None
     publication_date: datetime | None = None
     user_id: str | None = None
+    source_type: Literal[
+        "government", "news", "industry report", "ngo", "academic", "not specified"
+    ] = Field(default="not specified", description="Type of source organization")
 
     @model_validator(mode="after")
     def check_at_least_one_field(self):

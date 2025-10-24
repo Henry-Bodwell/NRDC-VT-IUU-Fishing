@@ -150,7 +150,8 @@ class AnalysisOrchestrator:
                 author=author,
                 publisher=publisher,
                 publication_date=publication_date,
-                category="text_upload",
+                input_category="text_upload",
+                status="user_input",
             )
 
             if progress_callback:

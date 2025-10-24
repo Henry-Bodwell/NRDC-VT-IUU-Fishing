@@ -146,6 +146,7 @@ async def _handle_json_request(request, background_tasks: BackgroundTasks):
                 title=payload.title if payload.title else None,
                 publisher=payload.publisher if payload.publisher else None,
                 date=payload.publication_date if payload.publication_date else None,
+                source_type=payload.source_type,
             )
 
         elif payload.url:
@@ -167,6 +168,7 @@ async def _handle_json_request(request, background_tasks: BackgroundTasks):
                 task_id=task.task_id,
                 input_type="url",
                 url=payload.url,
+                source_type=payload.source_type,
             )
         else:
             raise ValueError("Payload must include either 'text' or 'url'")
