@@ -373,6 +373,30 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
         query_filters["extracted_information.eventData.eventDate"] = query_filters.get("extracted_information.eventData.eventDate", {})
         query_filters["extracted_information.eventData.eventDate"]["$lte"] = filter_query.event_date_before
 
+    # Location filters
+    if filter_query.event_location:
+        query_filters["extracted_information.eventData.eventLocation"] = {"$regex": filter_query.event_location, "$options": "i"}
+    if filter_query.event_country:
+        query_filters["extracted_information.eventData.eventCountry"] = {"$regex": filter_query.event_country, "$options": "i"}
+    if filter_query.event_location_category != "all":
+        query_filters["extracted_information.eventData.eventLocationCategory"] = filter_query.event_location_category
+
+    # Vessel filters
+    if filter_query.vessel_name:
+        query_filters["extracted_information.vesselInformation.vesselName"] = {"$regex": filter_query.vessel_name, "$options": "i"}
+    if filter_query.vessel_flag:
+        query_filters["extracted_information.vesselInformation.flagState"] = {"$regex": filter_query.vessel_flag, "$options": "i"}
+
+    # Species filter
+    if filter_query.species_common_name:
+        query_filters["extracted_information.speciesInvolved"] = {
+            "$elemMatch": {"speciesCommonName": {"$regex": filter_query.species_common_name, "$options": "i"}}
+        }
+
+    # Enforcement category filter
+    if filter_query.enforcement_category:
+        query_filters["extracted_information.eventData.enforcementCategory"] = {"$regex": filter_query.enforcement_category, "$options": "i"}
+
     # Sort order
     from pymongo import ASCENDING
     sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
@@ -501,6 +525,14 @@ async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
         query_filters["created_by"] = filter_query.created_by
     if filter_query.modified_by:
         query_filters["updated_by"] = filter_query.modified_by
+
+    # Publication date filters
+    if filter_query.publication_date_after:
+        query_filters["publication_date"] = query_filters.get("publication_date", {})
+        query_filters["publication_date"]["$gte"] = filter_query.publication_date_after
+    if filter_query.publication_date_before:
+        query_filters["publication_date"] = query_filters.get("publication_date", {})
+        query_filters["publication_date"]["$lte"] = filter_query.publication_date_before
 
     # Sort order
     from pymongo import ASCENDING

@@ -64,6 +64,21 @@ class IncidentFilters(Filter):
     event_date_after: str | None = Field(default=None, description="Filter by event date after (extracted_information.eventData.eventDate)")
     event_date_before: str | None = Field(default=None, description="Filter by event date before (extracted_information.eventData.eventDate)")
 
+    # Location filters
+    event_location: str | None = Field(default=None, description="Filter by event location (partial match)")
+    event_country: str | None = Field(default=None, description="Filter by event country")
+    event_location_category: Literal["all", "EEZ", "High Seas", "Inland Water", "Land"] = Field(default="all", description="Filter by event location category")
+
+    # Vessel filters
+    vessel_name: str | None = Field(default=None, description="Filter by vessel name (partial match)")
+    vessel_flag: str | None = Field(default=None, description="Filter by vessel flag state")
+
+    # Species filter
+    species_common_name: str | None = Field(default=None, description="Filter by species common name (partial match)")
+
+    # Enforcement category filter
+    enforcement_category: str | None = Field(default=None, description="Filter by enforcement category (e.g., 'Seizure', 'Arrest', 'Fine Issued')")
+
 
 class SourceFilters(Filter):
     article_scope: Literal[
@@ -74,6 +89,10 @@ class SourceFilters(Filter):
     ] = Field(default="all", description="Filter by source organization type")
     status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(default="all")
     verified: Literal["all", "true", "false"] = Field(default="all")
+
+    # Publication date filters
+    publication_date_after: datetime | None = Field(default=None, description="Filter sources published after this date")
+    publication_date_before: datetime | None = Field(default=None, description="Filter sources published before this date")
 
 
 class OverviewFilters(Filter):
