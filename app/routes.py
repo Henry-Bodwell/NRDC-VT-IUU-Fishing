@@ -28,7 +28,7 @@ from pymongo.errors import DuplicateKeyError
 from app.service.overview_service import OverviewService
 from app.service.source_service import SourceService
 from app.dspy_files.news_analysis import PipelineOutput
-from app.interfaces import GenRequest, IncidentFilters, SourceFilters
+from app.interfaces import GenRequest, IncidentFilters, SourceFilters, OverviewFilters
 
 
 router = APIRouter()
@@ -332,8 +332,8 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
     """
     query_filters = {}
 
-    if filter_query.source_type != "all":
-        query_filters["primary_source.category"] = filter_query.source_type
+    if filter_query.input_category != "all":
+        query_filters["primary_source.input_category"] = filter_query.input_category
 
     if filter_query.verified != "all":
         query_filters["verified"] = filter_query.verified == "true"
@@ -344,7 +344,38 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
         }
     if filter_query.status != "all":
         query_filters["status"] = filter_query.status
-    sort_direction = DESCENDING
+
+    # Date range filters
+    if filter_query.created_after:
+        query_filters["created_at"] = query_filters.get("created_at", {})
+        query_filters["created_at"]["$gte"] = filter_query.created_after
+    if filter_query.created_before:
+        query_filters["created_at"] = query_filters.get("created_at", {})
+        query_filters["created_at"]["$lte"] = filter_query.created_before
+    if filter_query.modified_after:
+        query_filters["updated_at"] = query_filters.get("updated_at", {})
+        query_filters["updated_at"]["$gte"] = filter_query.modified_after
+    if filter_query.modified_before:
+        query_filters["updated_at"] = query_filters.get("updated_at", {})
+        query_filters["updated_at"]["$lte"] = filter_query.modified_before
+
+    # User filters
+    if filter_query.created_by:
+        query_filters["created_by"] = filter_query.created_by
+    if filter_query.modified_by:
+        query_filters["updated_by"] = filter_query.modified_by
+
+    # Event date filters
+    if filter_query.event_date_after:
+        query_filters["extracted_information.eventData.eventDate"] = query_filters.get("extracted_information.eventData.eventDate", {})
+        query_filters["extracted_information.eventData.eventDate"]["$gte"] = filter_query.event_date_after
+    if filter_query.event_date_before:
+        query_filters["extracted_information.eventData.eventDate"] = query_filters.get("extracted_information.eventData.eventDate", {})
+        query_filters["extracted_information.eventData.eventDate"]["$lte"] = filter_query.event_date_before
+
+    # Sort order
+    from pymongo import ASCENDING
+    sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
     sort_field = filter_query.sort_by
 
     logger.info(f"Query Filters: {query_filters}")
@@ -436,15 +467,44 @@ async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
     """
     query_filters = {}
 
+    if filter_query.input_category != "all":
+        query_filters["input_category"] = filter_query.input_category
+
     if filter_query.source_type != "all":
-        query_filters["category"] = filter_query.source_type
+        query_filters["source_type"] = filter_query.source_type
+
+    if filter_query.status != "all":
+        query_filters["status"] = filter_query.status
 
     if filter_query.verified != "all":
         query_filters["verified"] = filter_query.verified == "true"
 
     if filter_query.article_scope != "all":
-        query_filters["article_scope"] = filter_query.article_scope
-    sort_direction = DESCENDING
+        query_filters["article_scope.articleType"] = filter_query.article_scope
+
+    # Date range filters
+    if filter_query.created_after:
+        query_filters["created_at"] = query_filters.get("created_at", {})
+        query_filters["created_at"]["$gte"] = filter_query.created_after
+    if filter_query.created_before:
+        query_filters["created_at"] = query_filters.get("created_at", {})
+        query_filters["created_at"]["$lte"] = filter_query.created_before
+    if filter_query.modified_after:
+        query_filters["updated_at"] = query_filters.get("updated_at", {})
+        query_filters["updated_at"]["$gte"] = filter_query.modified_after
+    if filter_query.modified_before:
+        query_filters["updated_at"] = query_filters.get("updated_at", {})
+        query_filters["updated_at"]["$lte"] = filter_query.modified_before
+
+    # User filters
+    if filter_query.created_by:
+        query_filters["created_by"] = filter_query.created_by
+    if filter_query.modified_by:
+        query_filters["updated_by"] = filter_query.modified_by
+
+    # Sort order
+    from pymongo import ASCENDING
+    sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
     sort_field = filter_query.sort_by
 
     logger.info(f"Query Filters: {query_filters}")
@@ -574,27 +634,63 @@ async def get_overview(overview_id: str):
 
 
 @router.get("/overviews")
-async def list_overviews(limit: int = 25, skip: int = 0):
+async def list_overviews(filter_query: Annotated[OverviewFilters, Query()]):
     """
-    Retrieves a list of industry overviews with pagination.
+    Retrieves a list of industry overviews with pagination and filtering.
     """
+    query_filters = {}
+
+    if filter_query.input_category != "all":
+        query_filters["source.input_category"] = filter_query.input_category
+
+    if filter_query.status != "all":
+        query_filters["status"] = filter_query.status
+
+    if filter_query.verified != "all":
+        query_filters["verified"] = filter_query.verified == "true"
+
+    # Date range filters
+    if filter_query.created_after:
+        query_filters["created_at"] = query_filters.get("created_at", {})
+        query_filters["created_at"]["$gte"] = filter_query.created_after
+    if filter_query.created_before:
+        query_filters["created_at"] = query_filters.get("created_at", {})
+        query_filters["created_at"]["$lte"] = filter_query.created_before
+    if filter_query.modified_after:
+        query_filters["updated_at"] = query_filters.get("updated_at", {})
+        query_filters["updated_at"]["$gte"] = filter_query.modified_after
+    if filter_query.modified_before:
+        query_filters["updated_at"] = query_filters.get("updated_at", {})
+        query_filters["updated_at"]["$lte"] = filter_query.modified_before
+
+    # User filters
+    if filter_query.created_by:
+        query_filters["created_by"] = filter_query.created_by
+    if filter_query.modified_by:
+        query_filters["updated_by"] = filter_query.modified_by
+
+    # Sort order
+    from pymongo import ASCENDING
+    sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
+    sort_field = filter_query.sort_by
+
     overviews = (
-        await IndustryOverview.find({}, fetch_links=True, nesting_depth=1)
-        .sort([("created_at", DESCENDING)])
-        .skip(skip)
-        .limit(limit)
+        await IndustryOverview.find(query_filters, fetch_links=True, nesting_depth=1)
+        .sort([(sort_field, sort_direction)])
+        .skip(filter_query.skip)
+        .limit(filter_query.limit)
         .to_list()
     )
 
-    total_count = await IndustryOverview.find({}).count()
+    total_count = await IndustryOverview.find(query_filters).count()
 
     return {
         "overviews": overviews,
         "pagination": {
             "total": total_count,
-            "skip": skip,
-            "limit": limit,
-            "has_more": (skip + limit) < total_count,
+            "skip": filter_query.skip,
+            "limit": filter_query.limit,
+            "has_more": (filter_query.skip + filter_query.limit) < total_count,
         },
     }
 

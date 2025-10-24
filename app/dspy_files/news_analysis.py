@@ -373,6 +373,9 @@ class AnalysisOrchestrator:
                 logger.error(f"Failed to format prediction into incident report")
                 return None
 
+            # Inherit status from source
+            incident.status = source.status
+
             return incident
 
         except Exception as e:

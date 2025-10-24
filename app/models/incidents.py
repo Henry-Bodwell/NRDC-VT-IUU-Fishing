@@ -936,9 +936,9 @@ class IncidentReport(AuditedDocument):
         default=False,
         description="Whether the incident information has been verified by a human",
     )
-    status: Literal["extracted", "user_input", "modified"] = Field(
+    status: Literal["extracted", "from_api", "user_input", "modified"] = Field(
         default="extracted",
-        description="Status of the report. extracted means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
+        description="Status of the incident. Extracted means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
     )
 
     class Settings:

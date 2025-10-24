@@ -23,15 +23,31 @@ class GenRequest(BaseModel):
 
 
 class Filter(BaseModel):
+    # Pagination
     limit: int = Field(default=25, gt=0, le=100)
     skip: int = Field(default=0, ge=0)
+
+    # Sorting
     sort_by: Literal["created_at", "modified_at"] = Field(default="created_at")
-    source_type: Literal["all", "url", "text_upload", "pdf"] = Field(default="all")
+    sort_order: Literal["asc", "desc"] = Field(default="desc", description="Sort order: ascending or descending")
+
+    # Common filters
+    input_category: Literal["all", "url", "text_upload", "pdf", "existing_extract"] = Field(default="all")
     verified: Literal["all", "true", "false"] = Field(default="all")
+
+    # Date range filters
+    created_after: datetime | None = Field(default=None, description="Filter records created after this date (ISO 8601 format)")
+    created_before: datetime | None = Field(default=None, description="Filter records created before this date (ISO 8601 format)")
+    modified_after: datetime | None = Field(default=None, description="Filter records modified after this date (ISO 8601 format)")
+    modified_before: datetime | None = Field(default=None, description="Filter records modified before this date (ISO 8601 format)")
+
+    # User filters
+    created_by: str | None = Field(default=None, description="Filter by user who created the record")
+    modified_by: str | None = Field(default=None, description="Filter by user who last modified the record")
 
 
 class IncidentFilters(Filter):
-    status: Literal["all", "extracted", "user_input", "modified"] = Field(default="all")
+    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(default="all")
     IUU_type: Literal[
         "Illegal Fishing",
         "Illegal Fishing Associated Activities",
@@ -47,9 +63,21 @@ class IncidentFilters(Filter):
         "all",
     ] = Field(default="all")
 
+    # Event date filters
+    event_date_after: str | None = Field(default=None, description="Filter by event date after (extracted_information.eventData.eventDate)")
+    event_date_before: str | None = Field(default=None, description="Filter by event date before (extracted_information.eventData.eventDate)")
+
 
 class SourceFilters(Filter):
     article_scope: Literal[
-        "all", "single_incident", "multiple_incidents", "industry_overview", "unrelated"
+        "all", "Single Incident", "Multiple Incidents", "Industry Overview", "Unrelated to IUU Fishing"
     ] = Field(default="all")
+    source_type: Literal[
+        "all", "government", "news", "industry report", "ngo", "academic", "not specified"
+    ] = Field(default="all", description="Filter by source organization type")
+    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(default="all")
     verified: Literal["all", "true", "false"] = Field(default="all")
+
+
+class OverviewFilters(Filter):
+    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(default="all")

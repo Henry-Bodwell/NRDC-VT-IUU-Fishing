@@ -134,7 +134,7 @@ class InformationPresence(BaseModel):
     )
     has_event_details: bool = Field(
         default=False,
-        description="Does article describe an enforcement event (seizure, arrest, fine, investigation)?",
+        description="Does article discuss details an enforcement or infraction event (seizure, arrest, fine, investigation), such as dates?",
     )
     has_transshipment: bool = Field(
         default=False,
@@ -306,7 +306,9 @@ class SummarizeIncident(dspy.Signature):
     when (date), where (location), and outcome (enforcement action/resolution).
     """
 
-    text: str = dspy.InputField(desc="Article text or incident passage describing an IUU fishing incident")
+    text: str = dspy.InputField(
+        desc="Article text or incident passage describing an IUU fishing incident"
+    )
     summary: str = dspy.OutputField(
         desc="A concise 2-3 sentence summary capturing the key facts of the incident: who was involved, what violation occurred, when and where it happened, and what enforcement action was taken"
     )
