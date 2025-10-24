@@ -50,18 +50,15 @@ class IncidentFilters(Filter):
     status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(default="all")
     IUU_type: Literal[
         "Illegal Fishing",
-        "Illegal Fishing Associated Activities",
         "Unreported Catch",
-        "Unreported Catch Associated Activities",
-        "Unregulated Actors",
-        "Unregulated Areas or Stocks",
+        "Unregulated Fishing",
         "Seafood Fraud or Mislabeling",
         "Forced Labor or Labor Abuse",
         "Circumventing Prohibitions or Sanctions",
         "Illegal Aquacultural Practices",
         "Other",
         "all",
-    ] = Field(default="all")
+    ] = Field(default="all", description="Filter by IUU incident type")
 
     # Event date filters
     event_date_after: str | None = Field(default=None, description="Filter by event date after (extracted_information.eventData.eventDate)")
