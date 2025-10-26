@@ -27,7 +27,7 @@ if (basename(current_wd) != target_dir) {
   setwd(new_path)
 }
 
-raw_data <- read_csv(file = "Clustering Data Viz - no aquaculture.csv")
+raw_data <- read_csv(file = "Clustering Data Viz.csv")
 # Clean and convert dataframe to matrix
 data_matrix <- raw_data %>%
   # Mutate columns to numeric for calculation/matrix conversion
@@ -38,8 +38,6 @@ data_matrix <- raw_data %>%
   # Selects columns where NOT all values in that column are NA.
   # i.e., remove any unused KDEs like "Coastal entry and exit"
   select(where(~ !all(is.na(.)))) %>%
-  # Remove all KDEs that are specific to aquaculture
-  select(!contains("Aqua")) %>%
   # set row names
   column_to_rownames(var = "Behavior") %>%
   # Final conversion to matrix for downstream analysis
@@ -74,6 +72,7 @@ corrplot(kde_corr,
          method = "color",
          type = "upper",
          order = "hclust", # Use hierarchical clustering to reorder
+         hclust.method = "ward.D2",
          tl.cex = 0.4, # Adjust label size
          title = "Spearman Correlation (KDEs)",
          mar = c(0, 0, 1, 0))
@@ -89,6 +88,7 @@ corrplot(behavior_corr,
          method = "color",
          type = "upper",
          order = "hclust", # Use hierarchical clustering to reorder
+         hclust.method = "ward.D2",
          tl.cex = 0.5,
          title = "Spearman Correlation (Behaviors)",
          mar = c(0, 0, 1, 0))
@@ -157,7 +157,7 @@ plot(
   dend,
   horiz = TRUE, # plot dendrogram horizontally
   main = "Hierarchical Clustering of Behaviors",
-  ylab = "Manhattan Distance (Ward Linkage)",
+  xlab = "Manhattan Distance (Ward Linkage)",
   cex.main = 1.2, # Increase plot title size
   cex.lab = 1.2,  # Increase axis label size (for xlab and ylab)
   cex.axis = 1.2  # Increase axis tick mark number size
@@ -205,7 +205,7 @@ plot(
   dend,
   horiz = TRUE, # plot dendrogram horizontally
   main = "Hierarchical Clustering of KDEs",
-  ylab = "Manhattan Distance (Ward Linkage)",
+  xlab = "Manhattan Distance (Ward Linkage)",
   cex.main = 1.2, # Increase plot title size
   cex.lab = 1.2,  # Increase axis label size (for xlab and ylab)
   cex.axis = 1.2  # Increase axis tick mark number size

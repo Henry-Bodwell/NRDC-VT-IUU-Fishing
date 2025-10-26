@@ -170,7 +170,7 @@ plot(
   dend,
   horiz = TRUE, # plot dendrogram horizontally
   main = "Hierarchical Clustering of Behaviors",
-  ylab = "Manhattan Distance (Ward Linkage)",
+  xlab = "Manhattan Distance (Ward Linkage)",
   cex.main = 1.2, # Increase plot title size
   cex.lab = 1.2,  # Increase axis label size (for xlab and ylab)
   cex.axis = 1.2  # Increase axis tick mark number size
@@ -218,7 +218,7 @@ plot(
   dend,
   horiz = TRUE, # plot dendrogram horizontally
   main = "Hierarchical Clustering of KDEs",
-  ylab = "Manhattan Distance (Ward Linkage)",
+  xlab = "Manhattan Distance (Ward Linkage)",
   cex.main = 1.2, # Increase plot title size
   cex.lab = 1.2,  # Increase axis label size (for xlab and ylab)
   cex.axis = 1.2  # Increase axis tick mark number size
