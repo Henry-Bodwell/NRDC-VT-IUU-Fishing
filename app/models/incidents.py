@@ -18,10 +18,10 @@ ILLEGAL_FISHING_SUBTYPES = Literal[
     "Catching unauthorized or prohibited species",
     "Prohibited fishing gear",
     "Fishing in closed areas or closed seasons",
-    "Invalid permit or license",
+    "Invalid or no permit or license",
     "Obscuring vessel identity",
-    "Unauthorized transhipment",
-    "Falsifying Authorizations",
+    "Unauthorized transshipment",
+    "Falisfying Documents",
     "Obstructing inspectors",
     "Illegal bycatch practices",
 ]
@@ -39,7 +39,7 @@ UNREPORTED_CATCH_SUBTYPES = Literal[
 UNREGULATED_FISHING_SUBTYPES = Literal[
     "Stateless vessel",
     "Fishing under flag not party to RFMO",
-    "Operating for stock or in places to avoid international regulation",
+    "Fishing in unregulated areas or for unregulated stock",
 ]
 
 SEAFOOD_FRAUD_SUBTYPES = Literal[
@@ -51,23 +51,26 @@ FORCED_LABOR_SUBTYPES = Literal[
     "Wage/Pay violations",
     "Abusive living conditions",
     "Abusive working conditions",
-    "Violence",
+    "Inadequate crew size",
+    "Physical or sexual violence",
     "Intimidation",
+    "Families threatened",
     "Deception",
+    "No work contracts",
     "Isolation",
-    "Abuse of vulnerability",
+    "Migrants threatened",
 ]
 
 SANCTIONS_SUBTYPES = Literal[
-    "Circumventing sanctions",
-    "Circumventing import prohibitions",
+    "Circumventing sanctions (individuals or corporations)",
+    "Circumventing import prohibitions (countries or products)",
 ]
 
 AQUACULTURE_SUBTYPES = Literal[
     "Unapproved/non-native species",
     "Illegal sourcing of seed/broodstock",
     "Misrepresentation or falsification of farming operations",
-    "Unlicensed/Unauthorized farm",
+    "Unlicensed/Unauthorized farm operations",
     "Stolen products",
 ]
 
@@ -137,7 +140,11 @@ class IllegalFishingClassification(BaseModel):
     IUUType: Literal["Illegal Fishing"] = "Illegal Fishing"
     IUUSubType: List[ILLEGAL_FISHING_SUBTYPES] | None = Field(
         default=None,
-        description='ALL specific violations found. Options: "Exceeding catch quotas", "Keeping undersized fish", "Catching unauthorized or prohibited species", "Prohibited fishing gear", "Fishing in closed areas or closed seasons", "Invalid permit or license", "Obscuring vessel identity", "Unauthorized transhipment", "Falsifying Authorizations", "Obstructing inspectors", "Illegal bycatch practices"',
+        description='ALL specific violations found. Options: "Exceeding catch quotas", '
+        '"Keeping undersized fish", "Catching unauthorized or prohibited species", '
+        '"Prohibited fishing gear", "Fishing in closed areas or closed seasons", '
+        '"Invalid or no permit or license", "Obscuring vessel identity", "Unauthorized transhipment", '
+        '"Falsifying Authorizations", "Obstructing inspectors", "Illegal bycatch practices"',
     )
     IUUTypeReason: str = Field(
         ...,
@@ -152,7 +159,10 @@ class UnreportedCatchClassification(BaseModel):
     IUUType: Literal["Unreported Catch"] = "Unreported Catch"
     IUUSubType: List[UNREPORTED_CATCH_SUBTYPES] | None = Field(
         default=None,
-        description='ALL violations found. Options: "Un/underreported target catch weight or size", "Un/underreported discards/bycatch weight or size", "Misreported target catch species", "Misreported non-target catch species", "Misreported location or timing of fishing", "Misreported gear", "Unreported transshipment activities"',
+        description='ALL violations found. Options: "Un/underreported target catch weight or size", '
+        '"Un/underreported discards/bycatch weight or size", "Misreported target catch species", '
+        '"Misreported non-target catch species", "Misreported location or timing of fishing", '
+        '"Misreported gear", "Unreported transshipment activities"',
     )
     IUUTypeReason: str = Field(..., description="Detailed explanation with evidence.")
     verified: bool = Field(default=False)
@@ -164,7 +174,8 @@ class UnregulatedClassification(BaseModel):
     IUUType: Literal["Unregulated Fishing"] = "Unregulated Fishing"
     IUUSubType: List[UNREGULATED_FISHING_SUBTYPES] | None = Field(
         default=None,
-        description='ALL violations found. Options: "Stateless vessel", "Fishing under flag not party to RFMO", "Operating for stock or in places to avoid international regulation"',
+        description='ALL violations found. Options: "Stateless vessel", '
+        '"Fishing under flag not party to RFMO", "Fishing in unregulated areas or for unregulated stock"',
     )
     IUUTypeReason: str = Field(..., description="Detailed explanation with evidence.")
     verified: bool = Field(default=False)
@@ -176,7 +187,8 @@ class SeafoodFraudClassification(BaseModel):
     IUUType: Literal["Seafood Fraud or Mislabeling"] = "Seafood Fraud or Mislabeling"
     IUUSubType: List[SEAFOOD_FRAUD_SUBTYPES] | None = Field(
         default=None,
-        description='ALL violations found. Options: "Species mislabeling or fraud", "Production information fraud"',
+        description='ALL violations found. Options: "Species mislabeling or fraud", '
+        '"Production information fraud"',
     )
     IUUTypeReason: str = Field(..., description="Detailed explanation with evidence.")
     verified: bool = Field(default=False)
@@ -188,7 +200,9 @@ class ForcedLaborClassification(BaseModel):
     IUUType: Literal["Forced Labor or Labor Abuse"] = "Forced Labor or Labor Abuse"
     IUUSubType: List[FORCED_LABOR_SUBTYPES] | None = Field(
         default=None,
-        description='ALL violations found. Options: "Wage/Pay violations", "Abusive living conditions", "Abusive working conditions", "Violence", "Intimidation", "Deception", "Isolation", "Abuse of vulnerability"',
+        description='ALL violations found. Options: "Wage/Pay violations", "Abusive living conditions", '
+        '"Abusive working conditions", "Inadequate crew size", "Physical or sexual violence", "Intimidation", '
+        '"Families threatened", "Deception", "No work contracts", "Isolation", "Migrants threatened"',
     )
     IUUTypeReason: str = Field(..., description="Detailed explanation with evidence.")
     verified: bool = Field(default=False)
@@ -202,7 +216,8 @@ class SanctionsClassification(BaseModel):
     )
     IUUSubType: List[SANCTIONS_SUBTYPES] | None = Field(
         default=None,
-        description='ALL violations found. Options: "Circumventing sanctions", "Circumventing import prohibitions"',
+        description='ALL violations found. Options: "Circumventing sanctions (individuals or corporations)", '
+        '"Circumventing import prohibitions (countries or products)"',
     )
     IUUTypeReason: str = Field(..., description="Detailed explanation with evidence.")
     verified: bool = Field(default=False)
@@ -216,7 +231,9 @@ class IllegalAquacultureClassification(BaseModel):
     )
     IUUSubType: List[AQUACULTURE_SUBTYPES] | None = Field(
         default=None,
-        description='ALL violations found. Options: "Unapproved/non-native species", "Illegal sourcing of seed/broodstock", "Misrepresentation or falsification of farming operations", "Unlicensed/Unauthorized farm", "Stolen products"',
+        description='ALL violations found. Options: "Unapproved/non-native species", "Illegal sourcing of seed/broodstock", '
+        '"Misrepresentation or falsification of farming operations", '
+        '"Unlicensed/Unauthorized farm operations", "Stolen products"',
     )
     IUUTypeReason: str = Field(..., description="Detailed explanation with evidence.")
     verified: bool = Field(default=False)
