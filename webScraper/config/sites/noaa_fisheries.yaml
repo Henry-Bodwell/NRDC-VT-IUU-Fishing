@@ -1,0 +1,47 @@
+site_name: noaa_fisheries
+base_url: https://www.fisheries.noaa.gov
+search_url: https://www.fisheries.noaa.gov/news-and-announcements/news
+selectors:
+  search_input: input#edit-title
+  search_button: button#edit-submit-directory-news-and-announcements
+  result_links: a.teaser__title-link
+  result_title: h4.teaser__title
+  result_snippet: div.teaser__sumary
+  next_page: ''
+  detail_title: h1.content-header__title
+  detail_content: div.article__content
+  detail_date: p.content-header__date
+  detail_author: a.office-vocab__item
+  detail_tags: null
+  custom: {}
+rate_limit:
+  requests_per_minute: 20
+  delay_range:
+  - 1.0
+  - 3.0
+  max_concurrent: 1
+  respect_robots_txt: true
+pagination:
+  enabled: true
+  next_button: ''
+  max_pages: null
+  pagination_type: url_pattern
+  url_pattern: null
+authentication:
+  required: false
+  auth_type: none
+  login_url: null
+  username_field: null
+  password_field: null
+  submit_button: null
+  credentials_env_var: null
+javascript_required: false
+wait_for_selector: div.teaser
+wait_for_timeout: 10000
+headers: {}
+cookies: []
+metadata:
+  description: NOAA Fisheries is responsible for the stewardship of the nation's ocean
+    resources and their habitat.
+  category: Government
+  primary_content_type: Text

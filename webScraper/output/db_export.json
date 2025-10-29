@@ -1,0 +1,52 @@
+[
+  {
+    "url": "https://example.com/db-article1",
+    "title": "Vessel Seized for Illegal Fishing",
+    "content": "Details about the vessel seizure in territorial waters...",
+    "date": "2024-01-10T00:00:00",
+    "author": "Reporter A",
+    "tags": [
+      "IUU",
+      "enforcement",
+      "seizure"
+    ],
+    "metadata": {
+      "severity": "high",
+      "location": "Pacific"
+    },
+    "scraped_at": "2025-10-29T11:22:07.089358"
+  },
+  {
+    "url": "https://example.com/db-article2",
+    "title": "Labor Abuse Investigation on Fishing Vessels",
+    "content": "Investigation reveals labor violations...",
+    "date": "2024-01-15T00:00:00",
+    "author": "Reporter B",
+    "tags": [
+      "human_rights",
+      "investigation",
+      "labor"
+    ],
+    "metadata": {
+      "severity": "critical",
+      "location": "Atlantic"
+    },
+    "scraped_at": "2025-10-29T11:22:07.089358"
+  },
+  {
+    "url": "https://example.com/db-article3",
+    "title": "New Technology for Fisheries Monitoring",
+    "content": "Advanced satellite tracking systems deployed...",
+    "date": "2024-02-01T00:00:00",
+    "author": "Reporter A",
+    "tags": [
+      "innovation",
+      "monitoring",
+      "technology"
+    ],
+    "metadata": {
+      "category": "technology"
+    },
+    "scraped_at": "2025-10-29T11:22:07.089358"
+  }
+]

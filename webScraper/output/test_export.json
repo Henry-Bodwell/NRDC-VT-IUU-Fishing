@@ -1,0 +1,46 @@
+[
+  {
+    "url": "https://test.com/db-article1",
+    "title": "Database Test Article 1",
+    "content": "Testing SQLite storage with full text search",
+    "date": "2024-01-10T00:00:00",
+    "author": "DB Author",
+    "tags": [
+      "database",
+      "sqlite",
+      "test"
+    ],
+    "metadata": {
+      "category": "testing"
+    },
+    "scraped_at": "2025-10-29T11:27:46.239073"
+  },
+  {
+    "url": "https://test.com/db-article2",
+    "title": "Database Test Article 2",
+    "content": "More content for testing search functionality",
+    "date": "2024-01-15T00:00:00",
+    "author": "Another DB Author",
+    "tags": [
+      "database",
+      "search"
+    ],
+    "metadata": {
+      "category": "testing",
+      "priority": "high"
+    },
+    "scraped_at": "2025-10-29T11:27:46.239597"
+  },
+  {
+    "url": "https://test.com/db-article3",
+    "title": "Third Test Article",
+    "content": "Additional test content",
+    "date": "2024-02-01T00:00:00",
+    "author": "DB Author",
+    "tags": [
+      "test"
+    ],
+    "metadata": null,
+    "scraped_at": "2025-10-29T11:27:46.239597"
+  }
+]

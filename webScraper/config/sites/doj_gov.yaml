@@ -40,4 +40,7 @@ wait_for_selector: null
 wait_for_timeout: 10000
 headers: {}
 cookies: []
-metadata: {}
+metadata:
+  description: United States Department of Justice
+  category: Government
+  primary_content_type: Text

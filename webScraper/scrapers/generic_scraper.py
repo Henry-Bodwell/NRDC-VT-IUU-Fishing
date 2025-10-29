@@ -385,6 +385,18 @@ class GenericScraper(BaseScraper):
                 self.logger.info(f"Navigating to page {next_page}: {next_url}")
                 await self.page.goto(next_url, wait_until="networkidle")
 
+                # Check if the new page has any results
+                try:
+                    result_elements = await self.page.query_selector_all(
+                        self.config.selectors.result_links
+                    )
+                    if not result_elements:
+                        self.logger.info("No results found on this page, stopping pagination")
+                        return False
+                except Exception as e:
+                    self.logger.warning(f"Could not check for results: {e}")
+                    return False
+
                 return True
 
             else:
@@ -509,14 +521,14 @@ async def main():
 
     # Scrape DOJ with configuration
     results = await scrape_site(
-        site_name="doj_gov",
+        site_name="noaa_fisheries",
         query="illegal fishing",
         max_results=10,
         scrape_details=True,
-        headless=True,
+        headless=False,
     )
 
-    print(f"\nScraped {len(results)} pages from DOJ:")
+    print(f"\nScraped {len(results)} pages from Monga Bay:")
     for result in results[:3]:  # Show first 3
         print(f"\n{'='*80}")
         print(f"Title: {result.title}")

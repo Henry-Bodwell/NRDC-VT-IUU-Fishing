@@ -1,0 +1,13 @@
+{
+  "url": "https://example.com/article4",
+  "title": "Article 4",
+  "content": "Content for article 4...",
+  "date": "2024-01-04T00:00:00",
+  "author": null,
+  "tags": [
+    "tag1",
+    "tag2"
+  ],
+  "metadata": null,
+  "scraped_at": "2025-10-29T11:22:07.086030"
+}

@@ -1,0 +1,7 @@
+{
+  "https://example.com/article1": "webScraper\\output\\json_individual\\Article 1_792d5401678a.json",
+  "https://example.com/article2": "webScraper\\output\\json_individual\\Article 2_78308aded0a9.json",
+  "https://example.com/article3": "webScraper\\output\\json_individual\\Article 3_87578e5d188f.json",
+  "https://example.com/article4": "webScraper\\output\\json_individual\\Article 4_b8121c16d9ab.json",
+  "https://example.com/article5": "webScraper\\output\\json_individual\\Article 5_2f062284a2a5.json"
+}

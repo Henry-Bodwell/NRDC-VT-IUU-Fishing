@@ -1,0 +1,35 @@
+[
+  {
+    "url": "https://example.com/article1",
+    "title": "Illegal Fishing Incident in Pacific",
+    "content": "Full article content here...",
+    "date": "2024-01-15T00:00:00",
+    "author": "John Doe",
+    "tags": [
+      "IUU",
+      "Pacific",
+      "enforcement"
+    ],
+    "metadata": {
+      "source": "oceana",
+      "category": "illegal_fishing"
+    },
+    "scraped_at": "2025-10-29T11:22:07.069444"
+  },
+  {
+    "url": "https://example.com/article2",
+    "title": "New Regulations on Fishing",
+    "content": "Details about new regulations...",
+    "date": "2024-02-20T00:00:00",
+    "author": "Jane Smith",
+    "tags": [
+      "regulations",
+      "policy"
+    ],
+    "metadata": {
+      "source": "doj",
+      "category": "policy"
+    },
+    "scraped_at": "2025-10-29T11:22:07.069444"
+  }
+]

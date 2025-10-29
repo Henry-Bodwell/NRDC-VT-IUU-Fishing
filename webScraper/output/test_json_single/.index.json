@@ -1,0 +1,4 @@
+{
+  "https://test.com/article1": "webScraper\\output\\test_json_single\\scraped_data.json",
+  "https://test.com/article2": "webScraper\\output\\test_json_single\\scraped_data.json"
+}

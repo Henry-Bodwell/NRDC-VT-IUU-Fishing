@@ -1,0 +1,47 @@
+site_name: monga_bay
+base_url: https://news.mongabay.com/
+search_url: https://news.mongabay.com/?s=&formats=post
+selectors:
+  search_input: '#searchInput'
+  search_button: '#searchInput'
+  result_links: div.article--container a
+  result_title: dib.title
+  result_snippet: null
+  next_page: button.load-more
+  detail_title: h1
+  detail_content: article
+  detail_date: span.date
+  detail_author: span.bylines a[rel='tag']
+  detail_tags: div.article_taxonomies a
+  custom: {}
+rate_limit:
+  requests_per_minute: 20
+  delay_range:
+  - 2.0
+  - 5.0
+  max_concurrent: 1
+  respect_robots_txt: true
+pagination:
+  enabled: true
+  next_button: button.load-more
+  max_pages: null
+  pagination_type: button
+  url_pattern: null
+authentication:
+  required: false
+  auth_type: none
+  login_url: null
+  username_field: null
+  password_field: null
+  submit_button: null
+  credentials_env_var: null
+javascript_required: false
+wait_for_selector: div.article--container a
+wait_for_timeout: 30000
+headers: {}
+cookies: []
+metadata:
+  description: Mongabay is an independent media organization reporting on Nature and
+    planetary challenges with a global network of local journalists.
+  category: News
+  primary_content_type: Text
