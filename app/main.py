@@ -52,6 +52,8 @@ origins = [
     "https://localhost",
     "https://localhost:5000",
     f"https://localhost:{frontendPort}",
+    "http://iuudb.cs.vt.edu",
+    f"http://iuudb.cs.vt.edu:{frontendPort}",
 ]
 
 # Create the FastAPI app instance at module level
