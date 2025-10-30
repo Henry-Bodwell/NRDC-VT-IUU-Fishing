@@ -254,10 +254,16 @@ async def _handle_file_request(
         try:
             temp_source = ContentExtractor.from_pdf(pdf_bytes)
             if temp_source.article_text:
-                text_hash = hashlib.sha256(temp_source.article_text.encode()).hexdigest()
-                existing_source = await Source.find_one(Source.article_hash == text_hash)
+                text_hash = hashlib.sha256(
+                    temp_source.article_text.encode()
+                ).hexdigest()
+                existing_source = await Source.find_one(
+                    Source.article_hash == text_hash
+                )
                 if existing_source:
-                    logger.warning(f"PDF with same content already exists: {pdf_file.filename} (hash: {text_hash})")
+                    logger.warning(
+                        f"PDF with same content already exists: {pdf_file.filename} (hash: {text_hash})"
+                    )
                     raise HTTPException(
                         status_code=409,
                         detail=f"A source with identical content already exists (ID: {existing_source.id})",
@@ -266,7 +272,9 @@ async def _handle_file_request(
             raise
         except Exception as e:
             # If text extraction fails here, let it continue - the background task will handle the error
-            logger.warning(f"Could not check for duplicate during upload (will check later): {e}")
+            logger.warning(
+                f"Could not check for duplicate during upload (will check later): {e}"
+            )
 
         # Create task
         task = TaskStatus(
@@ -367,44 +375,75 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
 
     # Event date filters
     if filter_query.event_date_after:
-        query_filters["extracted_information.eventData.eventDate"] = query_filters.get("extracted_information.eventData.eventDate", {})
-        query_filters["extracted_information.eventData.eventDate"]["$gte"] = filter_query.event_date_after
+        query_filters["extracted_information.eventData.eventDate"] = query_filters.get(
+            "extracted_information.eventData.eventDate", {}
+        )
+        query_filters["extracted_information.eventData.eventDate"][
+            "$gte"
+        ] = filter_query.event_date_after
     if filter_query.event_date_before:
-        query_filters["extracted_information.eventData.eventDate"] = query_filters.get("extracted_information.eventData.eventDate", {})
-        query_filters["extracted_information.eventData.eventDate"]["$lte"] = filter_query.event_date_before
+        query_filters["extracted_information.eventData.eventDate"] = query_filters.get(
+            "extracted_information.eventData.eventDate", {}
+        )
+        query_filters["extracted_information.eventData.eventDate"][
+            "$lte"
+        ] = filter_query.event_date_before
 
     # Location filters
     if filter_query.event_location:
-        query_filters["extracted_information.eventData.eventLocation"] = {"$regex": filter_query.event_location, "$options": "i"}
+        query_filters["extracted_information.eventData.eventLocation"] = {
+            "$regex": filter_query.event_location,
+            "$options": "i",
+        }
     if filter_query.event_country:
-        query_filters["extracted_information.eventData.eventCountry"] = {"$regex": filter_query.event_country, "$options": "i"}
+        query_filters["extracted_information.eventData.eventCountry"] = {
+            "$regex": filter_query.event_country,
+            "$options": "i",
+        }
     if filter_query.event_location_category != "all":
-        query_filters["extracted_information.eventData.eventLocationCategory"] = filter_query.event_location_category
+        query_filters["extracted_information.eventData.eventLocationCategory"] = (
+            filter_query.event_location_category
+        )
 
     # Vessel filters
     if filter_query.vessel_name:
-        query_filters["extracted_information.vesselInformation.vesselName"] = {"$regex": filter_query.vessel_name, "$options": "i"}
+        query_filters["extracted_information.vesselInformation.vesselName"] = {
+            "$regex": filter_query.vessel_name,
+            "$options": "i",
+        }
     if filter_query.vessel_flag:
-        query_filters["extracted_information.vesselInformation.flagState"] = {"$regex": filter_query.vessel_flag, "$options": "i"}
+        query_filters["extracted_information.vesselInformation.flagState"] = {
+            "$regex": filter_query.vessel_flag,
+            "$options": "i",
+        }
 
     # Species filter
     if filter_query.species_common_name:
         query_filters["extracted_information.speciesInvolved"] = {
-            "$elemMatch": {"speciesCommonName": {"$regex": filter_query.species_common_name, "$options": "i"}}
+            "$elemMatch": {
+                "speciesCommonName": {
+                    "$regex": filter_query.species_common_name,
+                    "$options": "i",
+                }
+            }
         }
 
     # Enforcement category filter
     if filter_query.enforcement_category:
-        query_filters["extracted_information.eventData.enforcementCategory"] = {"$regex": filter_query.enforcement_category, "$options": "i"}
+        query_filters["extracted_information.eventData.enforcementCategory"] = {
+            "$regex": filter_query.enforcement_category,
+            "$options": "i",
+        }
 
     # Sort order
     from pymongo import ASCENDING
+
     sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
     sort_field = filter_query.sort_by
 
     logger.info(f"Query Filters: {query_filters}")
     reports = (
-        await IncidentReport.find(query_filters, fetch_links=True, nesting_depth=1)
+        await IncidentReport.find(query_filters, fetch_links=False)
         .sort([(sort_field, sort_direction)])
         .skip(filter_query.skip)
         .limit(filter_query.limit)
@@ -429,7 +468,7 @@ async def get_incident_report(report_id: str):
     """
     Retrieves a specific incident report by its ID.
     """
-    report = await IncidentReport.get(report_id)
+    report = await IncidentReport.get(report_id, fetch_links=False)
     valid_response(report, IncidentReport)
     return report
 
@@ -536,12 +575,13 @@ async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
 
     # Sort order
     from pymongo import ASCENDING
+
     sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
     sort_field = filter_query.sort_by
 
     logger.info(f"Query Filters: {query_filters}")
     sources = (
-        await Source.find(query_filters, fetch_links=True, nesting_depth=1)
+        await Source.find(query_filters, fetch_links=False)
         .sort([(sort_field, sort_direction)])
         .skip(filter_query.skip)
         .limit(filter_query.limit)
@@ -703,11 +743,12 @@ async def list_overviews(filter_query: Annotated[OverviewFilters, Query()]):
 
     # Sort order
     from pymongo import ASCENDING
+
     sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
     sort_field = filter_query.sort_by
 
     overviews = (
-        await IndustryOverview.find(query_filters, fetch_links=True, nesting_depth=1)
+        await IndustryOverview.find(query_filters, fetch_links=False)
         .sort([(sort_field, sort_direction)])
         .skip(filter_query.skip)
         .limit(filter_query.limit)

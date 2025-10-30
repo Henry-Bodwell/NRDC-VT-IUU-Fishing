@@ -179,9 +179,9 @@ class Source(AuditedDocument):
                     )
 
                     if incident:
-                        # Fetch full incident with all sources to check count
+                        # Fetch incident without links to check source count
                         full_incident = await IncidentReport.get(
-                            incident.id, fetch_links=True
+                            incident.id, fetch_links=False
                         )
                         if full_incident:
                             # Count how many sources this incident has
