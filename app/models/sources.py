@@ -53,8 +53,9 @@ class ArticleScopeClassification(BaseModel):
     ] = Field(
         ...,
         description="Select the type of article: if unrelated to Illegal, unregulated or unreported fishing, 'Unrelated to IUU Fishing', "
-        "else if referring to a specific or multiple specific incidents of illegal fishing select 'Single Incident' or 'Multiple Incidents', "
-        "otherwise if discussing illegal fishing but not referring to a specific case 'Industry Overview'",
+        "else if discussing illegal fishing but not referring to a specific inident, like a definition of or review of the state of IUU+ fishing or new government policy on IUU, 'Industry Overview', "
+        "otherwise if referring to a specific or multiple specific **incidents** of IUU+ fishing select 'Single Incident' or 'Multiple Incidents', incident refering to the direct actions performed by a vessel, entity, or person"
+        "IUU+ means Illegal unregulated unreported fishing, as well as labor abuse, seafood fraud of mislabeling, sanction avoidance, or illegal aquacultural practices",
     )
     confidence: float = Field(
         ..., description="Confidence score for the classification, between 0 and 1."

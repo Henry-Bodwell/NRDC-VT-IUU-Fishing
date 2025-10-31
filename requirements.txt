@@ -19,4 +19,7 @@ pdf2image==1.17.0
 jwt==1.4.0
 Pillow
 jsondiff
+eventregistry
 diff-match-patch
+aiohttp
+arrow
