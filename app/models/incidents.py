@@ -993,21 +993,33 @@ class IncidentReport(AuditedDocument):
     async def add_source(self, source: "Source", is_primary: bool = False):
         """Helper method to add a source and maintain bidirectional relationship"""
         try:
+            # Helper function to get ID from either Link or document object
+            def get_id(obj):
+                if hasattr(obj, "ref"):
+                    return obj.ref.id
+                return obj.id
+
+            # If source is a Link, fetch the actual document
+            if hasattr(source, "fetch"):
+                source_doc = await source.fetch()
+            else:
+                source_doc = source
+
             if self.sources is None:
                 self.sources = []
-            source_ids = [s.id for s in self.sources if hasattr(s, "id")]
-            if source.id not in source_ids:
-                self.sources.append(source)
+            source_ids = [get_id(s) for s in self.sources]
+            if source_doc.id not in source_ids:
+                self.sources.append(source_doc)
 
             if is_primary:
-                self.primary_source = source
+                self.primary_source = source_doc
 
             await self.save()
 
-            incident_ids = [i.id for i in source.incidents if hasattr(i, "id")]
+            incident_ids = [get_id(i) for i in source_doc.incidents] if source_doc.incidents else []
             if self.id not in incident_ids:
-                source.incidents.append(self)
-                await source.save()
+                source_doc.incidents.append(self)
+                await source_doc.save()
 
         except Exception as e:
             raise Exception(f"Failed to add source to incident: {e}")
@@ -1015,14 +1027,27 @@ class IncidentReport(AuditedDocument):
     async def remove_source(self, source: "Source"):
         """Helper method to remove a source and maintain bidirectional relationship"""
         try:
-            self.sources = [s for s in self.sources if s.id != source.id]
+            # Helper function to get ID from either Link or document object
+            def get_id(obj):
+                if hasattr(obj, "ref"):
+                    return obj.ref.id
+                return obj.id
 
-            if self.primary_source and self.primary_source.id == source.id:
+            # If source is a Link, fetch the actual document
+            if hasattr(source, "fetch"):
+                source_doc = await source.fetch()
+            else:
+                source_doc = source
+
+            source_id = get_id(source)
+            self.sources = [s for s in self.sources if get_id(s) != source_id]
+
+            if self.primary_source and get_id(self.primary_source) == source_id:
                 self.primary_source = self.sources[0] if self.sources else None
 
-            if source.incidents:
-                source.incidents = [i for i in source.incidents if i.id != self.id]
-                await source.save()
+            if source_doc and source_doc.incidents:
+                source_doc.incidents = [i for i in source_doc.incidents if get_id(i) != self.id]
+                await source_doc.save()
 
             await self.save()
         except Exception as e:
@@ -1032,7 +1057,7 @@ class IncidentReport(AuditedDocument):
         """Override delete method to handle source removal"""
         try:
             for source in self.sources:
-                self.remove_source(source)
+                await self.remove_source(source)
 
             self.sources = []
             self.primary_source = None

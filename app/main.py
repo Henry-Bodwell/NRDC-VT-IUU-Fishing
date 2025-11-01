@@ -7,7 +7,11 @@ from contextlib import asynccontextmanager
 from app.logging import setup_logging
 from app.database import init_db
 from app.routes import router
+from app.routes_auth import router as auth_router
 from app.tasks.cleanup import cleanup_old_tasks, periodic_cleanup
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.rate_limit import create_limiter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -58,9 +62,15 @@ origins = [
     f"https://iuudb.cs.vt.edu:{frontendPort}",
 ]
 
+# Configure rate limiter with IP whitelist support
+limiter = create_limiter()
+
 # Create the FastAPI app instance at module level
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.include_router(router, prefix="/api", tags=["api"])
+app.include_router(auth_router, prefix="/api")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -87,11 +97,47 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 @app.get("/", tags=["Root"])
-async def read_root():
+@limiter.limit("100/minute")
+async def read_root(request: Request):
     """
     A simple root endpoint to confirm the API is running.
     """
     return {"message": "Welcome to the Fish Project API!"}
+
+
+# Apply rate limits to specific routes using decorators
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """
+    Apply route-specific rate limits based on endpoint type
+    """
+    from app.rate_limit import RATE_LIMITS
+
+    path = request.url.path
+    method = request.method
+
+    # Define rate limits for different endpoints
+    rate_limit = None
+
+    if path.startswith("/api/incidents") and method == "POST":
+        rate_limit = RATE_LIMITS["expensive"]  # 30/hour
+    elif path.startswith("/api/") and method in ["PUT", "DELETE"]:
+        rate_limit = RATE_LIMITS["write"]  # 100/hour
+    elif path.startswith("/api/logs"):
+        rate_limit = RATE_LIMITS["logs"]  # 60/minute
+    elif path.startswith("/api/") and method == "GET":
+        rate_limit = RATE_LIMITS["read"]  # 300/minute
+
+    # Apply rate limit if defined
+    if rate_limit:
+        try:
+            await limiter.check(rate_limit)(request)
+        except Exception:
+            # Rate limit exceeded - will be handled by exception handler
+            pass
+
+    response = await call_next(request)
+    return response
 
 
 if __name__ == "__main__":

@@ -38,21 +38,39 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
+# Import authentication dependencies
+from app.auth import get_current_user, get_current_admin_user, get_optional_user
+from app.models.users import User
+
+
+# Get limiter instance (will be injected by main.py)
+def get_limiter():
+    from app.main import limiter
+
+    return limiter
+
 
 # Incident Routes
 @router.post("/incidents", status_code=status.HTTP_202_ACCEPTED)
-async def create_incident_report(request: Request, background_tasks: BackgroundTasks):
+async def create_incident_report(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)  # Require authentication
+):
     """
     Submits a URL or file for analysis and saves the resulting incident report to database.
     Returns a task_id immediately for status polling.
+
+    Rate limit: 30/hour for regular IPs (can be whitelisted for bulk processing)
+    Authentication: Required (Bearer token)
     """
     content_type = request.headers.get("content-type")
 
     try:
         if content_type == "application/json":
-            return await _handle_json_request(request, background_tasks)
+            return await _handle_json_request(request, background_tasks, current_user)
         elif content_type and content_type.startswith("multipart/form-data"):
-            return await _handle_file_request(request, background_tasks)
+            return await _handle_file_request(request, background_tasks, current_user)
         else:
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -68,36 +86,11 @@ async def create_incident_report(request: Request, background_tasks: BackgroundT
         )
 
 
-def _request_response(pipeline_output: PipelineOutput):
-
-    if pipeline_output.is_success:
-        if pipeline_output.has_overview:
-            overview = pipeline_output.industry_overview
-            if isinstance(overview, IndustryOverview):
-                valid_response(overview, IndustryOverview)
-                logger.info(f"Industry Overview created: {overview.id}")
-
-        if pipeline_output.has_incident:
-            for incident in pipeline_output.incidents:
-                report = incident
-                if isinstance(report, IncidentReport):
-                    valid_response(report, IncidentReport)
-                    logger.info(f"Incident report created: {report.id}")
-
-    return pipeline_output.model_dump(
-        exclude={
-            "source": {"incidents", "overview"},
-            "incidents": {"__all__": {"sources", "primary_source"}},
-            "industry_overview": {"source"},
-        }
-    )
-
-
-async def _handle_json_request(request, background_tasks: BackgroundTasks):
+async def _handle_json_request(request, background_tasks: BackgroundTasks, current_user: User):
     try:
         json_payload = await request.json()
         payload = GenRequest(**json_payload)
-        user_id = payload.user_id if payload.user_id else "anonymous"
+        user_id = str(current_user.id)  # Use authenticated user's ID
 
         # Create task
         task = TaskStatus(
@@ -193,20 +186,18 @@ async def _handle_json_request(request, background_tasks: BackgroundTasks):
 
 
 async def _handle_file_request(
-    request: Request, background_tasks: BackgroundTasks
+    request: Request, background_tasks: BackgroundTasks, current_user: User
 ) -> dict:
     """Handle multipart file request"""
     try:
         form = await request.form()
         logger.info(f"Form received with keys: {list(form.keys())}")
         pdf_file = None
-        user_id = "anonymous"
+        user_id = str(current_user.id)  # Use authenticated user's ID
 
         for key, value in form.items():
             logger.info(f"Key: {key}, Value type: {type(value)}, Value: {value}")
-            if key == "user_id" and isinstance(value, str):
-                user_id = value
-            elif isinstance(value, (UploadFile, FastAPIUploadFile)):
+            if isinstance(value, (UploadFile, FastAPIUploadFile)):
                 if not value.filename:
                     continue
 
@@ -478,7 +469,10 @@ async def get_incident_report(report_id: str):
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
 )
-async def delete_incident(report_id: str):
+async def delete_incident(
+    report_id: str,
+    current_user: User = Depends(get_current_admin_user)  # Require admin
+):
     """
     Deletes an incident report by its ID.
     """
@@ -501,7 +495,11 @@ async def delete_incident(report_id: str):
 
 
 @router.put("/incidents/{report_id}", response_model=IncidentReport)
-async def update_incident_report(report_id: str, update_data: dict):
+async def update_incident_report(
+    report_id: str,
+    update_data: dict,
+    current_user: User = Depends(get_current_user)  # Require authentication
+):
     """Updates an existing incident report by its ID."""
     try:
         updated_report = await IncidentService.update_report(
@@ -612,7 +610,10 @@ async def get_source(source_id: str):
     "/sources/{source_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_source(source_id: str):
+async def delete_source(
+    source_id: str,
+    current_user: User = Depends(get_current_admin_user)  # Require admin
+):
     try:
         was_deleted = await SourceService.delete_source(source_id)
         if was_deleted:
@@ -622,6 +623,8 @@ async def delete_source(source_id: str):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Source not found",
             )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting source {source_id}: {e}")
         raise HTTPException(
@@ -631,7 +634,11 @@ async def delete_source(source_id: str):
 
 
 @router.put("/sources/{source_id}", response_model=Source)
-async def update_source(source_id: str, update_data: dict):
+async def update_source(
+    source_id: str,
+    update_data: dict,
+    current_user: User = Depends(get_current_user)  # Require authentication
+):
     """Updates an existing incident report by its ID."""
     try:
         updated_source = await SourceService.update_source(
@@ -658,7 +665,10 @@ async def update_source(source_id: str, update_data: dict):
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
 )
-async def delete_overview(overview_id: str):
+async def delete_overview(
+    overview_id: str,
+    current_user: User = Depends(get_current_admin_user)  # Require admin
+):
     try:
         was_deleted = await OverviewService.delete_overview(overview_id)
         if was_deleted:
@@ -677,7 +687,11 @@ async def delete_overview(overview_id: str):
 
 
 @router.put("/overviews/{overview_id}", response_model=IndustryOverview)
-async def update_overview(overview_id: str, update_data: dict):
+async def update_overview(
+    overview_id: str,
+    update_data: dict,
+    current_user: User = Depends(get_current_user)  # Require authentication
+):
     """Updates an existing industry overview by its ID."""
     try:
         updated_overview = await OverviewService.update_overview(
