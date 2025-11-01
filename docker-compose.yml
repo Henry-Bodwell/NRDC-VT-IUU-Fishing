@@ -7,16 +7,18 @@ services:
     volumes:
       - ./app:/code/app
     environment:
-      - MONGO_URI=mongodb://mongo:27017/iuuIncidents
+      - MONGO_URI=mongodb://admin:${MONGO_ROOT_PASSWORD}@mongo:27017/iuuIncidents?authSource=admin
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - FRONTEND_PORT=${FRONTEND_PORT}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     depends_on:
       - mongo
   mongo:
     image: mongodb/mongodb-community-server:latest
-    ports:
-      - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    environment:
+      - MONGODB_INITDB_ROOT_USERNAME=admin
+      - MONGODB_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
 volumes:
   mongo-data:

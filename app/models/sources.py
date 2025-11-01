@@ -172,17 +172,17 @@ class Source(AuditedDocument):
             # Fetch all incidents linked to this source
             if self.incidents:
                 for incident_link in self.incidents:
-                    # Fetch the linked incident if it's a Link object
-                    incident = (
-                        await incident_link.fetch()
-                        if hasattr(incident_link, "fetch")
-                        else incident_link
+                    # Get the incident ID from the Link object
+                    incident_id = (
+                        incident_link.ref.id
+                        if hasattr(incident_link, "ref")
+                        else incident_link.id
                     )
 
-                    if incident:
+                    if incident_id:
                         # Fetch incident without links to check source count
                         full_incident = await IncidentReport.get(
-                            incident.id, fetch_links=False
+                            incident_id, fetch_links=False
                         )
                         if full_incident:
                             # Count how many sources this incident has
