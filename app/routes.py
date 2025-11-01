@@ -807,8 +807,15 @@ def valid_response(response: Optional[T], pydanticModel: Type[T]):
 
 # Audit Logs
 @router.get("/logs/{document_id}")
-async def get_document_logs(document_id: str, limit: int = 25, skip: int = 0):
-    """Get all audit logs for a specific document by its ID."""
+async def get_document_logs(
+    document_id: str,
+    limit: int = 25,
+    skip: int = 0,
+    current_user: User = Depends(get_current_admin_user)  # Require admin
+):
+    """Get all audit logs for a specific document by its ID.
+
+    Requires admin authentication."""
     try:
         object_id = PydanticObjectId(document_id)
     except Exception:
@@ -836,9 +843,15 @@ async def get_document_logs(document_id: str, limit: int = 25, skip: int = 0):
 
 
 @router.get("/logs")
-async def list_all_logs(limit: int = 25, skip: int = 0):
+async def list_all_logs(
+    limit: int = 25,
+    skip: int = 0,
+    current_user: User = Depends(get_current_admin_user)  # Require admin
+):
     """
     Retrieves a list of all logs with pagination.
+
+    Requires admin authentication.
     """
     document_logs = (
         await AuditLog.find({})

@@ -25,9 +25,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password: str, hashedPassword: str) -> bool:
     """Verify a plain password against a hashed password"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password, hashedPassword)
 
 
 def get_password_hash(password: str) -> str:
@@ -64,7 +64,10 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> User:
     """
-    Dependency to get the current authenticated user from JWT token
+    Dependency to get the current authenticated user from NextAuth JWT token
+
+    NextAuth tokens contain 'sub' (user ID) and 'email' in the payload.
+    We'll look up the user by the ID stored in 'sub'.
 
     Raises:
         HTTPException: 401 if token is invalid or user not found
@@ -76,13 +79,18 @@ async def get_current_user(
     )
 
     try:
+        # Decode NextAuth JWT (must use same secret as NEXTAUTH_SECRET)
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+
+        # NextAuth stores user ID in 'sub' claim
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
+
     except JWTError:
         raise credentials_exception
 
+    # Get user by ID
     user = await User.get(user_id)
     if user is None:
         raise credentials_exception
@@ -114,7 +122,7 @@ async def get_current_admin_user(
     Raises:
         HTTPException: 403 if user is not an admin
     """
-    if not current_user.is_admin:
+    if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required"

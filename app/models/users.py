@@ -5,14 +5,18 @@ from pydantic import Field, EmailStr
 
 
 class User(Document):
-    """User account for authentication and authorization"""
+    """User account for authentication and authorization - Compatible with NextAuth"""
 
     email: EmailStr = Field(..., unique=True, index=True)
-    username: str = Field(..., unique=True, index=True)
-    hashed_password: str = Field(..., description="Bcrypt hashed password")
-    full_name: Optional[str] = None
+    name: Optional[str] = None  # NextAuth uses 'name' instead of 'full_name'
+    hashedPassword: str = Field(
+        ..., description="Bcrypt hashed password"
+    )  # NextAuth uses camelCase
+    role: str = Field(default="user")  # NextAuth uses 'role' instead of is_admin
+    username: Optional[str] = Field(
+        None, unique=True, index=True
+    )  # Optional for NextAuth compatibility
     is_active: bool = Field(default=True)
-    is_admin: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
 
@@ -24,8 +28,8 @@ class User(Document):
             "example": {
                 "email": "user@example.com",
                 "username": "johndoe",
-                "full_name": "John Doe",
+                "name": "John Doe",
+                "role": "user",
                 "is_active": True,
-                "is_admin": False
             }
         }
