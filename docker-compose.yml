@@ -1,7 +1,8 @@
-
 services:
   backend:
     build: .
+    networks:
+      - project
     ports:
       - "8000:8000"
     volumes:
@@ -10,12 +11,14 @@ services:
       - MONGO_URI=mongodb://admin:${MONGO_ROOT_PASSWORD}@mongo:27017/iuuIncidents?authSource=admin
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - FRONTEND_PORT=${FRONTEND_PORT}
-      - JWT_SECRET_KEY=${NEXTAUTH_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     depends_on:
       - mongo
 
   mongo:
     image: mongodb/mongodb-community-server:latest
+    networks:
+      - project
     volumes:
       - mongo-data:/data/db
     environment:
@@ -24,3 +27,7 @@ services:
 
 volumes:
   mongo-data:
+
+networks:
+  project:
+    external: true

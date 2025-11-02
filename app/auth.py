@@ -1,76 +1,86 @@
 """
-Authentication utilities for JWT tokens and password hashing
+Authentication utilities for NextAuth JWT token validation
 """
+
 import os
-from datetime import datetime, timedelta
+import json
+import logging
 from typing import Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.models.users import User
 
-# JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-if not SECRET_KEY:
-    raise ValueError("JWT_SECRET_KEY environment variable must be set")
+logger = logging.getLogger(__name__)
 
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("ACCESS_TOKEN_EXPIRE_HOURS", "24"))
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# NextAuth secret from environment
+NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET")
+if not NEXTAUTH_SECRET:
+    raise ValueError("NEXTAUTH_SECRET environment variable must be set")
 
 # HTTP Bearer token security
 security = HTTPBearer()
 
 
-def verify_password(plain_password: str, hashedPassword: str) -> bool:
-    """Verify a plain password against a hashed password"""
-    return pwd_context.verify(plain_password, hashedPassword)
-
-
-def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt"""
-    # Ensure password is within bcrypt's 72-byte limit
-    if len(password.encode('utf-8')) > 72:
-        raise ValueError("Password cannot be longer than 72 bytes")
-    return pwd_context.hash(password)
-
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def decode_nextauth_token(token: str) -> dict:
     """
-    Create a JWT access token
+    Decode NextAuth session token (JWE encrypted token).
+
+    Uses HKDF key derivation with jose.jwe for decryption.
 
     Args:
-        data: Dictionary containing token claims (usually {"sub": user_id})
-        expires_delta: Optional custom expiration time
+        token: The JWE token string from the session cookie or Authorization header
 
     Returns:
-        Encoded JWT token string
-    """
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+        dict: The decoded token payload containing 'sub' (user ID), 'email', etc.
 
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    Raises:
+        ValueError: If token cannot be decrypted or is invalid
+    """
+    try:
+        from hkdf import Hkdf
+        from jose.jwe import decrypt
+
+        # Derive encryption key using HKDF (same as NextAuth)
+        secret_bytes = bytes(NEXTAUTH_SECRET, "utf-8")  # type: ignore
+        encryption_key = Hkdf("", secret_bytes).expand(
+            b"NextAuth.js Generated Encryption Key", 32
+        )
+
+        # Decrypt JWE token
+        decrypted = decrypt(token, encryption_key)
+
+        if decrypted:
+            payload = json.loads(bytes.decode(decrypted, "utf-8"))
+            logger.debug(
+                f"Successfully decoded NextAuth token for user: {payload.get('sub')}"
+            )
+            return payload
+        else:
+            raise ValueError("Decryption returned None")
+
+    except Exception as e:
+        logger.error(f"Failed to decode NextAuth token: {e}")
+        raise ValueError(f"Invalid token: {e}")
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> User:
     """
-    Dependency to get the current authenticated user from NextAuth JWT token
+    Dependency to get the current authenticated user from NextAuth token.
 
-    NextAuth tokens contain 'sub' (user ID) and 'email' in the payload.
-    We'll look up the user by the ID stored in 'sub'.
+    Extracts the user ID from the token's 'sub' claim and looks up the user
+    in the database.
+
+    Args:
+        credentials: HTTP Bearer credentials containing the token
+
+    Returns:
+        User: The authenticated user object
 
     Raises:
         HTTPException: 401 if token is invalid or user not found
+        HTTPException: 403 if user account is inactive
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,53 +89,57 @@ async def get_current_user(
     )
 
     try:
-        # Decode NextAuth JWT (must use same secret as NEXTAUTH_SECRET)
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        # Decode the NextAuth token
+        payload = decode_nextauth_token(credentials.credentials)
 
-        # NextAuth stores user ID in 'sub' claim
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        # Extract user ID from 'sub' claim
+        user_id = payload.get("sub")
+        if not user_id or not isinstance(user_id, str):
+            logger.warning("Token missing 'sub' claim or invalid type")
             raise credentials_exception
 
-    except JWTError:
+    except ValueError as e:
+        logger.warning(f"Token validation failed: {e}")
         raise credentials_exception
 
-    # Get user by ID
+    # Look up user in database
     user = await User.get(user_id)
     if user is None:
+        logger.warning(f"User not found: {user_id}")
         raise credentials_exception
 
+    # Check if user is active
     if not user.is_active:
+        logger.warning(f"Inactive user attempted access: {user_id}")
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive"
         )
 
     return user
 
 
 async def get_current_active_user(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> User:
     """
-    Dependency to ensure user is active (same as get_current_user but explicit)
+    Dependency to ensure user is active (explicit version of get_current_user).
     """
     return current_user
 
 
 async def get_current_admin_user(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ) -> User:
     """
-    Dependency to ensure user is an admin
+    Dependency to ensure user has admin privileges.
 
     Raises:
         HTTPException: 403 if user is not an admin
     """
     if current_user.role != "admin":
+        logger.warning(f"Non-admin user attempted admin access: {current_user.id}")
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )
     return current_user
 
@@ -133,25 +147,37 @@ async def get_current_admin_user(
 async def get_optional_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(
         HTTPBearer(auto_error=False)
-    )
+    ),
 ) -> Optional[User]:
     """
-    Dependency to optionally get the current user (doesn't require auth)
-    Returns None if no valid token provided
+    Dependency to optionally get the current user (doesn't require auth).
+
+    Returns None if no valid token is provided instead of raising an exception.
+    Useful for endpoints that have different behavior for authenticated vs
+    unauthenticated users.
+
+    Args:
+        credentials: Optional HTTP Bearer credentials
+
+    Returns:
+        User or None: The authenticated user if valid token provided, else None
     """
     if not credentials:
         return None
 
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        payload = decode_nextauth_token(credentials.credentials)
+        user_id = payload.get("sub")
+
+        if not user_id or not isinstance(user_id, str):
             return None
 
         user = await User.get(user_id)
         if user and user.is_active:
             return user
-    except JWTError:
-        return None
+
+    except ValueError:
+        # Invalid token, return None instead of raising
+        pass
 
     return None
