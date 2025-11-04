@@ -3,17 +3,26 @@ Process fetched news articles through the IUU incident extraction pipeline.
 
 This script reads unprocessed articles from the newsapi database and sends them
 through the main DSPy analysis pipeline to create Sources and IncidentReports via HTTP API.
+
+Authentication:
+    Requires a valid NextAuth JWT token from the authentication system.
+    Token can be provided via:
+    - --auth-token CLI argument
+    - AUTH_TOKEN environment variable
 """
 
 import argparse
 import asyncio
 import aiohttp
+import os
 from pathlib import Path
 
 from fetch_newsapi import NewsapiFetcher
 
 
-async def process_article(article_data, api_url, user_id="newsapi_processor"):
+async def process_article(
+    article_data, api_url, auth_token, user_id="newsapi_processor"
+):
     """
     Process a single article through the pipeline via API.
 
@@ -25,7 +34,8 @@ async def process_article(article_data, api_url, user_id="newsapi_processor"):
     Args:
         article_data: Dict with 'uri', 'filepath', and 'article' fields
         api_url: Base URL for the API (e.g., http://localhost:8000)
-        user_id: User ID for audit logging
+        auth_token: NextAuth JWT token for authentication
+        user_id: User ID for audit logging (deprecated - user ID is now extracted from token)
 
     Returns:
         Tuple of (success: bool, error_msg: str or None)
@@ -45,9 +55,15 @@ async def process_article(article_data, api_url, user_id="newsapi_processor"):
     print(f"\nProcessing article {uri}: {title[:60]}...")
 
     try:
-        async with aiohttp.ClientSession() as session:
+        # Prepare authorization headers
+        headers = {
+            "Authorization": f"Bearer {auth_token}",
+            "Content-Type": "application/json",
+        }
+
+        async with aiohttp.ClientSession(headers=headers) as session:
             # Step 1: Submit article for processing
-            payload = {"user_id": user_id}
+            payload = {}  # user_id no longer needed - extracted from token
 
             # Prefer URL if available, otherwise use text
             if text:
@@ -56,11 +72,13 @@ async def process_article(article_data, api_url, user_id="newsapi_processor"):
                 payload["url"] = url
             if authors_list:
                 # Extract author names from list of dicts
-                author_names = [a.get("name", "") for a in authors_list if isinstance(a, dict)]
+                author_names = [
+                    a.get("name", "") for a in authors_list if isinstance(a, dict)
+                ]
                 if author_names:
                     payload["author"] = ", ".join(author_names)
             if date:
-                payload["date"] = date
+                payload["publication_date"] = date
             if source_name:
                 payload["publisher"] = source_name
 
@@ -83,6 +101,14 @@ async def process_article(article_data, api_url, user_id="newsapi_processor"):
                         return (False, error_msg)
 
                     print(f"  > Task created: {task_id}, polling for completion...")
+
+                elif response.status == 401:  # Unauthorized
+                    print(f"  x Authentication failed: Invalid or expired token")
+                    return (False, "Authentication failed - check your auth token")
+
+                elif response.status == 403:  # Forbidden
+                    print(f"  x Access forbidden: Insufficient permissions")
+                    return (False, "Access forbidden - check user permissions")
 
                 elif response.status == 409:  # Conflict - already exists
                     print(f"  x Article already exists in database (duplicate)")
@@ -169,12 +195,14 @@ async def process_article(article_data, api_url, user_id="newsapi_processor"):
 
 
 async def process_article_with_tracking(
-    article_data, api_url, user_id, db_path, index, total
+    article_data, api_url, auth_token, user_id, db_path, index, total
 ):
     """Wrapper to process article and mark as processed in DB."""
     print(f"\n[{index}/{total}]", end=" ")
 
-    success, error_msg = await process_article(article_data, api_url, user_id)
+    success, error_msg = await process_article(
+        article_data, api_url, auth_token, user_id
+    )
 
     # Mark as processed
     NewsapiFetcher.mark_processed(
@@ -188,6 +216,7 @@ async def process_batch(
     batch_size=10,
     concurrency=3,
     api_url="http://localhost:8000",
+    auth_token=None,
     user_id="newsapi_processor",
     db_path="data/newsapi.db",
 ):
@@ -198,9 +227,17 @@ async def process_batch(
         batch_size: Number of articles to process in this run
         concurrency: Maximum number of concurrent requests (default: 3)
         api_url: Base URL for the API
-        user_id: User ID for audit logging
+        auth_token: NextAuth JWT token for authentication (required)
+        user_id: User ID for audit logging (deprecated - extracted from token)
         db_path: Path to newsapi SQLite database
     """
+
+    if not auth_token:
+        raise ValueError(
+            "Authentication token is required. Provide via --auth-token or AUTH_TOKEN environment variable."
+        )
+
+    print(f"Authenticating with provided token...")
 
     # Get unprocessed articles
     print(f"Fetching up to {batch_size} unprocessed articles...")
@@ -223,7 +260,13 @@ async def process_batch(
     async def process_with_semaphore(article_data, index):
         async with semaphore:
             success = await process_article_with_tracking(
-                article_data, api_url, user_id, db_path, index, len(articles)
+                article_data,
+                api_url,
+                auth_token,
+                user_id,
+                db_path,
+                index,
+                len(articles),
             )
             return success
 
@@ -278,7 +321,8 @@ async def show_stats(db_path="data/newsapi.db"):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process NewsAPI articles through IUU incident pipeline via HTTP API"
+        description="Process NewsAPI articles through IUU incident pipeline via HTTP API",
+        epilog="Authentication is required. Provide token via --auth-token or AUTH_TOKEN env variable.",
     )
     parser.add_argument(
         "--batch-size",
@@ -298,9 +342,14 @@ def main():
         help="Base URL for the API (default: http://localhost:8000)",
     )
     parser.add_argument(
+        "--auth-token",
+        default=None,
+        help="NextAuth JWT token for authentication (or use AUTH_TOKEN env var)",
+    )
+    parser.add_argument(
         "--user-id",
         default="newsapi_processor",
-        help="User ID for audit logging (default: newsapi_processor)",
+        help="(Deprecated) User ID for audit logging - now extracted from auth token",
     )
     parser.add_argument(
         "--db-path",
@@ -321,12 +370,21 @@ def main():
     if args.stats:
         asyncio.run(show_stats(db_path=args.db_path))
     else:
+        # Get auth token from CLI arg or environment variable
+        auth_token = args.auth_token or os.getenv("AUTH_TOKEN")
+
+        if not auth_token:
+            parser.error(
+                "Authentication token is required. Provide via --auth-token or set AUTH_TOKEN environment variable."
+            )
+
         batch_size = None if args.all else args.batch_size
         asyncio.run(
             process_batch(
                 batch_size=batch_size,
                 concurrency=args.concurrency,
                 api_url=args.api_url,
+                auth_token=auth_token,
                 user_id=args.user_id,
                 db_path=args.db_path,
             )
