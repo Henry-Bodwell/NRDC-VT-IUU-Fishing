@@ -8,6 +8,7 @@ import sys
 import arrow
 
 from pathlib import Path
+from dotenv import load_dotenv
 
 from eventregistry import *
 
@@ -25,7 +26,7 @@ class NewsapiFetcher:
             else arrow.now().shift(days=-1).isoformat()[:10]
         )
         self.concepts = concepts if concepts else self.get_default_iuu_concepts()
-        self.outfile = outfile if outfile else f"{start_date}_iuu_fishing"
+        self.outfile = outfile if outfile else f"{start_date}_to_{self.end_date}_iuu_fishing"
         self.cache = {}
         self.root = "data/newsapi/v0.1_raw"
 
@@ -427,10 +428,16 @@ class NewsapiFetcher:
 
 
 if __name__ == "__main__":
+    # Load environment variables from .env file
+    load_dotenv()
+
     parser = argparse.ArgumentParser(
         description="Fetch IUU fishing news articles from EventRegistry"
     )
-    parser.add_argument("--api-key", required=True, help="EventRegistry API key")
+    parser.add_argument(
+        "--api-key",
+        help="EventRegistry API key (falls back to EVENTREGISTRY_API_KEY env var)"
+    )
     parser.add_argument(
         "--start-date", required=True, help="Start date in YYYY-MM-DD format"
     )
@@ -455,9 +462,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Get API key from args or environment variable
+    api_key = args.api_key or os.getenv("EVENTREGISTRY_API_KEY")
+    if not api_key:
+        parser.error("--api-key is required or EVENTREGISTRY_API_KEY must be set in .env file")
+
     # Initialize fetcher
     fetcher = NewsapiFetcher(
-        api_key=args.api_key,
+        api_key=api_key,
         start_date=args.start_date,
         end_date=args.end_date,
         outfile=args.outfile,
