@@ -140,6 +140,7 @@ async def _handle_json_request(request, background_tasks: BackgroundTasks, curre
                 publisher=payload.publisher if payload.publisher else None,
                 date=payload.publication_date if payload.publication_date else None,
                 source_type=payload.source_type,
+                status=payload.status,
             )
 
         elif payload.url:

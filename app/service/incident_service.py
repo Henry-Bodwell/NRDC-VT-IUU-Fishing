@@ -160,6 +160,7 @@ class IncidentService(Service):
         title: str = "",
         publisher: str = "",
         date=None,
+        status: str = "user_input",
     ) -> PipelineResult:
         logger.info(f"Starting analysis for text: {text[:50]}")
         orchestrator = IncidentService._get_orchestrator()
@@ -170,6 +171,7 @@ class IncidentService(Service):
             title=title,
             publisher=publisher,
             publication_date=date,
+            status=status,
         )
 
         results = await IncidentService._create_report(output)
@@ -242,6 +244,7 @@ class IncidentService(Service):
                     title=kwargs.get("title", None),
                     publisher=kwargs.get("publisher", None),
                     publication_date=kwargs.get("date", None),
+                    status=kwargs.get("status", "user_input"),
                     progress_callback=progress_callback
                 )
             else:

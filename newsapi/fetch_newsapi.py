@@ -5,6 +5,7 @@ import os
 import random
 import sqlite3
 import sys
+import time
 import arrow
 
 from pathlib import Path
@@ -26,7 +27,9 @@ class NewsapiFetcher:
             else arrow.now().shift(days=-1).isoformat()[:10]
         )
         self.concepts = concepts if concepts else self.get_default_iuu_concepts()
-        self.outfile = outfile if outfile else f"{start_date}_to_{self.end_date}_iuu_fishing"
+        self.outfile = (
+            outfile if outfile else f"{start_date}_to_{self.end_date}_iuu_fishing"
+        )
         self.cache = {}
         self.root = "data/newsapi/v0.1_raw"
 
@@ -150,7 +153,7 @@ class NewsapiFetcher:
                         BaseQuery(dateStart=self.start_date, dateEnd=self.end_date),
                     ]
                 ),
-                isDuplicateFilter="skipDuplicates"
+                isDuplicateFilter="skipDuplicates",
             )
 
             self.fetchURIs(cq, "default_complex_query")
@@ -169,7 +172,7 @@ class NewsapiFetcher:
                         dateStart=self.start_date,
                         dateEnd=self.end_date,
                     ),
-                    isDuplicateFilter="skipDuplicates"
+                    isDuplicateFilter="skipDuplicates",
                 )
 
                 self.fetchURIs(cq, f"concept_{i}")
@@ -212,9 +215,7 @@ class NewsapiFetcher:
             print(f"PAGE {page} {log_identifier} *********")
 
             query = QueryArticles.initWithComplexQuery(cq)
-            query.setRequestedResult(
-                RequestArticlesUriWgtList(page=page, count=50000)
-            )
+            query.setRequestedResult(RequestArticlesUriWgtList(page=page, count=50000))
 
             print(query._getQueryParams())
             res = self.er.execQuery(query)
@@ -294,7 +295,9 @@ class NewsapiFetcher:
             q = QueryArticle(batch)
             arts = self.er.execQuery(q)
 
-            print(f"Writing articles")
+            print(
+                f"Writing articles for batch {i//page_size + 1}/{(len(neededUris) + page_size - 1)//page_size}"
+            )
 
             for art in [val.get("info") for val in arts.values() if "info" in val]:
                 date = arrow.get(art["date"])
@@ -311,9 +314,14 @@ class NewsapiFetcher:
 
                 cur.execute(
                     "INSERT INTO articles (uri, filepath) VALUES (?, ?)",
-                    (art["uri"], filename)
+                    (art["uri"], filename),
                 )
             con.commit()
+
+            # Be polite to the API - sleep between batches
+            if i + page_size < len(neededUris):
+                print(f"Sleeping 2 seconds before next batch...")
+                time.sleep(1)
 
         con.close()
 
@@ -436,7 +444,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--api-key",
-        help="EventRegistry API key (falls back to EVENTREGISTRY_API_KEY env var)"
+        help="EventRegistry API key (falls back to EVENTREGISTRY_API_KEY env var)",
     )
     parser.add_argument(
         "--start-date", required=True, help="Start date in YYYY-MM-DD format"
@@ -465,7 +473,9 @@ if __name__ == "__main__":
     # Get API key from args or environment variable
     api_key = args.api_key or os.getenv("EVENTREGISTRY_API_KEY")
     if not api_key:
-        parser.error("--api-key is required or EVENTREGISTRY_API_KEY must be set in .env file")
+        parser.error(
+            "--api-key is required or EVENTREGISTRY_API_KEY must be set in .env file"
+        )
 
     # Initialize fetcher
     fetcher = NewsapiFetcher(

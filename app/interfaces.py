@@ -14,6 +14,9 @@ class GenRequest(BaseModel):
     source_type: Literal[
         "government", "news", "industry report", "ngo", "academic", "not specified"
     ] = Field(default="not specified", description="Type of source organization")
+    status: Literal["extracted", "from_api", "user_input", "modified"] = Field(
+        default="user_input", description="Status of the source (extracted, from_api, user_input, or modified)"
+    )
 
     @model_validator(mode="after")
     def check_at_least_one_field(self):

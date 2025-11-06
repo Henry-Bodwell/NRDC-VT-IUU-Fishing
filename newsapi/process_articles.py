@@ -50,7 +50,6 @@ async def process_article(
     authors_list = article.get("authors", [])
     date = article.get("date", "")
     source_name = article.get("source", {}).get("title", "")
-    text = f"{title}\n\n{body}" if title and body else (body or title)
 
     print(f"\nProcessing article {uri}: {title[:60]}...")
 
@@ -66,8 +65,10 @@ async def process_article(
             payload = {}  # user_id no longer needed - extracted from token
 
             # Prefer URL if available, otherwise use text
-            if text:
+            if body:
                 payload["text"] = body
+            if title:
+                payload["title"] = title
             if url:
                 payload["url"] = url
             if authors_list:
@@ -83,6 +84,7 @@ async def process_article(
                 payload["publisher"] = source_name
 
             payload["source_type"] = "news"
+            payload["status"] = "from_api"
 
             # Submit task
             async with session.post(

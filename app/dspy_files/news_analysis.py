@@ -117,6 +117,7 @@ class AnalysisOrchestrator:
         title: str | None = None,
         publisher: str | None = None,
         publication_date: str | None = None,
+        status: str = "user_input",
         progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> PipelineOutput:
         """
@@ -151,7 +152,7 @@ class AnalysisOrchestrator:
                 publisher=publisher,
                 publication_date=publication_date,
                 input_category="text_upload",
-                status="user_input",
+                status=status,
             )
 
             if progress_callback:

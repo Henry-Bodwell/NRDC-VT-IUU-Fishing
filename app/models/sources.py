@@ -97,6 +97,8 @@ class Source(AuditedDocument):
         default=None, description="Scope classification of the article"
     )
 
+    validated_scope: bool | None = Field(default=False)
+
     seperated_incident_text: List[str] = Field(default_factory=list)
 
     # For multiple incidents: stores the separated passages with full context
