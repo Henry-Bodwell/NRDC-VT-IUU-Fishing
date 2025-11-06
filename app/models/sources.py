@@ -52,10 +52,25 @@ class ArticleScopeClassification(BaseModel):
         "Unrelated to IUU Fishing",
     ] = Field(
         ...,
-        description="Select the type of article: if unrelated to Illegal, unregulated or unreported fishing, 'Unrelated to IUU Fishing', "
-        "else if discussing illegal fishing but not referring to a specific inident, like a definition of or review of the state of IUU+ fishing or new government policy on IUU, 'Industry Overview', "
-        "otherwise if referring to a specific or multiple specific **incidents** of IUU+ fishing select 'Single Incident' or 'Multiple Incidents', incident refering to the direct actions performed by a vessel, entity, or person"
-        "IUU+ means Illegal unregulated unreported fishing, as well as labor abuse, seafood fraud of mislabeling, sanction avoidance, or illegal aquacultural practices",
+        description=(
+            "Classify the article scope:\n\n"
+            "IUU+ includes: Illegal/unreported/unregulated fishing, labor abuse, seafood fraud/mislabeling, sanction avoidance, illegal aquaculture.\n\n"
+            "INCIDENT = A specific action by an identified vessel, entity, or person (arrests, seizures, investigations, violations by named actors).\n\n"
+            "Categories:\n"
+            "- 'Unrelated to IUU Fishing': Article does not discuss IUU+ topics\n"
+            "- 'Industry Overview': Discusses IUU+ but NO specific incidents (e.g., policy announcements, coast guard patrols, industry trends, legislation, general enforcement activities, death of sea animals without identified perpetrator)\n"
+            "- 'Single Incident': ONE specific IUU+ incident with identified actor(s)\n"
+            "- 'Multiple Incidents': TWO OR MORE distinct IUU+ incidents with identified actors\n\n"
+            "Examples of Industry Overview (NOT incidents):\n"
+            "- Coast guard conducts routine patrols\n"
+            "- Government announces new fishing regulations\n"
+            "- Sea turtle deaths reported (no perpetrator identified)\n"
+            "- Industry analysis or statistics\n\n"
+            "Examples of Incidents:\n"
+            "- Two poachers arrested after chase (named individuals)\n"
+            "- Vessel 'ABC' seized for illegal fishing\n"
+            "- Company fined for seafood mislabeling"
+        ),
     )
     confidence: float = Field(
         ..., description="Confidence score for the classification, between 0 and 1."
