@@ -88,9 +88,13 @@ class IncidentService(Service):
             await source.insert()
             logger.info(f"Successfully saved source: {source.id}")
         except DuplicateKeyError as e:
-            logger.warning(f"Source with same content already exists (hash: {source.article_hash}). Fetching existing source.")
+            logger.warning(
+                f"Source with same content already exists (hash: {source.article_hash}). Fetching existing source."
+            )
             # Fetch the existing source instead of failing
-            existing_source = await Source.find_one(Source.article_hash == source.article_hash)
+            existing_source = await Source.find_one(
+                Source.article_hash == source.article_hash
+            )
             if existing_source:
                 output.source = existing_source
                 output.status = PipelineResult.DUPLICATE_HASHED_TEXT
@@ -98,7 +102,9 @@ class IncidentService(Service):
                 return output
             else:
                 # This shouldn't happen, but handle it just in case
-                logger.error(f"DuplicateKeyError but couldn't find existing source: {e}")
+                logger.error(
+                    f"DuplicateKeyError but couldn't find existing source: {e}"
+                )
                 raise e
         except Exception as e:
             logger.error(f"Database save failed for {source.id}: {e}")
@@ -227,14 +233,12 @@ class IncidentService(Service):
             # Run analysis with progress callback (handles 0-80% progress)
             if input_type == "url":
                 output = await orchestrator.run_full_analysis_from_url(
-                    url=kwargs["url"],
-                    progress_callback=progress_callback
+                    url=kwargs["url"], progress_callback=progress_callback
                 )
             elif input_type == "pdf":
                 source = ContentExtractor.from_pdf(kwargs["pdf_bytes"])
                 output = await orchestrator.analysis_from_source(
-                    source=source,
-                    progress_callback=progress_callback
+                    source=source, progress_callback=progress_callback
                 )
             elif input_type == "text":
                 output = await orchestrator.run_full_analysis_from_text(
@@ -245,7 +249,8 @@ class IncidentService(Service):
                     publisher=kwargs.get("publisher", None),
                     publication_date=kwargs.get("date", None),
                     status=kwargs.get("status", "user_input"),
-                    progress_callback=progress_callback
+                    input_name=kwargs.get("input_name", None),
+                    progress_callback=progress_callback,
                 )
             else:
                 raise ValueError(f"Invalid input_type: {input_type}")
@@ -284,14 +289,25 @@ class IncidentService(Service):
             }
 
             # Check if the pipeline actually succeeded
-            if results.is_success or results.is_unrelated or results.status == PipelineResult.DUPLICATE_HASHED_TEXT:
+            if (
+                results.is_success
+                or results.is_unrelated
+                or results.status == PipelineResult.DUPLICATE_HASHED_TEXT
+            ):
                 await task.mark_completed(result_data)
-                logger.info(f"Task {task_id}: Completed successfully with status {results.status}")
+                logger.info(
+                    f"Task {task_id}: Completed successfully with status {results.status}"
+                )
             else:
                 # Pipeline failed - mark task as failed
-                error_msg = results.error_message or f"Pipeline failed with status: {results.status}"
+                error_msg = (
+                    results.error_message
+                    or f"Pipeline failed with status: {results.status}"
+                )
                 await task.mark_failed(error_msg)
-                logger.error(f"Task {task_id}: Failed with status {results.status}: {error_msg}")
+                logger.error(
+                    f"Task {task_id}: Failed with status {results.status}: {error_msg}"
+                )
 
         except Exception as e:
             logger.error(f"Task {task_id} failed with error: {str(e)}")

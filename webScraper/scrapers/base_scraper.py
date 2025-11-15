@@ -55,6 +55,20 @@ class ScrapedContent:
         if self.scraped_at is None:
             self.scraped_at = datetime.now()
 
+    def get_content_hash(self) -> str:
+        """
+        Generate SHA256 hash of content for deduplication.
+
+        This matches the article_hash logic used in the main application's Source model,
+        enabling detection of duplicate content even when URLs differ (e.g., same article
+        republished on multiple sites).
+
+        Returns:
+            SHA256 hex digest of the content
+        """
+        import hashlib
+        return hashlib.sha256(self.content.encode()).hexdigest()
+
 
 class BaseScraper(ABC):
     """

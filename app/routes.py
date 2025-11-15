@@ -55,7 +55,7 @@ def get_limiter():
 async def create_incident_report(
     request: Request,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user)  # Require authentication
+    current_user: User = Depends(get_current_user),  # Require authentication
 ):
     """
     Submits a URL or file for analysis and saves the resulting incident report to database.
@@ -86,7 +86,9 @@ async def create_incident_report(
         )
 
 
-async def _handle_json_request(request, background_tasks: BackgroundTasks, current_user: User):
+async def _handle_json_request(
+    request, background_tasks: BackgroundTasks, current_user: User
+):
     try:
         json_payload = await request.json()
         payload = GenRequest(**json_payload)
@@ -141,6 +143,7 @@ async def _handle_json_request(request, background_tasks: BackgroundTasks, curre
                 date=payload.publication_date if payload.publication_date else None,
                 source_type=payload.source_type,
                 status=payload.status,
+                input_name=payload.input_name if payload.input_name else None,
             )
 
         elif payload.url:
@@ -163,6 +166,7 @@ async def _handle_json_request(request, background_tasks: BackgroundTasks, curre
                 input_type="url",
                 url=payload.url,
                 source_type=payload.source_type,
+                input_name=payload.input_name if payload.input_name else None,
             )
         else:
             raise ValueError("Payload must include either 'text' or 'url'")
@@ -472,7 +476,7 @@ async def get_incident_report(report_id: str):
 )
 async def delete_incident(
     report_id: str,
-    current_user: User = Depends(get_current_admin_user)  # Require admin
+    current_user: User = Depends(get_current_admin_user),  # Require admin
 ):
     """
     Deletes an incident report by its ID.
@@ -499,7 +503,7 @@ async def delete_incident(
 async def update_incident_report(
     report_id: str,
     update_data: dict,
-    current_user: User = Depends(get_current_user)  # Require authentication
+    current_user: User = Depends(get_current_user),  # Require authentication
 ):
     """Updates an existing incident report by its ID."""
     try:
@@ -613,7 +617,7 @@ async def get_source(source_id: str):
 )
 async def delete_source(
     source_id: str,
-    current_user: User = Depends(get_current_admin_user)  # Require admin
+    current_user: User = Depends(get_current_admin_user),  # Require admin
 ):
     try:
         was_deleted = await SourceService.delete_source(source_id)
@@ -638,7 +642,7 @@ async def delete_source(
 async def update_source(
     source_id: str,
     update_data: dict,
-    current_user: User = Depends(get_current_user)  # Require authentication
+    current_user: User = Depends(get_current_user),  # Require authentication
 ):
     """Updates an existing incident report by its ID."""
     try:
@@ -668,7 +672,7 @@ async def update_source(
 )
 async def delete_overview(
     overview_id: str,
-    current_user: User = Depends(get_current_admin_user)  # Require admin
+    current_user: User = Depends(get_current_admin_user),  # Require admin
 ):
     try:
         was_deleted = await OverviewService.delete_overview(overview_id)
@@ -691,7 +695,7 @@ async def delete_overview(
 async def update_overview(
     overview_id: str,
     update_data: dict,
-    current_user: User = Depends(get_current_user)  # Require authentication
+    current_user: User = Depends(get_current_user),  # Require authentication
 ):
     """Updates an existing industry overview by its ID."""
     try:
@@ -812,7 +816,7 @@ async def get_document_logs(
     document_id: str,
     limit: int = 25,
     skip: int = 0,
-    current_user: User = Depends(get_current_admin_user)  # Require admin
+    current_user: User = Depends(get_current_admin_user),  # Require admin
 ):
     """Get all audit logs for a specific document by its ID.
 
@@ -847,7 +851,7 @@ async def get_document_logs(
 async def list_all_logs(
     limit: int = 25,
     skip: int = 0,
-    current_user: User = Depends(get_current_admin_user)  # Require admin
+    current_user: User = Depends(get_current_admin_user),  # Require admin
 ):
     """
     Retrieves a list of all logs with pagination.

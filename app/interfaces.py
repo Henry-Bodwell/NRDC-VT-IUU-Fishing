@@ -15,8 +15,10 @@ class GenRequest(BaseModel):
         "government", "news", "industry report", "ngo", "academic", "not specified"
     ] = Field(default="not specified", description="Type of source organization")
     status: Literal["extracted", "from_api", "user_input", "modified"] = Field(
-        default="user_input", description="Status of the source (extracted, from_api, user_input, or modified)"
+        default="user_input",
+        description="Status of the source (extracted, from_api, user_input, or modified)",
     )
+    input_name: str | None = None
 
     @model_validator(mode="after")
     def check_at_least_one_field(self):
@@ -32,25 +34,47 @@ class Filter(BaseModel):
 
     # Sorting
     sort_by: Literal["created_at", "modified_at"] = Field(default="created_at")
-    sort_order: Literal["asc", "desc"] = Field(default="desc", description="Sort order: ascending or descending")
+    sort_order: Literal["asc", "desc"] = Field(
+        default="desc", description="Sort order: ascending or descending"
+    )
 
     # Common filters
-    input_category: Literal["all", "url", "text_upload", "pdf", "existing_extract"] = Field(default="all")
+    input_category: Literal["all", "url", "text_upload", "pdf", "existing_extract"] = (
+        Field(default="all")
+    )
     verified: Literal["all", "true", "false"] = Field(default="all")
 
     # Date range filters
-    created_after: datetime | None = Field(default=None, description="Filter records created after this date (ISO 8601 format)")
-    created_before: datetime | None = Field(default=None, description="Filter records created before this date (ISO 8601 format)")
-    modified_after: datetime | None = Field(default=None, description="Filter records modified after this date (ISO 8601 format)")
-    modified_before: datetime | None = Field(default=None, description="Filter records modified before this date (ISO 8601 format)")
+    created_after: datetime | None = Field(
+        default=None,
+        description="Filter records created after this date (ISO 8601 format)",
+    )
+    created_before: datetime | None = Field(
+        default=None,
+        description="Filter records created before this date (ISO 8601 format)",
+    )
+    modified_after: datetime | None = Field(
+        default=None,
+        description="Filter records modified after this date (ISO 8601 format)",
+    )
+    modified_before: datetime | None = Field(
+        default=None,
+        description="Filter records modified before this date (ISO 8601 format)",
+    )
 
     # User filters
-    created_by: str | None = Field(default=None, description="Filter by user who created the record")
-    modified_by: str | None = Field(default=None, description="Filter by user who last modified the record")
+    created_by: str | None = Field(
+        default=None, description="Filter by user who created the record"
+    )
+    modified_by: str | None = Field(
+        default=None, description="Filter by user who last modified the record"
+    )
 
 
 class IncidentFilters(Filter):
-    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(default="all")
+    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(
+        default="all"
+    )
     IUU_type: Literal[
         "Illegal Fishing",
         "Unreported Catch",
@@ -64,39 +88,78 @@ class IncidentFilters(Filter):
     ] = Field(default="all", description="Filter by IUU incident type")
 
     # Event date filters
-    event_date_after: str | None = Field(default=None, description="Filter by event date after (extracted_information.eventData.eventDate)")
-    event_date_before: str | None = Field(default=None, description="Filter by event date before (extracted_information.eventData.eventDate)")
+    event_date_after: str | None = Field(
+        default=None,
+        description="Filter by event date after (extracted_information.eventData.eventDate)",
+    )
+    event_date_before: str | None = Field(
+        default=None,
+        description="Filter by event date before (extracted_information.eventData.eventDate)",
+    )
 
     # Location filters
-    event_location: str | None = Field(default=None, description="Filter by event location (partial match)")
-    event_country: str | None = Field(default=None, description="Filter by event country")
-    event_location_category: Literal["all", "EEZ", "High Seas", "Inland Water", "Land"] = Field(default="all", description="Filter by event location category")
+    event_location: str | None = Field(
+        default=None, description="Filter by event location (partial match)"
+    )
+    event_country: str | None = Field(
+        default=None, description="Filter by event country"
+    )
+    event_location_category: Literal[
+        "all", "EEZ", "High Seas", "Inland Water", "Land"
+    ] = Field(default="all", description="Filter by event location category")
 
     # Vessel filters
-    vessel_name: str | None = Field(default=None, description="Filter by vessel name (partial match)")
-    vessel_flag: str | None = Field(default=None, description="Filter by vessel flag state")
+    vessel_name: str | None = Field(
+        default=None, description="Filter by vessel name (partial match)"
+    )
+    vessel_flag: str | None = Field(
+        default=None, description="Filter by vessel flag state"
+    )
 
     # Species filter
-    species_common_name: str | None = Field(default=None, description="Filter by species common name (partial match)")
+    species_common_name: str | None = Field(
+        default=None, description="Filter by species common name (partial match)"
+    )
 
     # Enforcement category filter
-    enforcement_category: str | None = Field(default=None, description="Filter by enforcement category (e.g., 'Seizure', 'Arrest', 'Fine Issued')")
+    enforcement_category: str | None = Field(
+        default=None,
+        description="Filter by enforcement category (e.g., 'Seizure', 'Arrest', 'Fine Issued')",
+    )
 
 
 class SourceFilters(Filter):
     article_scope: Literal[
-        "all", "Single Incident", "Multiple Incidents", "Industry Overview", "Unrelated to IUU Fishing"
+        "all",
+        "Single Incident",
+        "Multiple Incidents",
+        "Industry Overview",
+        "Unrelated to IUU Fishing",
     ] = Field(default="all")
     source_type: Literal[
-        "all", "government", "news", "industry report", "ngo", "academic", "not specified"
+        "all",
+        "government",
+        "news",
+        "industry report",
+        "ngo",
+        "academic",
+        "not specified",
     ] = Field(default="all", description="Filter by source organization type")
-    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(default="all")
+    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(
+        default="all"
+    )
     verified: Literal["all", "true", "false"] = Field(default="all")
 
     # Publication date filters
-    publication_date_after: datetime | None = Field(default=None, description="Filter sources published after this date")
-    publication_date_before: datetime | None = Field(default=None, description="Filter sources published before this date")
+    publication_date_after: datetime | None = Field(
+        default=None, description="Filter sources published after this date"
+    )
+    publication_date_before: datetime | None = Field(
+        default=None, description="Filter sources published before this date"
+    )
 
 
 class OverviewFilters(Filter):
-    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(default="all")
+    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(
+        default="all"
+    )

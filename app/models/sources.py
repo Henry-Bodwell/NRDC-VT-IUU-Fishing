@@ -153,6 +153,7 @@ class Source(AuditedDocument):
         default="extracted",
         description="Status of the source. Extracted means the fields were automatically extracted from source. User_input means the report was created by a user. Modified means the report was modified by a user after its creation.",
     )
+    input_name: str | None = None
 
     class Settings:
         name = "sources"
