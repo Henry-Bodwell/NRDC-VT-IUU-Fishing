@@ -4,7 +4,7 @@ from typing import List, Literal
 from beanie import Insert, Link, Replace, before_event
 from pydantic import BaseModel, Field, model_validator
 import hashlib
-from pymongo import ASCENDING, IndexModel
+from pymongo import ASCENDING, IndexModel, TEXT
 from app.audit.base import AuditedDocument
 from app.models.incidents import IndustryOverview
 from typing import TYPE_CHECKING
@@ -164,7 +164,7 @@ class Source(AuditedDocument):
                 unique=True,
                 partialFilterExpression={"url": {"$type": "string"}},
             ),
-            IndexModel([("article_text", "text")]),
+            IndexModel([("article_text", TEXT)]),
         ]
 
     @model_validator(mode="after")

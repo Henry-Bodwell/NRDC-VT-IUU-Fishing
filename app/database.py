@@ -23,7 +23,7 @@ async def init_db():
     client = AsyncMongoClient(MONGO_URI)
 
     await init_beanie(
-        database=client.get_database("iuuIncidents"),  # Use get_database() for clarity
+        database=client.get_database("iuuIncidents"),
         document_models=[
             IncidentReport,
             Source,

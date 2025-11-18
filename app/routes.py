@@ -404,13 +404,19 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
     # Vessel filters
     if filter_query.vessel_name:
         query_filters["extracted_information.vesselInformation.vesselName"] = {
+            
             "$regex": filter_query.vessel_name,
+           
             "$options": "i",
+        ,
         }
     if filter_query.vessel_flag:
         query_filters["extracted_information.vesselInformation.flagState"] = {
+            
             "$regex": filter_query.vessel_flag,
+           
             "$options": "i",
+        ,
         }
 
     # Species filter
