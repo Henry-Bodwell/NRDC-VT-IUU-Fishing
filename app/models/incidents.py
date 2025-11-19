@@ -888,6 +888,7 @@ class IncidentClassification(BaseModel):
 
     iuuClassifications: List[IUUClassification] = Field(
         ...,
+        min_length=1,
         description="A list of all applicable IUU classifications for the incident.",
     )
 
@@ -1016,7 +1017,11 @@ class IncidentReport(AuditedDocument):
 
             await self.save()
 
-            incident_ids = [get_id(i) for i in source_doc.incidents] if source_doc.incidents else []
+            incident_ids = (
+                [get_id(i) for i in source_doc.incidents]
+                if source_doc.incidents
+                else []
+            )
             if self.id not in incident_ids:
                 source_doc.incidents.append(self)
                 await source_doc.save()
@@ -1046,7 +1051,9 @@ class IncidentReport(AuditedDocument):
                 self.primary_source = self.sources[0] if self.sources else None
 
             if source_doc and source_doc.incidents:
-                source_doc.incidents = [i for i in source_doc.incidents if get_id(i) != self.id]
+                source_doc.incidents = [
+                    i for i in source_doc.incidents if get_id(i) != self.id
+                ]
                 await source_doc.save()
 
             await self.save()
