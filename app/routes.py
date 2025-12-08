@@ -200,6 +200,8 @@ async def _handle_file_request(
         pdf_file = None
         user_id = str(current_user.id)  # Use authenticated user's ID
 
+        # Extract metadata from form fields
+        metadata = {}
         for key, value in form.items():
             logger.info(f"Key: {key}, Value type: {type(value)}, Value: {value}")
             if isinstance(value, (UploadFile, FastAPIUploadFile)):
@@ -217,7 +219,19 @@ async def _handle_file_request(
                         detail=f"File must be a PDF. Received: {value.content_type}",
                     )
                 pdf_file = value
-                break
+            elif isinstance(value, str):
+                # Collect string metadata fields
+                if key in ["title", "author", "publisher", "url", "source_type", "status", "input_name"]:
+                    metadata[key] = value
+                elif key == "publication_date":
+                    # Parse publication_date if provided
+                    from datetime import datetime
+                    try:
+                        metadata[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                    except Exception as e:
+                        logger.warning(f"Could not parse publication_date: {value}, error: {e}")
+
+        logger.info(f"Extracted metadata: {metadata}")
 
         if not pdf_file:
             raise HTTPException(
@@ -272,21 +286,26 @@ async def _handle_file_request(
                 f"Could not check for duplicate during upload (will check later): {e}"
             )
 
-        # Create task
+        # Create task with metadata
+        input_params = {"input_type": "pdf", "filename": pdf_file.filename}
+        input_params.update(metadata)  # Include metadata in task params
+
         task = TaskStatus(
             task_type="incident_analysis",
             user_id=user_id,
             status="pending",
-            input_params={"input_type": "pdf", "filename": pdf_file.filename},
+            input_params=input_params,
         )
         await task.insert()
 
-        # Schedule background task
+        # Schedule background task with metadata
         background_tasks.add_task(
             IncidentService.run_analysis_with_task_tracking,
             task_id=task.task_id,
             input_type="pdf",
             pdf_bytes=pdf_bytes,
+            filename=pdf_file.filename,
+            **metadata,  # Pass all metadata fields
         )
 
         return {"task_id": task.task_id, "status": "pending"}

@@ -237,6 +237,23 @@ class IncidentService(Service):
                 )
             elif input_type == "pdf":
                 source = ContentExtractor.from_pdf(kwargs["pdf_bytes"])
+
+                # Apply metadata to the source if provided
+                if "title" in kwargs and kwargs["title"]:
+                    source.title = kwargs["title"]
+                if "author" in kwargs and kwargs["author"]:
+                    source.author = kwargs["author"]
+                if "publisher" in kwargs and kwargs["publisher"]:
+                    source.publisher = kwargs["publisher"]
+                if "publication_date" in kwargs and kwargs["publication_date"]:
+                    source.publication_date = kwargs["publication_date"]
+                if "url" in kwargs and kwargs["url"]:
+                    source.url = kwargs["url"]
+                if "status" in kwargs and kwargs["status"]:
+                    source.status = kwargs["status"]
+                if "input_name" in kwargs and kwargs["input_name"]:
+                    source.input_name = kwargs["input_name"]
+
                 output = await orchestrator.analysis_from_source(
                     source=source, progress_callback=progress_callback
                 )
