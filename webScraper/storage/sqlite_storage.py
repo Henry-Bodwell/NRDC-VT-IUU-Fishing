@@ -352,6 +352,27 @@ class SQLiteStorage(BaseStorage):
             self.logger.error(f"Failed to count items: {e}")
             return 0
 
+    def has_url(self, url: str) -> bool:
+        """
+        Check if a URL has already been scraped.
+
+        Args:
+            url: The URL to check
+
+        Returns:
+            True if the URL exists in the database, False otherwise
+        """
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM scraped_content WHERE url = ? LIMIT 1",
+                (url,),
+            )
+            return cursor.fetchone() is not None
+        except Exception as e:
+            self.logger.error(f"Failed to check URL: {e}")
+            return False
+
     async def close(self) -> None:
         """Close database connection."""
         if self.conn:

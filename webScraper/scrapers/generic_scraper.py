@@ -87,6 +87,31 @@ class GenericScraper(BaseScraper):
         Args:
             query: The search term
         """
+        if self.config.selectors.custom.get("popup_close"):
+            try:
+                popup_selector = self.config.selectors.custom["popup_close"]
+                popup_count = await self.page.locator(popup_selector).count()
+                if popup_count > 0:
+                    self.logger.info(
+                        f"Found popup, dismissing with selector: {popup_selector}"
+                    )
+                    await self.page.click(popup_selector)
+                    await self.page.wait_for_timeout(500)  # Brief wait after dismissing
+            except Exception as e:
+                self.logger.warning(f"Failed to dismiss popup: {e}")
+
+        # Check if search icon needs to be clicked first (e.g., Oceana)
+        if self.config.selectors.custom.get("search_icon"):
+            try:
+                search_icon_selector = self.config.selectors.custom["search_icon"]
+                self.logger.info(
+                    f"Clicking search icon to reveal input: {search_icon_selector}"
+                )
+                await self.page.click(search_icon_selector)
+                await self.page.wait_for_timeout(500)  # Brief wait for input to appear
+            except Exception as e:
+                self.logger.warning(f"Failed to click search icon: {e}")
+
         # Wait for search input to be visible
         await self.page.wait_for_selector(
             self.config.selectors.search_input,
@@ -391,7 +416,9 @@ class GenericScraper(BaseScraper):
                         self.config.selectors.result_links
                     )
                     if not result_elements:
-                        self.logger.info("No results found on this page, stopping pagination")
+                        self.logger.info(
+                            "No results found on this page, stopping pagination"
+                        )
                         return False
                 except Exception as e:
                     self.logger.warning(f"Could not check for results: {e}")
@@ -464,6 +491,76 @@ class GenericScraper(BaseScraper):
         else:
             self.logger.warning(f"Unsupported auth type: {auth_config.auth_type}")
 
+    async def post_scrape_hook(self) -> None:
+        """
+        Post-scrape hook for cleanup (e.g., logout).
+        Called automatically after scraping completes.
+        """
+        # Handle logout if authentication was used
+        if self.config.authentication.required:
+            await self._handle_logout()
+
+    async def _handle_logout(self) -> None:
+        """Handle logout based on configuration."""
+        try:
+            auth_config = self.config.authentication
+
+            # Option 1: Navigate to logout URL
+            if auth_config.logout_url:
+                self.logger.info(f"Logging out via URL: {auth_config.logout_url}")
+                await self.page.goto(auth_config.logout_url)
+                await self.page.wait_for_timeout(2000)
+                self.logger.info("Successfully logged out via URL")
+                return
+
+            # Option 2: Click logout button
+            if auth_config.logout_button:
+                self.logger.info(
+                    f"Looking for logout button: {auth_config.logout_button}"
+                )
+
+                # If logout_hover_target is specified, hover over it first to reveal the logout button
+                if auth_config.logout_hover_target:
+                    self.logger.info(
+                        f"Hovering over: {auth_config.logout_hover_target}"
+                    )
+                    hover_count = await self.page.locator(
+                        auth_config.logout_hover_target
+                    ).count()
+                    if hover_count > 0:
+                        await self.page.hover(auth_config.logout_hover_target)
+                        await self.page.wait_for_timeout(
+                            500
+                        )  # Brief wait for dropdown to appear
+                    else:
+                        self.logger.warning(
+                            f"Hover target not found: {auth_config.logout_hover_target}"
+                        )
+
+                # Check if button exists (may now be visible after hover)
+                button_count = await self.page.locator(
+                    auth_config.logout_button
+                ).count()
+                if button_count > 0:
+                    self.logger.info(
+                        f"Found {button_count} logout button(s), clicking..."
+                    )
+                    await self.page.click(auth_config.logout_button)
+                    await self.page.wait_for_timeout(2000)
+                    self.logger.info("Successfully logged out via button")
+                    return
+                else:
+                    self.logger.warning(
+                        f"Logout button not found: {auth_config.logout_button}"
+                    )
+
+            # No logout config found
+            self.logger.debug("No logout configuration found, skipping logout")
+
+        except Exception as e:
+            # Logout failure is not critical, just log warning
+            self.logger.warning(f"Logout failed (non-critical): {e}")
+
     def _parse_date(self, date_str: str) -> Optional[datetime]:
         """
         Parse a date string into datetime object.
@@ -518,17 +615,20 @@ async def scrape_site(
 # Usage example
 async def main():
     """Example usage of the generic scraper."""
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
     # Scrape DOJ with configuration
     results = await scrape_site(
-        site_name="noaa_fisheries",
+        site_name="undercurrent_news",
         query="illegal fishing",
-        max_results=10,
+        max_results=3,
         scrape_details=True,
         headless=False,
     )
 
-    print(f"\nScraped {len(results)} pages from Monga Bay:")
+    print(f"\nScraped {len(results)} pages from undercurrent news:")
     for result in results[:3]:  # Show first 3
         print(f"\n{'='*80}")
         print(f"Title: {result.title}")

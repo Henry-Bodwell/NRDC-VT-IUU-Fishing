@@ -87,6 +87,7 @@ class BaseScraper(ABC):
         viewport: Dict[str, int] = None,
         max_retries: int = 3,
         delay_range: tuple = (1, 3),
+        storage: Optional[Any] = None,
     ):
         """
         Initialize the base scraper.
@@ -99,6 +100,7 @@ class BaseScraper(ABC):
             viewport: Browser viewport size {'width': 1280, 'height': 720}
             max_retries: Maximum number of retry attempts for failed operations
             delay_range: Tuple of (min, max) seconds for random delays
+            storage: Optional storage instance to check for already-scraped URLs
         """
         self.site_config = site_config
 
@@ -113,6 +115,7 @@ class BaseScraper(ABC):
         self.timeout = timeout
         self.user_agent = user_agent or self._get_default_user_agent()
         self.viewport = viewport or {"width": 1280, "height": 720}
+        self.storage = storage
 
         self.browser: Optional[Browser] = None
         self.context: Optional[BrowserContext] = None
@@ -316,6 +319,9 @@ class BaseScraper(ABC):
             List of ScrapedContent objects
         """
         try:
+            # Clear results from any previous scrape
+            self.results = []
+
             # Initialize
             await self._init_browser()
             self.status = ScraperStatus.INITIALIZING
@@ -371,6 +377,13 @@ class BaseScraper(ABC):
 
                 for idx, result in enumerate(all_results, 1):
                     try:
+                        # Check if URL has already been scraped
+                        if self.storage and self.storage.has_url(result.url):
+                            self.logger.info(
+                                f"Skipping already-scraped URL {idx}/{len(all_results)}: {result.url}"
+                            )
+                            continue
+
                         self.logger.info(
                             f"Scraping detail page {idx}/{len(all_results)}: {result.url}"
                         )

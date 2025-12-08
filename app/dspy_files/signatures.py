@@ -130,7 +130,7 @@ class InformationPresence(BaseModel):
     )
     has_species_info: bool = Field(
         default=False,
-        description="Does article mention specific fish species or catch details?",
+        description="Does article mention specific fish species or catch details? If it includes product information this should be true/",
     )
     has_event_details: bool = Field(
         default=False,

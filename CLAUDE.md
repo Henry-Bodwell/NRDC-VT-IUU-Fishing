@@ -93,14 +93,42 @@ This project uses DSPy (Declarative Self-improving Language Programs) for struct
 - **Config** (`app/dspy_files/config.py`): DSPy/LLM configuration
 - DSPy is configured with OpenAI models (default: gpt-4o-mini)
 
-### WebScraper Module (In Development)
+### WebScraper Module
 
-Located in `webScraper/`, this is a new configurable web scraping framework:
+Located in `webScraper/`, this is a configurable web scraping framework:
 - **Base classes** (`scrapers/base_scraper.py`, `scrapers/generic_scraper.py`): Extensible scraper architecture
-- **Site configs** (`config/site_config.py`): Per-site scraping rules
-- **Config builder** (`utils/config_builder.py`): Programmatic configuration generation
+- **Site configs** (`config/sites/*.yaml`): Per-site scraping rules with metadata
+- **Upload script** (`upload_scraped_data.py`): Uploads scraped articles to the API with source_type mapping
 
-This module is separate from the main DSPy-based content extraction and appears to be under active development.
+**Site metadata mapping:**
+The upload script automatically maps site metadata categories to API source_type:
+- `Government` → `government`
+- `NGO` → `ngo`
+- `News` → `news`
+- `industry_journal` → `industry report`
+- `academic` → `academic`
+- (unknown) → `not specified`
+
+**Usage:**
+```bash
+# Import articles to tracking database
+python webScraper/upload_scraped_data.py --import
+
+# Upload scraped articles (requires auth token)
+python webScraper/upload_scraped_data.py --auth-token YOUR_TOKEN --batch-size 10
+
+# Check processing statistics
+python webScraper/upload_scraped_data.py --stats
+```
+
+### Shared Pipeline Client
+
+Located in `shared/`, provides reusable components for uploading articles:
+- **pipeline_client.py**: Common API submission logic used by both newsapi and webscraper
+- **ProcessingTracker**: SQLite-based tracker for managing article processing status
+- **submit_article_to_pipeline()**: Handles async task submission and polling
+
+See [shared/README.md](shared/README.md) for detailed usage.
 
 ### API Endpoints
 

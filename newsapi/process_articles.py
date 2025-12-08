@@ -13,10 +13,17 @@ Authentication:
 
 import argparse
 import asyncio
-import aiohttp
 import os
+import sys
 from pathlib import Path
 
+# Add parent directory to path for shared module
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from shared.pipeline_client import (
+    submit_article_to_pipeline,
+    print_processing_stats,
+)
 from fetch_newsapi import NewsapiFetcher
 
 
@@ -25,11 +32,6 @@ async def process_article(
 ):
     """
     Process a single article through the pipeline via API.
-
-    The API uses async task processing:
-    1. POST /api/incidents -> returns task_id (202 Accepted)
-    2. Poll GET /api/tasks/{task_id} until complete
-    3. Extract results from task.result
 
     Args:
         article_data: Dict with 'uri', 'filepath', and 'article' fields
@@ -53,147 +55,36 @@ async def process_article(
 
     print(f"\nProcessing article {uri}: {title[:60]}...")
 
-    try:
-        # Prepare authorization headers
-        headers = {
-            "Authorization": f"Bearer {auth_token}",
-            "Content-Type": "application/json",
-        }
+    # Build payload for GenRequest
+    payload = {}
 
-        async with aiohttp.ClientSession(headers=headers) as session:
-            # Step 1: Submit article for processing
-            payload = {}  # user_id no longer needed - extracted from token
+    # Prefer URL if available, otherwise use text
+    if body:
+        payload["text"] = body
+    if title:
+        payload["title"] = title
+    if url:
+        payload["url"] = url
+    if authors_list:
+        # Extract author names from list of dicts
+        author_names = [
+            a.get("name", "") for a in authors_list if isinstance(a, dict)
+        ]
+        if author_names:
+            payload["author"] = ", ".join(author_names)
+    if date:
+        payload["publication_date"] = date
+    if source_name:
+        payload["publisher"] = source_name
 
-            # Prefer URL if available, otherwise use text
-            if body:
-                payload["text"] = body
-            if title:
-                payload["title"] = title
-            if url:
-                payload["url"] = url
-            if authors_list:
-                # Extract author names from list of dicts
-                author_names = [
-                    a.get("name", "") for a in authors_list if isinstance(a, dict)
-                ]
-                if author_names:
-                    payload["author"] = ", ".join(author_names)
-            if date:
-                payload["publication_date"] = date
-            if source_name:
-                payload["publisher"] = source_name
+    payload["source_type"] = "news"
+    payload["status"] = "from_api"
+    payload["input_name"] = "newsapi"
 
-            payload["source_type"] = "news"
-            payload["status"] = "from_api"
-
-            # Submit task
-            async with session.post(
-                f"{api_url}/api/incidents",
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=30),
-            ) as response:
-
-                if response.status == 202:  # Accepted
-                    task_data = await response.json()
-                    task_id = task_data.get("task_id")
-
-                    if not task_id:
-                        error_msg = "No task_id in response"
-                        print(f"  x Failed: {error_msg}")
-                        return (False, error_msg)
-
-                    print(f"  > Task created: {task_id}, polling for completion...")
-
-                elif response.status == 401:  # Unauthorized
-                    print(f"  x Authentication failed: Invalid or expired token")
-                    return (False, "Authentication failed - check your auth token")
-
-                elif response.status == 403:  # Forbidden
-                    print(f"  x Access forbidden: Insufficient permissions")
-                    return (False, "Access forbidden - check user permissions")
-
-                elif response.status == 409:  # Conflict - already exists
-                    print(f"  x Article already exists in database (duplicate)")
-                    return (True, None)
-
-                else:
-                    error_text = await response.text()
-                    error_msg = f"HTTP {response.status}: {error_text[:100]}"
-                    print(f"  x API Error: {error_msg}")
-                    return (False, error_msg)
-
-            # Step 2: Poll for task completion
-            max_polls = 120  # 120 polls * 5s = 10 minutes max
-            poll_interval = 5  # seconds
-
-            for poll_count in range(max_polls):
-                await asyncio.sleep(poll_interval)
-
-                async with session.get(
-                    f"{api_url}/api/tasks/{task_id}",
-                    timeout=aiohttp.ClientTimeout(total=10),
-                ) as response:
-
-                    if response.status != 200:
-                        error_msg = (
-                            f"Failed to fetch task status: HTTP {response.status}"
-                        )
-                        print(f"  x {error_msg}")
-                        return (False, error_msg)
-
-                    task_status = await response.json()
-                    status = task_status.get("status")
-
-                    if status == "completed":
-                        # Extract results
-                        result = task_status.get("result", {})
-                        pipeline_status = result.get("status", "unknown")
-                        incidents_count = len(result.get("incidents", []))
-                        has_overview = bool(result.get("industry_overview"))
-
-                        if pipeline_status == "success":
-                            print(
-                                f"    Success: {incidents_count} incidents, overview: {'yes' if has_overview else 'no'}"
-                            )
-                            return (True, None)
-                        elif pipeline_status == "unrelated":
-                            print(f"  x Article classified as unrelated to IUU fishing")
-                            return (True, None)
-                        else:
-                            error_msg = f"Pipeline status: {pipeline_status}"
-                            print(f"  x Completed with status: {error_msg}")
-                            return (False, error_msg)
-
-                    elif status == "failed":
-                        error = task_status.get("error", "Unknown error")
-                        print(f"  x Task failed: {error}")
-                        return (False, error)
-
-                    elif status in ["pending", "processing"]:
-                        # Still processing, continue polling
-                        progress = task_status.get("progress", {})
-                        if poll_count % 6 == 0:  # Print update every 30s
-                            print(f"    Still processing... ({status})")
-                        continue
-
-                    else:
-                        error_msg = f"Unknown task status: {status}"
-                        print(f"  x {error_msg}")
-                        return (False, error_msg)
-
-            # Timeout after max_polls
-            error_msg = f"Task polling timeout after {max_polls * poll_interval}s"
-            print(f"  x Timeout: {error_msg}")
-            return (False, error_msg)
-
-    except asyncio.TimeoutError:
-        error_msg = "Request timeout"
-        print(f"  x Timeout: {error_msg}")
-        return (False, error_msg)
-    except Exception as e:
-        error_msg = f"{type(e).__name__}: {str(e)}"
-        print(f"  x Error: {error_msg}")
-        return (False, error_msg)
+    # Submit to pipeline using shared client
+    return await submit_article_to_pipeline(
+        payload, api_url, auth_token, verbose=True
+    )
 
 
 async def process_article_with_tracking(
@@ -308,17 +199,7 @@ async def process_batch(
 async def show_stats(db_path="data/newsapi.db"):
     """Display processing statistics."""
     stats = NewsapiFetcher.get_processing_stats(db_path=db_path)
-
-    print("NewsAPI Article Processing Statistics")
-    print("=" * 60)
-    print(f"Total articles downloaded: {stats['total']}")
-    print(f"Processed successfully:    {stats['processed']}")
-    print(f"Not yet processed:         {stats['unprocessed']}")
-    print(f"Processing errors:         {stats['errors']}")
-
-    if stats["total"] > 0:
-        pct = (stats["processed"] / stats["total"]) * 100
-        print(f"\nProgress: {pct:.1f}% complete")
+    print_processing_stats(stats, source_name="NewsAPI Article")
 
 
 def main():

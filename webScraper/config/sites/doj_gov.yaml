@@ -19,7 +19,7 @@ rate_limit:
   delay_range:
   - 1
   - 5
-  max_concurrent: 1
+  max_concurrent: 2
   respect_robots_txt: true
 pagination:
   enabled: true
@@ -44,3 +44,4 @@ metadata:
   description: United States Department of Justice
   category: Government
   primary_content_type: Text
+  name: Department of Justice
