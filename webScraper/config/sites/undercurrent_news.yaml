@@ -1,0 +1,50 @@
+site_name: undercurrent_news
+base_url: https://www.undercurrentnews.com
+search_url: https://www.undercurrentnews.com/?s=
+selectors:
+  search_input: input[name="ofsearch"]
+  search_button: '#submit-btn'
+  result_links: div.ucn-search-entry a[rel="bookmark"]
+  result_title: h5.ucn-search-title
+  result_snippet: p.ucn-search-excerpt
+  next_page: a.next
+  detail_title: div.section-title
+  detail_content: '#article-body'
+  detail_date: null
+  detail_author: div.written a
+  detail_tags: h2.sub-tags
+  custom: {}
+rate_limit:
+  requests_per_minute: 20
+  delay_range:
+  - 3.0
+  - 6.0
+  max_concurrent: 1
+  respect_robots_txt: true
+pagination:
+  enabled: true
+  next_button: a.next
+  max_pages: null
+  pagination_type: button
+  url_pattern: null
+authentication:
+  required: true
+  auth_type: form
+  login_url: https://www.undercurrentnews.com/login/
+  username_field: input[type="email"][name="log"]
+  password_field: input[type="password"][name="pwd"]
+  submit_button: input.ucn-login-submit
+  credentials_env_var: UNDERCURRENT_CREDENTIALS
+  logout_button: a.signout
+  logout_hover_target: li.ucn-logged-in.nav-item.dropdown
+javascript_required: false
+wait_for_selector: div.ucn-search-entry
+wait_for_timeout: 60000
+headers: {}
+cookies: []
+metadata:
+  description: UCN (Undercurrent News) was founded in London in 2012 by journalists
+    Tom Seaman and Eva Tallaksen, in a bid for quality and independent reporting.
+  category: industry_journal
+  primary_content_type: text
+  name: Undercurrent News

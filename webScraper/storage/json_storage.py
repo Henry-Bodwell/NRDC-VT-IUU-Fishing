@@ -147,6 +147,18 @@ class JSONStorage(BaseStorage):
 
         return (False, None)
 
+    def has_url(self, url: str) -> bool:
+        """
+        Check if a URL has already been scraped.
+
+        Args:
+            url: The URL to check
+
+        Returns:
+            True if the URL exists in the index, False otherwise
+        """
+        return url in self.index
+
     def _generate_filename(self, content: ScrapedContent) -> str:
         """Generate a unique filename for individual mode."""
         # Use content hash to create unique filename (more meaningful than URL hash)

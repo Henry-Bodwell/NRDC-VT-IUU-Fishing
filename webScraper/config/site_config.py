@@ -65,6 +65,10 @@ class AuthenticationConfig:
     submit_button: Optional[str] = None
     # Credentials should be loaded from environment or secure storage
     credentials_env_var: Optional[str] = None
+    # Logout configuration
+    logout_url: Optional[str] = None
+    logout_button: Optional[str] = None
+    logout_hover_target: Optional[str] = None  # Element to hover over before clicking logout_button
 
 
 @dataclass
@@ -153,6 +157,9 @@ class SiteConfig:
             password_field=auth_data.get("password_field"),
             submit_button=auth_data.get("submit_button"),
             credentials_env_var=auth_data.get("credentials_env_var"),
+            logout_url=auth_data.get("logout_url"),
+            logout_button=auth_data.get("logout_button"),
+            logout_hover_target=auth_data.get("logout_hover_target"),
         )
 
         return cls(

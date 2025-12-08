@@ -87,6 +87,19 @@ class BaseStorage(ABC):
         pass
 
     @abstractmethod
+    def has_url(self, url: str) -> bool:
+        """
+        Check if a URL has already been scraped.
+
+        Args:
+            url: The URL to check
+
+        Returns:
+            True if the URL exists, False otherwise
+        """
+        pass
+
+    @abstractmethod
     async def close(self) -> None:
         """Close any open connections or resources."""
         pass

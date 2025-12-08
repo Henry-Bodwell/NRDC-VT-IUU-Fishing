@@ -195,12 +195,61 @@ webScraper/
    - Implement abstract methods
    - See `scrapers/sites/example.py`
 
+## Uploading Scraped Data to API
+
+After scraping articles, use the upload script to process them through the IUU incident extraction pipeline.
+
+### Source Type Mapping
+
+The upload script automatically maps site metadata categories to the API's `source_type` field:
+
+| Site Category | API source_type |
+|--------------|-----------------|
+| Government | government |
+| NGO | ngo |
+| News | news |
+| industry_journal | industry report |
+| academic | academic |
+| (unknown) | not specified |
+
+### Upload Workflow
+
+1. **Import articles to tracking database** (first time):
+   ```bash
+   python webScraper/upload_scraped_data.py --import
+   ```
+
+2. **Check statistics**:
+   ```bash
+   python webScraper/upload_scraped_data.py --stats
+   ```
+
+3. **Upload articles** (requires auth token):
+   ```bash
+   export AUTH_TOKEN=your_jwt_token
+   python webScraper/upload_scraped_data.py --batch-size 10
+   ```
+
+4. **Process all remaining**:
+   ```bash
+   python webScraper/upload_scraped_data.py --auth-token YOUR_TOKEN --all
+   ```
+
+**Key Features:**
+- SQLite tracking prevents duplicate uploads
+- Resumable - can stop and restart without losing progress
+- Error tracking and reporting
+- Concurrent processing with configurable limits
+- Automatically sets `input_name="scraped"` and `status="extracted"`
+
+For detailed upload documentation, see [upload_scraped_data.py](upload_scraped_data.py).
+
 ## Next Steps
 
-- [ ] Add more site configurations (NOAA, Interpol, etc.)
-- [ ] Integrate with main IUU-Fishing pipeline
-- [ ] Add data export (JSON/CSV/MongoDB)
-- [ ] Create CLI for running scrapers
+- [x] Integrate with main IUU-Fishing pipeline
+- [x] Add data export (JSON)
+- [ ] Add more site configurations (Interpol, etc.)
+- [ ] Create unified CLI for scraping and uploading
 - [ ] Add proxy support
 - [ ] Implement JavaScript-heavy site support
 
