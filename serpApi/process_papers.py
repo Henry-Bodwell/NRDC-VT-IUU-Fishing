@@ -9,24 +9,123 @@ import asyncio
 import aiohttp
 import argparse
 import os
+from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
 from fetch_scholar import ScholarFetcher
+
+
+def find_local_pdf(
+    result_id: str, pdf_dir: str = "data/scholar/pdfs"
+) -> Optional[Path]:
+    """
+    Find a local PDF file by result_id.
+
+    PDF filenames end with the result_id before the extension.
+    Example: "2024_Some_Title_abc123xyz.pdf" for result_id "abc123xyz"
+
+    Args:
+        result_id: The Google Scholar result_id
+        pdf_dir: Directory containing PDFs
+
+    Returns:
+        Path to PDF file if found, None otherwise
+    """
+    pdf_path = Path(pdf_dir)
+    if not pdf_path.exists():
+        return None
+
+    # Look for files ending with result_id.pdf
+    pattern = f"*_{result_id}.pdf"
+    matches = list(pdf_path.glob(pattern))
+
+    if matches:
+        return matches[0]  # Return first match
+
+    return None
+
+
+async def download_pdf(
+    url: str, session: aiohttp.ClientSession, max_size_mb: int = 50
+) -> Tuple[Optional[bytes], Optional[str]]:
+    """
+    Download PDF from URL.
+
+    Args:
+        url: URL to download from
+        session: aiohttp session
+        max_size_mb: Maximum file size in MB
+
+    Returns:
+        Tuple of (pdf_bytes: bytes or None, error_message: str or None)
+    """
+    try:
+        async with session.get(
+            url, timeout=aiohttp.ClientTimeout(total=60)
+        ) as response:
+            if response.status != 200:
+                return (None, f"Failed to download PDF: HTTP {response.status}")
+
+            # Check content type
+            content_type = response.headers.get("Content-Type", "")
+            if "pdf" not in content_type.lower():
+                return (
+                    None,
+                    f"URL does not point to a PDF (Content-Type: {content_type})",
+                )
+
+            # Check content length
+            content_length = response.headers.get("Content-Length")
+            if content_length:
+                size_mb = int(content_length) / (1024 * 1024)
+                if size_mb > max_size_mb:
+                    return (
+                        None,
+                        f"PDF too large: {size_mb:.1f}MB (max {max_size_mb}MB)",
+                    )
+
+            # Download PDF
+            pdf_bytes = await response.read()
+
+            # Verify size after download
+            size_mb = len(pdf_bytes) / (1024 * 1024)
+            if size_mb > max_size_mb:
+                return (None, f"PDF too large: {size_mb:.1f}MB (max {max_size_mb}MB)")
+
+            if len(pdf_bytes) < 100:
+                return (None, "PDF appears to be empty or corrupted")
+
+            return (pdf_bytes, None)
+
+    except asyncio.TimeoutError:
+        return (None, "PDF download timeout")
+    except aiohttp.ClientError as e:
+        return (None, f"Download error: {str(e)}")
+    except Exception as e:
+        return (None, f"Unexpected download error: {str(e)}")
 
 
 async def process_paper(
     paper_data: Dict[str, Any],
     api_url: str,
     auth_token: Optional[str] = None,
-    user_id: str = "scholar_processor"
+    user_id: str = "scholar_processor",
+    pdf_dir: str = "data/scholar/pdfs",
 ) -> Tuple[bool, Optional[str]]:
     """
-    Process a single paper through the pipeline via API.
+    Process a single paper through the pipeline via API by uploading PDF.
+
+    Process flow:
+    1. Get metadata from paper_data (from SQLite database)
+    2. Try to find local PDF file by result_id
+    3. If not found, download from pdf_link in metadata
+    4. Upload PDF to API with metadata
 
     Args:
-        paper_data: Paper metadata and content
+        paper_data: Paper metadata from SQLite (includes result_id, title, pdf_link, etc.)
         api_url: Base URL of the API
         auth_token: Optional authentication token
         user_id: User ID for audit logging
+        pdf_dir: Directory containing local PDFs
 
     Returns:
         Tuple of (success: bool, error_message: str or None)
@@ -34,41 +133,82 @@ async def process_paper(
     result_id = paper_data["result_id"]
     title = paper_data["title"]
 
-    # Prepare headers
-    headers = {"Content-Type": "application/json"}
-    if auth_token:
-        headers["Authorization"] = f"Bearer {auth_token}"
+    pdf_bytes = None
+    pdf_source_description = ""
 
-    # Determine which URL to use (prefer PDF, fallback to main link)
-    url = paper_data.get("pdf_link") or paper_data.get("main_link")
+    # Step 1: Try to find local PDF
+    local_pdf_path = find_local_pdf(result_id, pdf_dir)
 
-    if not url:
-        return (False, "No URL available (no PDF or main link)")
+    if local_pdf_path and local_pdf_path.exists():
+        try:
+            pdf_bytes = local_pdf_path.read_bytes()
 
-    # Prepare payload
-    payload = {
-        "url": url,
-        "user_id": user_id,
-        "source_type": "google_scholar",
-        "metadata": {
-            "result_id": result_id,
-            "title": title,
-            "authors": paper_data.get("authors", ""),
-            "publication_year": paper_data.get("publication_year"),
-            "cited_by_count": paper_data.get("cited_by_count", 0),
-            "pdf_link": paper_data.get("pdf_link"),
-            "pdf_source": paper_data.get("pdf_source")
-        }
-    }
+            # Validate size
+            size_mb = len(pdf_bytes) / (1024 * 1024)
+            if size_mb > 50:
+                return (False, f"Local PDF too large: {size_mb:.1f}MB (max 50MB)")
 
+            pdf_source_description = f"local file: {local_pdf_path.name}"
+
+        except Exception as e:
+            # If local read fails, try downloading
+            print(f"  ⚠ Warning: Failed to read local PDF: {e}")
+            pdf_bytes = None
+
+    # Step 2: If no local PDF, download from pdf_link
+    if not pdf_bytes:
+        pdf_url = paper_data.get("pdf_link")
+
+        if not pdf_url:
+            return (
+                False,
+                "No PDF available (no local file and no pdf_link in database)",
+            )
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                pdf_bytes, download_error = await download_pdf(pdf_url, session)
+
+                if download_error:
+                    return (False, f"Download failed: {download_error}")
+
+                if not pdf_bytes:
+                    return (False, "Failed to download PDF")
+
+                pdf_source_description = f"downloaded from URL"
+        except Exception as e:
+            return (False, f"Download error: {str(e)}")
+
+    # At this point, we should have pdf_bytes
+    if not pdf_bytes:
+        return (False, "Failed to obtain PDF")
+
+    print(f"  📄 PDF source: {pdf_source_description}")
+
+    # Step 3: Upload PDF to API
     try:
         async with aiohttp.ClientSession() as session:
+
+            # Prepare headers
+            headers = {}
+            if auth_token:
+                headers["Authorization"] = f"Bearer {auth_token}"
+
+            # Create multipart form data
+            form = aiohttp.FormData()
+            form.add_field(
+                "file",
+                pdf_bytes,
+                filename=f"{title}.pdf",
+                content_type="application/pdf",
+            )
+
             # Submit to API (async task endpoint)
             async with session.post(
                 f"{api_url}/api/incidents",
-                json=payload,
+                data=form,
                 headers=headers,
-                timeout=aiohttp.ClientTimeout(total=30)
+                timeout=aiohttp.ClientTimeout(total=30),
             ) as response:
 
                 # Handle different response codes
@@ -90,8 +230,7 @@ async def process_paper(
                         await asyncio.sleep(5)
 
                         async with session.get(
-                            f"{api_url}/api/tasks/{task_id}",
-                            headers=headers
+                            f"{api_url}/api/tasks/{task_id}", headers=headers
                         ) as task_response:
 
                             if task_response.status != 200:
@@ -105,7 +244,10 @@ async def process_paper(
                                 if result.get("status") == "success":
                                     return (True, None)
                                 else:
-                                    return (False, result.get("message", "Unknown error"))
+                                    return (
+                                        False,
+                                        result.get("message", "Unknown error"),
+                                    )
 
                             elif status == "failed":
                                 error = task_status.get("error", "Task failed")
@@ -139,8 +281,9 @@ async def process_paper_with_tracking(
     auth_token: Optional[str],
     user_id: str,
     db_path: str,
+    pdf_dir: str,
     index: int,
-    total: int
+    total: int,
 ) -> bool:
     """
     Wrapper to process paper and mark as processed in DB.
@@ -151,6 +294,7 @@ async def process_paper_with_tracking(
         auth_token: Optional authentication token
         user_id: User ID for audit logging
         db_path: Path to SQLite database
+        pdf_dir: Directory containing local PDFs
         index: Current paper index (for logging)
         total: Total papers being processed
 
@@ -164,18 +308,15 @@ async def process_paper_with_tracking(
     print(f"  Result ID: {result_id}")
     print(f"  Authors: {paper_data.get('authors', 'Unknown')}")
     print(f"  Year: {paper_data.get('publication_year', 'Unknown')}")
-    print(f"  PDF: {'Yes' if paper_data.get('pdf_link') else 'No'}")
+    print(f"  PDF link: {'Yes' if paper_data.get('pdf_link') else 'No'}")
 
     success, error_msg = await process_paper(
-        paper_data, api_url, auth_token, user_id
+        paper_data, api_url, auth_token, user_id, pdf_dir
     )
 
     # Mark as processed in database
     ScholarFetcher.mark_processed(
-        result_id,
-        success=success,
-        error_msg=error_msg,
-        db_path=db_path
+        result_id, success=success, error_msg=error_msg, db_path=db_path
     )
 
     if success:
@@ -193,8 +334,9 @@ async def process_with_semaphore(
     auth_token: Optional[str],
     user_id: str,
     db_path: str,
+    pdf_dir: str,
     index: int,
-    total: int
+    total: int,
 ) -> bool:
     """
     Process paper with concurrency control.
@@ -206,6 +348,7 @@ async def process_with_semaphore(
         auth_token: Optional authentication token
         user_id: User ID for audit logging
         db_path: Path to SQLite database
+        pdf_dir: Directory containing local PDFs
         index: Current paper index
         total: Total papers being processed
 
@@ -214,7 +357,7 @@ async def process_with_semaphore(
     """
     async with semaphore:
         return await process_paper_with_tracking(
-            paper_data, api_url, auth_token, user_id, db_path, index, total
+            paper_data, api_url, auth_token, user_id, db_path, pdf_dir, index, total
         )
 
 
@@ -224,7 +367,8 @@ async def process_batch(
     api_url: str = "http://localhost:8000",
     auth_token: Optional[str] = None,
     user_id: str = "scholar_processor",
-    db_path: str = "data/scholar.db"
+    db_path: str = "data/scholar.db",
+    pdf_dir: str = "data/scholar/pdfs",
 ):
     """
     Process a batch of unprocessed papers.
@@ -236,12 +380,10 @@ async def process_batch(
         auth_token: Optional authentication token
         user_id: User ID for audit logging
         db_path: Path to SQLite database
+        pdf_dir: Directory containing local PDFs
     """
     # Get unprocessed papers
-    papers = ScholarFetcher.get_unprocessed_papers(
-        limit=batch_size,
-        db_path=db_path
-    )
+    papers = ScholarFetcher.get_unprocessed_papers(limit=batch_size, db_path=db_path)
 
     if not papers:
         print("No unprocessed papers found")
@@ -249,6 +391,7 @@ async def process_batch(
 
     print(f"\nProcessing {len(papers)} papers with concurrency={concurrency}")
     print(f"API URL: {api_url}")
+    print(f"PDF directory: {pdf_dir}")
 
     # Create semaphore for concurrency control
     semaphore = asyncio.Semaphore(concurrency)
@@ -262,8 +405,9 @@ async def process_batch(
             auth_token,
             user_id,
             db_path,
+            pdf_dir,
             i + 1,
-            len(papers)
+            len(papers),
         )
         for i, paper_data in enumerate(papers)
     ]
@@ -288,7 +432,8 @@ async def process_all(
     api_url: str = "http://localhost:8000",
     auth_token: Optional[str] = None,
     user_id: str = "scholar_processor",
-    db_path: str = "data/scholar.db"
+    db_path: str = "data/scholar.db",
+    pdf_dir: str = "data/scholar/pdfs",
 ):
     """
     Process all unprocessed papers.
@@ -299,12 +444,12 @@ async def process_all(
         auth_token: Optional authentication token
         user_id: User ID for audit logging
         db_path: Path to SQLite database
+        pdf_dir: Directory containing local PDFs
     """
     while True:
         # Get next batch
         papers = ScholarFetcher.get_unprocessed_papers(
-            limit=50,  # Process in chunks of 50
-            db_path=db_path
+            limit=50, db_path=db_path  # Process in chunks of 50
         )
 
         if not papers:
@@ -321,7 +466,8 @@ async def process_all(
             api_url=api_url,
             auth_token=auth_token,
             user_id=user_id,
-            db_path=db_path
+            db_path=db_path,
+            pdf_dir=pdf_dir,
         )
 
 
@@ -334,42 +480,33 @@ def main():
         "--batch-size",
         type=int,
         default=10,
-        help="Number of papers to process in this batch"
+        help="Number of papers to process in this batch",
     )
     parser.add_argument(
-        "--concurrency",
-        type=int,
-        default=3,
-        help="Number of concurrent API requests"
+        "--concurrency", type=int, default=3, help="Number of concurrent API requests"
     )
     parser.add_argument(
-        "--api-url",
-        default="http://localhost:8000",
-        help="Base URL of the API"
+        "--api-url", default="http://localhost:8000", help="Base URL of the API"
     )
     parser.add_argument(
-        "--auth-token",
-        help="Authentication token (or set API_AUTH_TOKEN env var)"
+        "--auth-token", help="Authentication token (or set API_AUTH_TOKEN env var)"
     )
     parser.add_argument(
-        "--user-id",
-        default="scholar_processor",
-        help="User ID for audit logging"
+        "--user-id", default="scholar_processor", help="User ID for audit logging"
     )
     parser.add_argument(
-        "--db-path",
-        default="data/scholar.db",
-        help="Path to SQLite database"
+        "--db-path", default="data/scholar.db", help="Path to SQLite database"
     )
     parser.add_argument(
-        "--all",
-        action="store_true",
-        help="Process all unprocessed papers"
+        "--pdf-dir",
+        default="data/scholar/pdfs",
+        help="Directory containing local PDFs",
     )
     parser.add_argument(
-        "--stats",
-        action="store_true",
-        help="Show processing statistics"
+        "--all", action="store_true", help="Process all unprocessed papers"
+    )
+    parser.add_argument(
+        "--stats", action="store_true", help="Show processing statistics"
     )
 
     args = parser.parse_args()
@@ -386,30 +523,36 @@ def main():
         print(f"  Unprocessed: {stats['unprocessed']}")
         print(f"  Errors: {stats['errors']}")
 
-        if stats['total'] > 0:
-            pct_processed = (stats['processed'] / stats['total']) * 100
+        if stats["total"] > 0:
+            pct_processed = (stats["processed"] / stats["total"]) * 100
             print(f"  Progress: {pct_processed:.1f}%")
 
     elif args.all:
         # Process all papers
-        asyncio.run(process_all(
-            concurrency=args.concurrency,
-            api_url=args.api_url,
-            auth_token=auth_token,
-            user_id=args.user_id,
-            db_path=args.db_path
-        ))
+        asyncio.run(
+            process_all(
+                concurrency=args.concurrency,
+                api_url=args.api_url,
+                auth_token=auth_token,
+                user_id=args.user_id,
+                db_path=args.db_path,
+                pdf_dir=args.pdf_dir,
+            )
+        )
 
     else:
         # Process batch
-        asyncio.run(process_batch(
-            batch_size=args.batch_size,
-            concurrency=args.concurrency,
-            api_url=args.api_url,
-            auth_token=auth_token,
-            user_id=args.user_id,
-            db_path=args.db_path
-        ))
+        asyncio.run(
+            process_batch(
+                batch_size=args.batch_size,
+                concurrency=args.concurrency,
+                api_url=args.api_url,
+                auth_token=auth_token,
+                user_id=args.user_id,
+                db_path=args.db_path,
+                pdf_dir=args.pdf_dir,
+            )
+        )
 
 
 if __name__ == "__main__":
