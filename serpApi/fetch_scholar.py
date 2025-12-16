@@ -491,7 +491,7 @@ if __name__ == "__main__":
         description="Fetch Google Scholar papers via SerpAPI"
     )
     parser.add_argument("--api-key", help="SerpAPI key (or set SERPAPI_KEY env var)")
-    parser.add_argument("--query", required=True, help="Search query")
+    parser.add_argument("--query", help="Search query (not required for --stats or --download-pdfs)")
     parser.add_argument(
         "--num-results", type=int, default=100, help="Number of results to fetch"
     )
@@ -513,6 +513,11 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
 
     load_dotenv()
+
+    # Validate arguments
+    if not args.stats and not args.download_pdfs and not args.query:
+        parser.error("--query is required unless using --stats or --download-pdfs")
+
     # Get API key
     api_key = args.api_key or os.environ.get("SERPAPI_KEY")
     if not api_key and not args.stats:
