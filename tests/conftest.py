@@ -29,7 +29,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.main import app
 from app.models.sources import Source
-from app.models.incidents import IncidentReport, IndustryOverview
+from app.models.incidents import IncidentReport, IndustryOverview, Species
 from app.models.users import User
 from app.models.task import TaskStatus
 from app.audit.models import AuditLog
@@ -128,17 +128,22 @@ async def sample_incident(test_db, sample_source: Source) -> IncidentReport:
         extracted_information=ExtractedIncidentData(
             vesselInformation=VesselData(
                 vesselName="Test Vessel",
-                flagState="Unknown",
+                vesselFlag="Unknown",
             ),
             eventData=EventData(
                 eventDate="2024-01-15",
                 eventLocation="Protected Waters",
+                resolution="Under investigation",
             ),
+            speciesInvolved=[Species(speciesCommonName="Tuna")],
+            productsInvolved=[],
+            description="Test vessel caught fishing illegally in protected waters.",
         ),
         incident_classification=IncidentClassification(
             iuuClassifications=[
                 IllegalFishingClassification(
-                    subtype="Invalid or no permit or license",
+                    IUUSubType=["Invalid or no permit or license"],
+                    IUUTypeReason="Vessel operated without valid fishing license.",
                 )
             ]
         ),
