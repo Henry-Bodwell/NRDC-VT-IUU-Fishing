@@ -32,6 +32,10 @@ When ending a work session, complete ALL steps:
 **Critical**: Work is NOT complete until `git push` succeeds.
 
 ---
+## Style Guide
+
+ - Adhere to Black formatting
+ - NEVER USE EMOJIs, If needed use Unicode characters 
 
 ## Project Overview
 
