@@ -2,21 +2,49 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Issue Tracking (Beads)
+
+This project uses **bd** (beads) for issue tracking. Issues live in the repo alongside code.
+
+```bash
+bd ready                              # Find available work
+bd show <id>                          # View issue details
+bd create "Description"               # Create new issue
+bd update <id> --status in_progress   # Claim work
+bd close <id>                         # Complete work
+bd sync                               # Sync with git
+```
+
+### Session Completion Checklist
+
+When ending a work session, complete ALL steps:
+
+1. **File issues** for any remaining/follow-up work (`bd create`)
+2. **Run quality gates** if code changed (tests, linters)
+3. **Update issue status** - close finished, update in-progress (`bd close`/`bd update`)
+4. **Push to remote**:
+   ```bash
+   git pull --rebase && bd sync && git push
+   git status  # Must show "up to date with origin"
+   ```
+5. **Hand off** - Provide context for next session
+
+**Critical**: Work is NOT complete until `git push` succeeds.
+
+---
+
 ## Project Overview
 
-This is an IUU (Illegal, Unreported, and Unregulated) Fishing incident tracking and analysis system. The project uses AI/ML to extract structured information about fishing incidents from news articles, PDFs, and other sources, storing them in MongoDB with full audit trails.
+IUU (Illegal, Unreported, and Unregulated) Fishing incident tracking system. Uses AI/ML (DSPy) to extract structured information from news articles, PDFs, and other sources, storing them in MongoDB with full audit trails.
 
 ## Development Commands
 
 ### Running the Application
 ```bash
-# Start with Docker Compose (recommended for development)
-docker-compose up
+# Docker Compose (recommended)
+docker compose up
 
-# Run locally (requires MongoDB running on localhost:27017)
-MONGO_URI=mongodb://localhost:27017/iuuIncidents uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# Run in development mode with auto-reload
+# Development mode with auto-reload
 uvicorn app.main:app --reload
 ```
 
@@ -28,141 +56,98 @@ Create a `.env` file with:
 
 ### Testing
 ```bash
-# Run tests (basic test structure exists in test/)
-python -m pytest test/
-
-# Test API endpoints
-python test/apiTest.py
+# Integration test for API filters (requires running server)
+python test_filters.py
 ```
+
+---
 
 ## Architecture
 
 ### Core Pipeline Flow
 1. **Content Extraction** (`app/dspy_files/content_extraction.py`): Extracts text from URLs, PDFs, or raw text
-2. **Source Scope Classification** (`app/dspy_files/source_scope.py`): Classifies articles as "Single Incident", "Multiple Incidents", "Industry Overview", or "Unrelated"
-3. **Analysis Pipeline** (`app/dspy_files/analysis_pipeline.py`): Routes to appropriate analysis module based on classification
-4. **Analysis Modules** (`app/dspy_files/modules.py`): Uses DSPy to extract structured data
-5. **Postprocessing** (`app/dspy_files/postprocessing.py`): Formats extracted data into database models
-6. **Service Layer** (`app/service/`): Handles business logic and database operations
+2. **Source Scope Classification** (`app/dspy_files/source_scope.py`): Classifies as "Single Incident", "Multiple Incidents", "Industry Overview", or "Unrelated"
+3. **Analysis Pipeline** (`app/dspy_files/analysis_pipeline.py`): Routes to appropriate analysis module
+4. **Analysis Modules** (`app/dspy_files/modules.py`): DSPy-based structured extraction
+5. **Postprocessing** (`app/dspy_files/postprocessing.py`): Formats data into database models
+6. **Service Layer** (`app/service/`): Business logic and database operations
 
 ### Data Models
 
-**Three main document types (all in MongoDB via Beanie ODM):**
-- **Source** (`app/models/articles.py`): Raw article/document with text, URL, metadata, and article_scope classification
-- **IncidentReport** (`app/models/incidents.py`): Structured IUU incident data with vessel info, species, crew, event details, etc.
-- **IndustryOverview** (`app/models/incidents.py`): Analysis of industry trends/patterns (not specific incidents)
+Three main document types (MongoDB via Beanie ODM):
+- **Source** (`app/models/sources.py`): Raw article/document with text, URL, metadata
+- **IncidentReport** (`app/models/incidents.py`): Structured IUU incident data
+- **IndustryOverview** (`app/models/incidents.py`): Industry trends/patterns analysis
 
-All three inherit from **AuditedDocument** (`app/audit/base.py`) which provides automatic audit logging.
-
-### Audit System
-
-The audit system (`app/audit/`) tracks all document changes with field-level granularity:
-- **Context-based user tracking** (`app/audit/context.py`): Uses context manager to associate changes with users
-- **Multiple diff strategies** (`app/audit/strategies.py`): JSON patches for structured data, text diffs for large text fields, reference tracking for relationships
-- **AuditLog model** (`app/audit/models.py`): Stores change history with version tracking
-
-**Critical**: When updating documents, use the service layer methods which handle audit context properly. Updates should be wrapped with `AuditContext.with_user(user_id)` when user information is available.
+All inherit from **AuditedDocument** (`app/audit/base.py`) for automatic audit logging.
 
 ### Relationships
 
-Sources, Incidents, and Overviews have bidirectional relationships:
-- **Source ↔ IncidentReport**: Many-to-many via `source.incidents` and `incident.sources`
-- **Source → IndustryOverview**: One-to-one via `source.overview`
-- **IncidentReport → Source**: Has one `primary_source` link
+- **Source <-> IncidentReport**: Many-to-many via `source.incidents` and `incident.sources`
+- **Source -> IndustryOverview**: One-to-one via `source.overview`
+- **IncidentReport -> Source**: Has one `primary_source` link
 
-**IMPORTANT**: Always use helper methods (`incident.add_source()`, `incident.remove_source()`) to maintain relationship integrity. Direct manipulation of relationship fields can break bidirectional links.
-
-### Service Layer Pattern
-
-All database operations go through service classes in `app/service/`:
-- **IncidentService** (`incident_service.py`): Orchestrates full analysis pipeline and CRUD for incidents
-- **SourceService** (`source_service.py`): CRUD operations for sources
-- **OverviewService** (`overview_service.py`): CRUD operations for industry overviews
-
-Services handle:
-- Relationship management (linking sources to incidents)
-- Audit logging context
-- Data validation and filtering
-- Error handling and logging
-
-### DSPy Integration
-
-This project uses DSPy (Declarative Self-improving Language Programs) for structured extraction:
-- **Signatures** (`app/dspy_files/signatures.py`): Define input/output schemas for LLM calls
-- **Modules** (`app/dspy_files/modules.py`): Combine signatures into reusable components
-- **Config** (`app/dspy_files/config.py`): DSPy/LLM configuration
-- DSPy is configured with OpenAI models (default: gpt-4o-mini)
-
-### WebScraper Module
-
-Located in `webScraper/`, this is a configurable web scraping framework:
-- **Base classes** (`scrapers/base_scraper.py`, `scrapers/generic_scraper.py`): Extensible scraper architecture
-- **Site configs** (`config/sites/*.yaml`): Per-site scraping rules with metadata
-- **Upload script** (`upload_scraped_data.py`): Uploads scraped articles to the API with source_type mapping
-
-**Site metadata mapping:**
-The upload script automatically maps site metadata categories to API source_type:
-- `Government` → `government`
-- `NGO` → `ngo`
-- `News` → `news`
-- `industry_journal` → `industry report`
-- `academic` → `academic`
-- (unknown) → `not specified`
-
-**Usage:**
-```bash
-# Import articles to tracking database
-python webScraper/upload_scraped_data.py --import
-
-# Upload scraped articles (requires auth token)
-python webScraper/upload_scraped_data.py --auth-token YOUR_TOKEN --batch-size 10
-
-# Check processing statistics
-python webScraper/upload_scraped_data.py --stats
+**IMPORTANT**: Always use helper methods to maintain relationship integrity:
+```python
+await incident.add_source(source, is_primary=True)
+await incident.remove_source(source)
+# Never directly modify incident.sources or source.incidents
 ```
 
-### Shared Pipeline Client
+### Service Layer
 
-Located in `shared/`, provides reusable components for uploading articles:
-- **pipeline_client.py**: Common API submission logic used by both newsapi and webscraper
-- **ProcessingTracker**: SQLite-based tracker for managing article processing status
-- **submit_article_to_pipeline()**: Handles async task submission and polling
+All database operations go through `app/service/`:
+- **IncidentService**: Full analysis pipeline + CRUD for incidents
+- **SourceService**: CRUD for sources
+- **OverviewService**: CRUD for industry overviews
 
-See [shared/README.md](shared/README.md) for detailed usage.
+### Audit System
 
-### API Endpoints
+The audit system (`app/audit/`) tracks all document changes:
+- **Context-based user tracking** (`context.py`): Associates changes with users
+- **Multiple diff strategies** (`strategies.py`): JSON patches, text diffs, reference tracking
+- **AuditLog model** (`models.py`): Stores change history with versioning
 
-All routes are in `app/routes.py` under `/api` prefix:
-- **POST /api/incidents**: Create incident from URL/text/PDF
-- **GET /api/incidents**: List with filtering (source_type, verified, IUU_type, status)
-- **GET /api/incidents/{report_id}**: Get specific incident
-- **PUT /api/incidents/{report_id}**: Update incident
-- **DELETE /api/incidents/{report_id}**: Delete incident
-- **GET /api/sources**: List sources with filters
-- **GET /api/sources/{source_id}**: Get specific source
-- **PUT /api/sources/{source_id}**: Update source
-- **DELETE /api/sources/{source_id}**: Delete source
-- **GET /api/overviews**: List overviews
-- **GET /api/overviews/{overview_id}**: Get specific overview
-- **PUT /api/overviews/{overview_id}**: Update overview
-- **DELETE /api/overviews/{overview_id}**: Delete overview
-- **GET /api/logs**: Get all audit logs
-- **GET /api/logs/{document_id}**: Get logs for specific document
+**Critical**: Wrap updates with audit context:
+```python
+from app.audit.context import AuditContext
 
-## Important Implementation Details
+with AuditContext.with_user(user_id):
+    await IncidentService.update_report(report_id, {"verified": True})
+```
+
+---
+
+## API Endpoints
+
+All routes under `/api` prefix (`app/routes.py`):
+
+| Method         | Endpoint                  | Description                |
+| -------------- | ------------------------- | -------------------------- |
+| POST           | `/api/incidents`          | Create from URL/text/PDF   |
+| GET            | `/api/incidents`          | List with filtering        |
+| GET/PUT/DELETE | `/api/incidents/{id}`     | Single incident CRUD       |
+| GET            | `/api/sources`            | List sources               |
+| GET/PUT/DELETE | `/api/sources/{id}`       | Single source CRUD         |
+| GET            | `/api/overviews`          | List overviews             |
+| GET/PUT/DELETE | `/api/overviews/{id}`     | Single overview CRUD       |
+| GET            | `/api/logs`               | All audit logs             |
+| GET            | `/api/logs/{document_id}` | Logs for specific document |
+
+---
+
+## Key Implementation Details
 
 ### Deduplication
-- Sources use `article_hash` (SHA256 of article_text) to prevent duplicate articles
-- IncidentReports use `incident_fingerprint` (SHA256 of vessel_name + event_date + event_location)
-- Both have unique indexes in MongoDB
+- **Sources**: `article_hash` (SHA256 of article_text)
+- **Incidents**: `incident_fingerprint` (SHA256 of vessel_name + event_date + event_location)
 
-### Content Types
-The POST /api/incidents endpoint accepts:
-- **JSON**: `{"url": "...", "user_id": "..."}` or `{"text": "...", "user_id": "..."}`
-- **Multipart form-data**: PDF file upload
+### Status Values
+- `"extracted"`: Automatically created from analysis
+- `"user_input"`: Manually created by user
+- `"modified"`: Edited after creation
 
-### IUU Classification Schema
-Incidents are classified into 10 main categories defined in `app/models/incidents.py`:
+### IUU Classification Categories
 1. Illegal Fishing
 2. Illegal Fishing Associated Activities
 3. Unreported Catch
@@ -174,24 +159,7 @@ Incidents are classified into 10 main categories defined in `app/models/incident
 9. Circumventing Prohibitions or Sanctions
 10. Illegal Aquacultural Practices
 
-Each has specific subtypes defined in the `subtype_behavior` string.
-
-### Verification Pattern
-Most nested models (Species, CrewMember, EventData, etc.) have a `verified` boolean field (defaults to False) to track human verification status. The top-level IncidentReport also has a `verified` field.
-
-### Status Tracking
-Both Source and IncidentReport have a `status` field:
-- "extracted": Automatically created from analysis
-- "user_input": Manually created by user
-- "modified": Edited after creation
-
-## Logging
-
-Structured logging is configured in `app/logging.py`. All service operations and pipeline stages log extensively. Check logs for:
-- Pipeline stage transitions
-- Database save operations
-- Analysis failures
-- Duplicate detection
+---
 
 ## Common Patterns
 
@@ -203,25 +171,21 @@ output = await IncidentService.create_report_from_url("https://example.com/artic
 # Returns PipelineOutput with status, source, incidents, and/or industry_overview
 ```
 
-### Updating with Audit Context
-```python
-from app.audit.context import AuditContext
-from app.service.incident_service import IncidentService
+### WebScraper Usage
+```bash
+# Import articles to tracking database
+python webScraper/upload_scraped_data.py --import
 
-with AuditContext.with_user(user_id):
-    await IncidentService.update_report(report_id, {"verified": True})
+# Upload scraped articles
+python webScraper/upload_scraped_data.py --auth-token YOUR_TOKEN --batch-size 10
+
+# Check processing statistics
+python webScraper/upload_scraped_data.py --stats
 ```
 
-### Managing Source-Incident Relationships
-```python
-# Always use helper methods
-await incident.add_source(source, is_primary=True)
-await incident.remove_source(source)
-# Never directly modify incident.sources or source.incidents
-```
+---
 
 ## Branch Information
 
-- Current branch: `webscraper` (in development)
-- Main branch: `main`
-- The webscraper branch contains the new webScraper module
+- **Current branch**: `refactor`
+- **Main branch**: `main`
