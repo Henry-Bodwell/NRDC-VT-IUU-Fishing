@@ -231,11 +231,18 @@ Each line in the daily JSONL file contains the full SerpAPI response for one pap
 
 When papers are sent to the pipeline:
 
-1. **URL Selection**: Prefers PDF link, falls back to main link
-2. **Metadata Attached**: Includes `result_id`, title, authors, year, citations
-3. **Source Type**: Marked as `google_scholar` in the Source document
-4. **Duplicate Handling**: API returns 409 if article already exists (treated as success)
-5. **Async Processing**: Polls task endpoint every 5 seconds (5 minute timeout)
+1. **PDF Upload**: Uploads PDF file with multipart/form-data
+2. **Metadata Fields**: Includes the following metadata in the form data:
+   - `title`: Paper title
+   - `author`: Authors (comma-separated string from publication_info)
+   - `publisher`: Publisher information from publication_info
+   - `publication_date`: Publication year converted to ISO datetime (YYYY-01-01T00:00:00Z)
+   - `url`: Main link to the paper (if available)
+   - `source_type`: Set to "academic" for all Google Scholar papers
+   - `status`: Set to "from_api" to indicate automated submission
+   - `input_name`: Set to "google_scholar_{result_id}" for tracking
+3. **Duplicate Handling**: API returns 409 if article already exists (treated as success)
+4. **Async Processing**: Polls task endpoint every 5 seconds (5 minute timeout)
 
 ## Troubleshooting
 

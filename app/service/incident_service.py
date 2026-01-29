@@ -240,7 +240,7 @@ class IncidentService(Service):
 
                 # Apply metadata to the source if provided
                 if "title" in kwargs and kwargs["title"]:
-                    source.title = kwargs["title"]
+                    source.article_title = kwargs["title"]
                 if "author" in kwargs and kwargs["author"]:
                     source.author = kwargs["author"]
                 if "publisher" in kwargs and kwargs["publisher"]:

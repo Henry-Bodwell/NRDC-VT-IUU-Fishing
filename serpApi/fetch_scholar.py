@@ -309,6 +309,7 @@ class ScholarFetcher:
                         "title": row["title"],
                         "authors": row["authors"],
                         "publication_year": row["publication_year"],
+                        "publication_info": row["publication_info"],
                         "pdf_link": row["pdf_link"],
                         "pdf_source": row["pdf_source"],
                         "main_link": row["main_link"],

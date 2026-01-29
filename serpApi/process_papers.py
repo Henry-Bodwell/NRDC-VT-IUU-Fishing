@@ -203,6 +203,45 @@ async def process_paper(
                 content_type="application/pdf",
             )
 
+            # Add metadata fields
+            if title:
+                form.add_field("title", title)
+
+            if paper_data.get("authors"):
+                # Extract just author names from authors field
+                # Format is typically: "Authors - Journal, Year - Publisher"
+                authors_info = paper_data["authors"]
+                # Authors are the first part before the first " - "
+                author_names = authors_info.split(" - ")[0].strip() if " - " in authors_info else authors_info
+                form.add_field("author", author_names)
+
+            if paper_data.get("publication_info"):
+                # Extract publisher from publication_info
+                # Format is typically: "Authors - Journal, Year - Publisher"
+                pub_info = paper_data["publication_info"]
+                # Publisher is usually the last part after the final " - "
+                parts = pub_info.split(" - ")
+                publisher = parts[-1].strip() if len(parts) > 1 else pub_info
+                form.add_field("publisher", publisher)
+
+            if paper_data.get("publication_year"):
+                # Convert year to ISO datetime format (use January 1st of that year)
+                from datetime import datetime
+                year = paper_data["publication_year"]
+                publication_date = datetime(year, 1, 1).isoformat() + "Z"
+                form.add_field("publication_date", publication_date)
+
+            # Mark as academic source from API
+            form.add_field("source_type", "academic")
+            form.add_field("status", "from_api")
+
+            # Optional: Add the main link as URL if available
+            if paper_data.get("main_link"):
+                form.add_field("url", paper_data["main_link"])
+
+            # Add input_name to identify this as from Google Scholar
+            form.add_field("input_name", f"google_scholar_{result_id}")
+
             # Submit to API (async task endpoint)
             async with session.post(
                 f"{api_url}/api/incidents",
@@ -308,7 +347,9 @@ async def process_paper_with_tracking(
     print(f"  Result ID: {result_id}")
     print(f"  Authors: {paper_data.get('authors', 'Unknown')}")
     print(f"  Year: {paper_data.get('publication_year', 'Unknown')}")
+    print(f"  Publisher: {paper_data.get('publication_info', 'Unknown')}")
     print(f"  PDF link: {'Yes' if paper_data.get('pdf_link') else 'No'}")
+    print(f"  Main link: {paper_data.get('main_link', 'N/A')}")
 
     success, error_msg = await process_paper(
         paper_data, api_url, auth_token, user_id, pdf_dir
