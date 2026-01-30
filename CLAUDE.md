@@ -60,9 +60,20 @@ Create a `.env` file with:
 
 ### Testing
 ```bash
-# Integration test for API filters (requires running server)
-python test_filters.py
+# Run all tests with coverage
+pytest --cov=app --cov-report=html
+
+# Run unit tests only
+pytest tests/unit -m unit
+
+# Run integration tests only
+pytest tests/integration -m integration
+
+# Run specific test file
+pytest tests/unit/test_services.py -v
 ```
+
+See [tests/README.md](tests/README.md) for comprehensive testing documentation.
 
 ---
 

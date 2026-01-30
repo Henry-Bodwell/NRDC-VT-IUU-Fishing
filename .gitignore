@@ -193,6 +193,7 @@ cython_debug/
 
 # MISC
 *.DS_Store
+.claude/
 
 # NewsAPI data files
 data/newsapi/**/*.json
