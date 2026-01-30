@@ -35,7 +35,7 @@ When ending a work session, complete ALL steps:
 ## Style Guide
 
  - Adhere to Black formatting
- - NEVER USE EMOJIs, If needed use Unicode characters 
+ - NEVER USE EMOJIs, If needed use Unicode characters
 
 ## Project Overview
 
