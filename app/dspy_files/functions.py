@@ -4,9 +4,42 @@ from app.dspy_files.external_apis import get_name_pairs
 import fitz
 import pytesseract
 import pandas as pd
+import re
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def clean_extracted_text(text: str) -> str:
+    """
+    Clean extracted text by normalizing whitespace and removing excessive newlines.
+
+    Args:
+        text: Raw extracted text
+
+    Returns:
+        Cleaned text with normalized spacing
+    """
+    # Replace multiple newlines with double newline (paragraph breaks)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    # Replace single newlines with spaces (join broken lines)
+    text = re.sub(r'(?<!\n)\n(?!\n)', ' ', text)
+
+    # Replace multiple spaces with single space
+    text = re.sub(r' {2,}', ' ', text)
+
+    # Replace tabs with spaces
+    text = text.replace('\t', ' ')
+
+    # Remove spaces at the beginning and end of lines
+    lines = [line.strip() for line in text.split('\n')]
+    text = '\n'.join(lines)
+
+    # Remove empty lines that are just whitespace
+    text = re.sub(r'\n\s*\n', '\n\n', text)
+
+    return text.strip()
 
 
 def verify_sci_name(common_name: str, predicted_sci_name: str) -> bool:
@@ -63,7 +96,10 @@ def extract_text_pdf(pdf_bytes: bytes) -> Dict[str, any]:
                 "No text content found in PDF. Document may be scanned or image-based."
             )
 
-        return {"text": full_text.strip(), "metadata": doc_info}
+        # Clean the extracted text to remove excessive newlines and formatting
+        cleaned_text = clean_extracted_text(full_text)
+
+        return {"text": cleaned_text, "metadata": doc_info}
     except IOError:
         logger.error(f"IO Exception when reading pdf bytes")
         raise
@@ -94,7 +130,10 @@ def ocr_pdf_with_pytesseract(pdf_bytes: bytes) -> Dict[str, any]:
 
         metadata = {"total_pages": len(images), "ocr": True}
 
-        return {"text": full_text.strip(), "metadata": metadata}
+        # Clean the extracted text to remove excessive newlines and formatting
+        cleaned_text = clean_extracted_text(full_text)
+
+        return {"text": cleaned_text, "metadata": metadata}
 
     except Exception as e:
         logger.error(f"OCR failed on scanned PDF: {e}")
