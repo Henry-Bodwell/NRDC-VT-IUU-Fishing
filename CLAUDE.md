@@ -37,6 +37,34 @@ When ending a work session, complete ALL steps:
  - Adhere to Black formatting
  - NEVER USE EMOJIs, If needed use Unicode characters
 
+## Pre-commit Hooks
+
+This project uses pre-commit hooks to ensure code quality before commits.
+
+### Setup
+```bash
+# Install pre-commit (included in requirements.txt)
+pip install pre-commit
+
+# Install git hooks
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
+```
+
+### Included Hooks
+- **Black**: Code formatting (line-length=88)
+- **Ruff**: Fast Python linting with auto-fix
+- **Mypy**: Type checking (excludes tests/, scripts/, webScraper/)
+- **Pytest**: Unit tests only (marked with @pytest.mark.unit)
+- **Pre-commit-hooks**: Trailing whitespace, EOF fixer, YAML/JSON checks, merge conflict detection
+
+### Important Notes
+- Unit tests in the pre-commit hook require MongoDB to be running on localhost:27018
+- Some tests marked as "unit" have database dependencies and may fail if MongoDB is not available
+- To skip hooks temporarily: `git commit --no-verify`
+
 ## Project Overview
 
 IUU (Illegal, Unreported, and Unregulated) Fishing incident tracking system. Uses AI/ML (DSPy) to extract structured information from news articles, PDFs, and other sources, storing them in MongoDB with full audit trails.
