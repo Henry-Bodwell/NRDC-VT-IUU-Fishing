@@ -26,4 +26,4 @@ class AuditContext:
         try:
             yield
         finally:
-            audit_context.set(None)
+            audit_context.reset(token)
