@@ -276,38 +276,81 @@ class TestSourceService:
     """Tests for SourceService."""
 
     @pytest.mark.asyncio
-    async def test_update_source(self, test_db, sample_source):
+    async def test_update_source(self):
         """Test updating a source."""
+        source_id = "507f1f77bcf86cd799439011"
         update_data = {"status": "modified", "verified": True}
 
-        with patch("app.service.service.Service.update_model") as mock_update:
-            mock_update.return_value = sample_source
+        # Create a mock source to return
+        mock_source = MagicMock(spec=Source)
+        mock_source.id = source_id
+        mock_source.status = "modified"
+        mock_source.verified = True
 
-            result = await SourceService.update_source(
-                str(sample_source.id), update_data
-            )
+        with patch("app.service.service.Service.update_model") as mock_update:
+            mock_update.return_value = mock_source
+
+            result = await SourceService.update_source(source_id, update_data)
 
             mock_update.assert_called_once_with(
                 model_cls=Source,
-                model_id=str(sample_source.id),
+                model_id=source_id,
                 update_data=update_data,
                 model_name="source",
             )
+            assert result == mock_source
 
     @pytest.mark.asyncio
-    async def test_delete_source(self, test_db, sample_source):
+    async def test_delete_source(self):
         """Test deleting a source."""
+        source_id = "507f1f77bcf86cd799439011"
+
         with patch("app.service.service.Service.delete") as mock_delete:
             mock_delete.return_value = True
 
-            result = await SourceService.delete_source(str(sample_source.id))
+            result = await SourceService.delete_source(source_id)
 
             mock_delete.assert_called_once_with(
                 model_cls=Source,
-                model_id=str(sample_source.id),
+                model_id=source_id,
                 model_name="source",
             )
             assert result is True
+
+    @pytest.mark.asyncio
+    async def test_update_source_not_found(self):
+        """Test updating a non-existent source raises HTTPException."""
+        from fastapi import HTTPException
+
+        source_id = "507f1f77bcf86cd799439011"
+        update_data = {"status": "modified"}
+
+        with patch("app.service.service.Service.update_model") as mock_update:
+            mock_update.side_effect = HTTPException(
+                status_code=404, detail="source with ID 507f1f77bcf86cd799439011 not found"
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await SourceService.update_source(source_id, update_data)
+
+            assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_source_not_found(self):
+        """Test deleting a non-existent source raises HTTPException."""
+        from fastapi import HTTPException
+
+        source_id = "507f1f77bcf86cd799439011"
+
+        with patch("app.service.service.Service.delete") as mock_delete:
+            mock_delete.side_effect = HTTPException(
+                status_code=404, detail="source with ID 507f1f77bcf86cd799439011 not found"
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await SourceService.delete_source(source_id)
+
+            assert exc_info.value.status_code == 404
 
 
 @pytest.mark.unit
@@ -315,62 +358,78 @@ class TestOverviewService:
     """Tests for OverviewService."""
 
     @pytest.mark.asyncio
-    async def test_update_overview(self, test_db):
+    async def test_update_overview(self):
         """Test updating an industry overview."""
-        # Create a sample overview
-        from app.models.incidents import IndustryOverviewExtract
-
-        overview = IndustryOverview(
-            extracted_information=IndustryOverviewExtract(
-                species=[Species(speciesCommonName="Tuna")],
-                countries=["Japan"],
-                companies=["Test Corp"],
-                incidents=[],
-                summary="Test overview",
-            )
-        )
-        await overview.insert()
-
+        overview_id = "507f1f77bcf86cd799439011"
         update_data = {"status": "modified", "verified": True}
 
-        with patch("app.service.service.Service.update_model") as mock_update:
-            mock_update.return_value = overview
+        # Create a mock overview to return
+        mock_overview = MagicMock(spec=IndustryOverview)
+        mock_overview.id = overview_id
+        mock_overview.status = "modified"
+        mock_overview.verified = True
 
-            result = await OverviewService.update_overview(
-                str(overview.id), update_data
-            )
+        with patch("app.service.service.Service.update_model") as mock_update:
+            mock_update.return_value = mock_overview
+
+            result = await OverviewService.update_overview(overview_id, update_data)
 
             mock_update.assert_called_once_with(
                 model_cls=IndustryOverview,
-                model_id=str(overview.id),
+                model_id=overview_id,
                 update_data=update_data,
-                model_name="overview",
+                model_name="industry_overviews",
             )
+            assert result == mock_overview
 
     @pytest.mark.asyncio
-    async def test_delete_overview(self, test_db):
+    async def test_delete_overview(self):
         """Test deleting an industry overview."""
-        from app.models.incidents import IndustryOverviewExtract
-
-        overview = IndustryOverview(
-            extracted_information=IndustryOverviewExtract(
-                species=[Species(speciesCommonName="Tuna")],
-                countries=["Japan"],
-                companies=["Test Corp"],
-                incidents=[],
-                summary="Test overview",
-            )
-        )
-        await overview.insert()
+        overview_id = "507f1f77bcf86cd799439011"
 
         with patch("app.service.service.Service.delete") as mock_delete:
             mock_delete.return_value = True
 
-            result = await OverviewService.delete_overview(str(overview.id))
+            result = await OverviewService.delete_overview(overview_id)
 
             mock_delete.assert_called_once_with(
                 model_cls=IndustryOverview,
-                model_id=str(overview.id),
-                model_name="overview",
+                model_id=overview_id,
+                model_name="industry_overviews",
             )
             assert result is True
+
+    @pytest.mark.asyncio
+    async def test_update_overview_not_found(self):
+        """Test updating a non-existent overview raises HTTPException."""
+        from fastapi import HTTPException
+
+        overview_id = "507f1f77bcf86cd799439011"
+        update_data = {"status": "modified"}
+
+        with patch("app.service.service.Service.update_model") as mock_update:
+            mock_update.side_effect = HTTPException(
+                status_code=404, detail="industry_overviews with ID 507f1f77bcf86cd799439011 not found"
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await OverviewService.update_overview(overview_id, update_data)
+
+            assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_overview_not_found(self):
+        """Test deleting a non-existent overview raises HTTPException."""
+        from fastapi import HTTPException
+
+        overview_id = "507f1f77bcf86cd799439011"
+
+        with patch("app.service.service.Service.delete") as mock_delete:
+            mock_delete.side_effect = HTTPException(
+                status_code=404, detail="industry_overviews with ID 507f1f77bcf86cd799439011 not found"
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await OverviewService.delete_overview(overview_id)
+
+            assert exc_info.value.status_code == 404
