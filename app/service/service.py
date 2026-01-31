@@ -1,7 +1,6 @@
-from typing import Type, TypeVar, Union
+from typing import Type, TypeVar
 from pydantic import ValidationError, BaseModel
 from fastapi import HTTPException, status
-from beanie import Link
 import logging
 
 logger = logging.getLogger(__name__)
@@ -132,7 +131,7 @@ def _validate_no_link_updates(model_cls, updates: dict, model_name: str):
         if field_info:
             # Check if the field annotation contains Link
             annotation = str(field_info.annotation)
-            if 'Link[' in annotation or 'List[Link[' in annotation:
+            if "Link[" in annotation or "List[Link[" in annotation:
                 link_fields.append(field_name)
 
     if link_fields:
@@ -142,14 +141,24 @@ def _validate_no_link_updates(model_cls, updates: dict, model_name: str):
         # Provide specific guidance based on the field
         suggestions = []
         for field in link_fields:
-            if 'source' in field.lower():
-                suggestions.append(f"To update source data, use PUT /api/sources/{{source_id}}")
-            elif 'incident' in field.lower():
-                suggestions.append(f"To update incident data, use PUT /api/incidents/{{incident_id}}")
-            elif 'overview' in field.lower():
-                suggestions.append(f"To update overview data, use PUT /api/overviews/{{overview_id}}")
+            if "source" in field.lower():
+                suggestions.append(
+                    "To update source data, use PUT /api/sources/{source_id}"
+                )
+            elif "incident" in field.lower():
+                suggestions.append(
+                    "To update incident data, use PUT /api/incidents/{incident_id}"
+                )
+            elif "overview" in field.lower():
+                suggestions.append(
+                    "To update overview data, use PUT /api/overviews/{overview_id}"
+                )
 
-        suggestion_text = " ".join(set(suggestions)) if suggestions else "Update the linked document directly using its specific endpoint."
+        suggestion_text = (
+            " ".join(set(suggestions))
+            if suggestions
+            else "Update the linked document directly using its specific endpoint."
+        )
 
         logger.warning(
             f"Attempted to update Link field(s) '{field_list}' on {model_name}. "

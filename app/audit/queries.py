@@ -15,28 +15,24 @@ class AuditQueryService:
         cls, document_id: ObjectId, limit: int = 100, since: Optional[datetime] = None
     ) -> List[AuditLog]:
         """Get audit history for a specific document"""
-        query = {"document_id": document_id}
+        query: Dict[str, Any] = {"document_id": document_id}
 
         if since:
             query["timestamp"] = {"$gte": since}
 
-        return (
-            await AuditLog.find(query).sort(-AuditLog.timestamp).limit(limit).to_list()
-        )
+        return await AuditLog.find(query).sort("-timestamp").limit(limit).to_list()
 
     @classmethod
     async def get_user_activity(
         cls, user_id: str, document_type: Optional[str] = None, limit: int = 100
     ) -> List[AuditLog]:
         """Get all audit entries for a specific user"""
-        query = {"user_id": user_id}
+        query: Dict[str, Any] = {"user_id": user_id}
 
         if document_type:
             query["document_type"] = document_type
 
-        return (
-            await AuditLog.find(query).sort(-AuditLog.timestamp).limit(limit).to_list()
-        )
+        return await AuditLog.find(query).sort("-timestamp").limit(limit).to_list()
 
     @classmethod
     async def get_system_activity(
@@ -47,7 +43,7 @@ class AuditQueryService:
         limit: int = 1000,
     ) -> List[AuditLog]:
         """Get system-wide audit activity"""
-        query = {}
+        query: Dict[str, Any] = {}
 
         if since:
             query["timestamp"] = {"$gte": since}
@@ -56,9 +52,7 @@ class AuditQueryService:
         if operation:
             query["operation"] = operation
 
-        return (
-            await AuditLog.find(query).sort(-AuditLog.timestamp).limit(limit).to_list()
-        )
+        return await AuditLog.find(query).sort("-timestamp").limit(limit).to_list()
 
     @classmethod
     async def reconstruct_document_at_version(
@@ -73,7 +67,7 @@ class AuditQueryService:
             await AuditLog.find(
                 {"document_id": document_id, "version": {"$gt": target_version}}
             )
-            .sort(AuditLog.version)
+            .sort("version")
             .to_list()
         )
 

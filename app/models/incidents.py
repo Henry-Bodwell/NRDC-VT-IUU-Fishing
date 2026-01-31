@@ -1,9 +1,8 @@
 from __future__ import annotations
 import hashlib
 from typing import TYPE_CHECKING, List, Literal
-from beanie import Document, Insert, Link, Replace, Update, before_event
+from beanie import Insert, Link, Replace, before_event
 from pydantic import BaseModel, Field
-from datetime import datetime
 
 from app.audit.base import AuditedDocument
 

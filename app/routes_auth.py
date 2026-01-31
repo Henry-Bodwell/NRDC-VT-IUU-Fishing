@@ -2,6 +2,7 @@
 Authentication routes - NextAuth handles login/register
 FastAPI provides user info endpoints for authenticated sessions
 """
+
 from datetime import datetime
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -14,6 +15,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # Response Models
 class UserResponse(BaseModel):
     """User information response (without password)"""
+
     id: str
     email: str
     username: str | None

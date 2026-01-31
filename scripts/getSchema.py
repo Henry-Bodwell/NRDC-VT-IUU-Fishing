@@ -1,5 +1,4 @@
 import json
-from pydantic import BaseModel
 from app.models.sources import Source
 from app.models.incidents import IncidentReport
 

@@ -220,14 +220,11 @@ async def example_combined_usage():
     print("Combined Scraper + Storage Example")
     print("=" * 80)
 
-    from webScraper.scrapers.generic_scraper import GenericScraper
-
     # Note: This would work if you have a configured site
     # For demonstration, we'll simulate it
+    print("\nThis example shows how to integrate storage with your scraper workflow:")
     print(
-        "\nThis example shows how to integrate storage with your scraper workflow:"
-    )
-    print("""
+        """
     # After scraping
     scraper = GenericScraper(site_name="oceana")
     results = await scraper.scrape(query="illegal fishing", max_results=10)
@@ -248,7 +245,8 @@ async def example_combined_usage():
     # Export for backup
     json_storage.export_to_file(Path("backup.json"))
     sqlite_storage.export_to_json(Path("db_backup.json"))
-    """)
+    """
+    )
 
 
 async def main():

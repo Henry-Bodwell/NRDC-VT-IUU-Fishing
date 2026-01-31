@@ -1,4 +1,4 @@
-Keyword 
+Keyword
 fish
 seafood
 IUU
@@ -6,7 +6,7 @@ flag of convenince
 FOC
 illegal
 undersized
-exceeded quota 
+exceeded quota
 overfishing
 protected
 endangered
@@ -98,5 +98,5 @@ shark fin
 gill raker
 fishmeal
 pearls
-liver oil 
+liver oil
 unagi

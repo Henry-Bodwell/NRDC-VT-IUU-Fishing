@@ -44,7 +44,7 @@ custom_colors <- c("grey95", "gold", "orange") # White (0), Gold (1), Orange (2)
 names(custom_colors) <- c("0", "1", "2")
 
 # NOTE: lots of other heatmap function - e.g., (1) plotly in combination with heatmap(), (2) d3heatmap, and (3) heatmaply
-# Using pheatmap for easier high-level labeling of behaviors and KDEs using annotation_row and annotation_col 
+# Using pheatmap for easier high-level labeling of behaviors and KDEs using annotation_row and annotation_col
 pheatmap(
   data_matrix,
   color = unlist(custom_colors),
@@ -57,7 +57,7 @@ pheatmap(
   clustering_distance_rows = "manhattan", # appropriate for ordinal data; distance measured as steps on a grid as opposed to shortest distance (Euclidean)
   clustering_distance_cols = "manhattan",
   legend_breaks = c(0,1,2), # legend should show three distinct values and labels
-  legend_labels = c("None", "Direct", "Indirect"), 
+  legend_labels = c("None", "Direct", "Indirect"),
   fontsize_row = 7,
   fontsize_col = 7,
   filename = "clustered_heatmap.png",
@@ -69,7 +69,7 @@ pheatmap(
 # DATA VIZ 3: Zoom in on the Dendogram
 
 # First create dendogram of behaviors
-# Calculate distance using the Manhattan metric - 
+# Calculate distance using the Manhattan metric -
 # Manhattan is appropriate for ordinal data; distance measured as steps on a grid as opposed to shortest distance (Euclidean)
 dist_matrix <- dist(data_matrix, method = "manhattan")
 
@@ -110,7 +110,7 @@ dev.off(); par(mar = c(5, 4, 4, 2) + 0.1)
 # Reset margins to default after plotting if you plan other plots in the same session
 
 # Next create dendogram of KDEs - i.e., pass transposed matrix into dist function
-# Calculate distance using the Manhattan metric - 
+# Calculate distance using the Manhattan metric -
 # Manhattan is appropriate for ordinal data; distance measured as steps on a grid as opposed to shortest distance (Euclidean)
 dist_matrix <- dist(t(data_matrix), method = "manhattan")
 
@@ -155,4 +155,3 @@ plot(
 )
 
 dev.off(); par(mar = c(5, 4, 4, 2) + 0.1)
-

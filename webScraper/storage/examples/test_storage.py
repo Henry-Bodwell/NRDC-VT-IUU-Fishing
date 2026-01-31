@@ -10,10 +10,11 @@ from pathlib import Path
 from datetime import datetime
 
 # Set UTF-8 encoding for Windows console
-if os.name == 'nt':
+if os.name == "nt":
     import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

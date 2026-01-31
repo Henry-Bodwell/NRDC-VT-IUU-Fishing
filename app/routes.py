@@ -3,7 +3,6 @@ from beanie import PydanticObjectId
 from fastapi import (
     APIRouter,
     BackgroundTasks,
-    Body,
     Depends,
     Query,
     Request,
@@ -15,19 +14,15 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 from pymongo import DESCENDING
 from starlette.datastructures import UploadFile
-from fastapi.encoders import jsonable_encoder
-from typing import Annotated, List, Optional, Type, TypeVar
-from pydantic import BaseModel, ValidationError, model_validator
-from app.audit.context import AuditContext
+from typing import Annotated, Optional, Type, TypeVar
+from pydantic import BaseModel, ValidationError
 from app.audit.models import AuditLog
 from app.models.incidents import IncidentReport, IndustryOverview
 from app.models.sources import Source
 from app.models.task import TaskStatus
 from app.service.incident_service import IncidentService
-from pymongo.errors import DuplicateKeyError
 from app.service.overview_service import OverviewService
 from app.service.source_service import SourceService
-from app.dspy_files.news_analysis import PipelineOutput
 from app.interfaces import GenRequest, IncidentFilters, SourceFilters, OverviewFilters
 
 
@@ -39,7 +34,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 # Import authentication dependencies
-from app.auth import get_current_user, get_current_admin_user, get_optional_user
+from app.auth import get_current_user, get_current_admin_user
 from app.models.users import User
 
 
@@ -178,7 +173,7 @@ async def _handle_json_request(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.errors()
         )
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         return JSONResponse({"error": "Invalid JSON format"}, status_code=400)
     except HTTPException:
         raise
@@ -221,15 +216,28 @@ async def _handle_file_request(
                 pdf_file = value
             elif isinstance(value, str):
                 # Collect string metadata fields
-                if key in ["title", "author", "publisher", "url", "source_type", "status", "input_name"]:
+                if key in [
+                    "title",
+                    "author",
+                    "publisher",
+                    "url",
+                    "source_type",
+                    "status",
+                    "input_name",
+                ]:
                     metadata[key] = value
                 elif key == "publication_date":
                     # Parse publication_date if provided
                     from datetime import datetime
+
                     try:
-                        metadata[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                        metadata[key] = datetime.fromisoformat(
+                            value.replace("Z", "+00:00")
+                        )
                     except Exception as e:
-                        logger.warning(f"Could not parse publication_date: {value}, error: {e}")
+                        logger.warning(
+                            f"Could not parse publication_date: {value}, error: {e}"
+                        )
 
         logger.info(f"Extracted metadata: {metadata}")
 

@@ -68,7 +68,9 @@ class AuthenticationConfig:
     # Logout configuration
     logout_url: Optional[str] = None
     logout_button: Optional[str] = None
-    logout_hover_target: Optional[str] = None  # Element to hover over before clicking logout_button
+    logout_hover_target: Optional[str] = (
+        None  # Element to hover over before clicking logout_button
+    )
 
 
 @dataclass

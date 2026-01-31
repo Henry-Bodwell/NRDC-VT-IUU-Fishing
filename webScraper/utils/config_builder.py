@@ -350,7 +350,7 @@ def main():
     save = input("\nSave this configuration? (y/n) [y]: ").lower() != "n"
     if save:
         builder.save_config(config)
-        print(f"\n✓ Configuration ready! You can now use:")
+        print("\n✓ Configuration ready! You can now use:")
         print(f"   GenericScraper(site_name='{config.site_name}')")
     else:
         print("\nConfiguration not saved.")

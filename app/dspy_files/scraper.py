@@ -263,7 +263,7 @@ class ArticleExtractionPipeline:
                     not hasattr(extraction, "sourceExtract")
                     or extraction.sourceExtract is None
                 ):
-                    logger.error(f"DSPy extraction missing sourceExtract attribute")
+                    logger.error("DSPy extraction missing sourceExtract attribute")
                     logger.error(f"Extraction type: {type(extraction)}")
                     logger.error(f"Extraction attributes: {dir(extraction)}")
                     raise ValueError("DSPy failed to extract source data")
@@ -272,7 +272,7 @@ class ArticleExtractionPipeline:
 
                 # Check if extract has article_text
                 if not hasattr(extract, "article_text") or not extract.article_text:
-                    logger.error(f"sourceExtract missing article_text")
+                    logger.error("sourceExtract missing article_text")
                     logger.error(f"sourceExtract type: {type(extract)}")
                     logger.error(f"sourceExtract content: {extract}")
                     raise ValueError("DSPy failed to extract article text")

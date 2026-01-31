@@ -20,7 +20,6 @@ from app.dspy_files.signatures import (
     ExtractIUUClassification,
     SummarizeIncident,
 )
-import logging
 from app.models.sources import Source
 
 logger = logging.getLogger(__name__)

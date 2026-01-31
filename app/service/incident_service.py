@@ -1,7 +1,6 @@
 import os
-from fastapi import File, HTTPException, status
-from pydantic import ValidationError
-from app.models.incidents import IncidentReport, IndustryOverview
+from fastapi import HTTPException, status
+from app.models.incidents import IncidentReport
 from app.models.sources import Source
 from app.models.task import TaskStatus
 from pymongo.errors import DuplicateKeyError
@@ -12,7 +11,7 @@ from app.dspy_files.news_analysis import (
 )
 import logging
 from app.dspy_files.content_extraction import ContentExtractor
-from app.service.service import Service, _filter_valid_fields
+from app.service.service import Service
 from app.audit.context import AuditContext
 
 logger = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ class IncidentService(Service):
         source = output.source
 
         if not source:
-            logger.error(f"Analysis failed to produce a source")
+            logger.error("Analysis failed to produce a source")
             logger.error(f"Pipeline status {output.status}: {output.error_message}")
 
             return output

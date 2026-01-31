@@ -140,7 +140,10 @@ class TestPydanticModels:
         assert data.eventData.eventDate == "2024-01-15"
         assert data.eventData.resolution == "Vessel seized"
         assert len(data.speciesInvolved) == 1
-        assert data.description == "Test vessel caught fishing illegally in protected waters."
+        assert (
+            data.description
+            == "Test vessel caught fishing illegally in protected waters."
+        )
 
     def test_industry_overview_extract(self):
         """Test IndustryOverviewExtract model with correct fields."""
@@ -284,7 +287,9 @@ class TestIncidentReportModel:
             ),
         )
 
-        assert incident.extracted_information.vesselInformation.vesselName == "Test Vessel"
+        assert (
+            incident.extracted_information.vesselInformation.vesselName == "Test Vessel"
+        )
         assert incident.extracted_information.eventData.eventDate == "2024-01-15"
 
     @pytest.mark.asyncio
