@@ -175,7 +175,7 @@ async def process_paper(
                 if not pdf_bytes:
                     return (False, "Failed to download PDF")
 
-                pdf_source_description = f"downloaded from URL"
+                pdf_source_description = "downloaded from URL"
         except Exception as e:
             return (False, f"Download error: {str(e)}")
 
@@ -212,7 +212,11 @@ async def process_paper(
                 # Format is typically: "Authors - Journal, Year - Publisher"
                 authors_info = paper_data["authors"]
                 # Authors are the first part before the first " - "
-                author_names = authors_info.split(" - ")[0].strip() if " - " in authors_info else authors_info
+                author_names = (
+                    authors_info.split(" - ")[0].strip()
+                    if " - " in authors_info
+                    else authors_info
+                )
                 form.add_field("author", author_names)
 
             if paper_data.get("publication_info"):
@@ -227,6 +231,7 @@ async def process_paper(
             if paper_data.get("publication_year"):
                 # Convert year to ISO datetime format (use January 1st of that year)
                 from datetime import datetime
+
                 year = paper_data["publication_year"]
                 publication_date = datetime(year, 1, 1).isoformat() + "Z"
                 form.add_field("publication_date", publication_date)
@@ -361,7 +366,7 @@ async def process_paper_with_tracking(
     )
 
     if success:
-        print(f"  ✓ Success")
+        print("  ✓ Success")
     else:
         print(f"  ✗ Failed: {error_msg}")
 
@@ -461,7 +466,7 @@ async def process_batch(
     errors = sum(1 for r in results if isinstance(r, Exception))
 
     print(f"\n{'='*60}")
-    print(f"Batch Complete:")
+    print("Batch Complete:")
     print(f"  Successes: {successes}")
     print(f"  Failures: {failures}")
     print(f"  Errors: {errors}")
@@ -558,7 +563,7 @@ def main():
     if args.stats:
         # Show statistics
         stats = ScholarFetcher.get_processing_stats(args.db_path)
-        print(f"\nProcessing Statistics:")
+        print("\nProcessing Statistics:")
         print(f"  Total papers: {stats['total']}")
         print(f"  Processed: {stats['processed']}")
         print(f"  Unprocessed: {stats['unprocessed']}")

@@ -10,9 +10,8 @@ Usage:
 
 import json
 import csv
-import sys
 import argparse
-from typing import List, Dict, Any
+from typing import Dict
 
 
 def process_taxon_record(taxon: Dict) -> Dict:

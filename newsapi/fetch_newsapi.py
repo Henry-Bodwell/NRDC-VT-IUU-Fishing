@@ -2,9 +2,7 @@ import argparse
 import itertools
 import json
 import os
-import random
 import sqlite3
-import sys
 import time
 import arrow
 
@@ -270,7 +268,7 @@ class NewsapiFetcher:
         """
         )
 
-        cur.execute(f"select uri from articles")
+        cur.execute("select uri from articles")
         matches = cur.fetchall()
         have = set(itertools.chain.from_iterable(matches))
 
@@ -320,7 +318,7 @@ class NewsapiFetcher:
 
             # Be polite to the API - sleep between batches
             if i + page_size < len(neededUris):
-                print(f"Sleeping 2 seconds before next batch...")
+                print("Sleeping 2 seconds before next batch...")
                 time.sleep(1)
 
         con.close()

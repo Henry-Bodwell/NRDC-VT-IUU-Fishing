@@ -373,7 +373,7 @@ class AnalysisOrchestrator:
             logger.info(f"Formatting report from source: {source.url}")
             incident = format_report(prediction)
             if not incident:
-                logger.error(f"Failed to format prediction into incident report")
+                logger.error("Failed to format prediction into incident report")
                 return None
 
             # Inherit status from source

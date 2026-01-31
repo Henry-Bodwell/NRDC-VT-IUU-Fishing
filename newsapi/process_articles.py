@@ -67,9 +67,7 @@ async def process_article(
         payload["url"] = url
     if authors_list:
         # Extract author names from list of dicts
-        author_names = [
-            a.get("name", "") for a in authors_list if isinstance(a, dict)
-        ]
+        author_names = [a.get("name", "") for a in authors_list if isinstance(a, dict)]
         if author_names:
             payload["author"] = ", ".join(author_names)
     if date:
@@ -82,9 +80,7 @@ async def process_article(
     payload["input_name"] = "newsapi"
 
     # Submit to pipeline using shared client
-    return await submit_article_to_pipeline(
-        payload, api_url, auth_token, verbose=True
-    )
+    return await submit_article_to_pipeline(payload, api_url, auth_token, verbose=True)
 
 
 async def process_article_with_tracking(
@@ -130,7 +126,7 @@ async def process_batch(
             "Authentication token is required. Provide via --auth-token or AUTH_TOKEN environment variable."
         )
 
-    print(f"Authenticating with provided token...")
+    print("Authenticating with provided token...")
 
     # Get unprocessed articles
     print(f"Fetching up to {batch_size} unprocessed articles...")
@@ -183,13 +179,13 @@ async def process_batch(
 
     # Print summary
     print("\n" + "=" * 60)
-    print(f"Batch processing complete:")
+    print("Batch processing complete:")
     print(f"  Successful: {stats['success']}")
     print(f"  Failed: {stats['failed']}")
 
     # Print overall stats
     overall_stats = NewsapiFetcher.get_processing_stats(db_path=db_path)
-    print(f"\nOverall database stats:")
+    print("\nOverall database stats:")
     print(f"  Total articles: {overall_stats['total']}")
     print(f"  Processed: {overall_stats['processed']}")
     print(f"  Unprocessed: {overall_stats['unprocessed']}")

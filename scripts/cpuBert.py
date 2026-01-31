@@ -1,7 +1,7 @@
 import csv
 import torch
 import numpy as np
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple
 from collections import defaultdict, Counter
 import re
 
@@ -9,14 +9,11 @@ import re
 from transformers import (
     AutoTokenizer,
     AutoModel,
-    BertTokenizer,
-    BertModel,
     AutoModelForMaskedLM,
 )
 
 # Traditional NLP libraries
 import spacy
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import KMeans
 import pandas as pd

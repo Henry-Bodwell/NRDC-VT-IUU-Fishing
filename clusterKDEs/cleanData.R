@@ -1,5 +1,5 @@
 # FIRST, DO THE FOLLOWING MANUAL CLEANING STEPS OF THE XLSX DATA FILE
-# Create concise names for KDEs and behaviors 
+# Create concise names for KDEs and behaviors
 # Only keep Behavior Category, Behavior, and KDE columns (Delete all other columns)
 # Only keep abbreviated KDEs and KDE Grouping rows (Delete CTE, who/what/when, and full KDE name rows)
 # Remove crossed-out rows (e.g, "Failure by flag state to exercise effective control)

@@ -5,9 +5,6 @@ Integration tests for API endpoints.
 import pytest
 from httpx import AsyncClient
 
-from app.models.sources import Source
-from app.models.incidents import IncidentReport
-
 
 class TestIncidentsAPI:
     """Tests for /api/incidents endpoints."""
@@ -23,7 +20,9 @@ class TestIncidentsAPI:
         assert data["pagination"]["total"] == 0
 
     @pytest.mark.asyncio
-    async def test_list_incidents_with_data(self, async_client: AsyncClient, sample_incident):
+    async def test_list_incidents_with_data(
+        self, async_client: AsyncClient, sample_incident
+    ):
         """Test listing incidents when data exists."""
         response = await async_client.get("/api/incidents")
 
@@ -52,7 +51,9 @@ class TestIncidentsAPI:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_list_incidents_pagination(self, async_client: AsyncClient, sample_incident):
+    async def test_list_incidents_pagination(
+        self, async_client: AsyncClient, sample_incident
+    ):
         """Test incident listing pagination parameters."""
         response = await async_client.get("/api/incidents?limit=10&skip=0")
 
@@ -63,7 +64,9 @@ class TestIncidentsAPI:
         assert data["pagination"]["skip"] == 0
 
     @pytest.mark.asyncio
-    async def test_list_incidents_filter_by_status(self, async_client: AsyncClient, sample_incident):
+    async def test_list_incidents_filter_by_status(
+        self, async_client: AsyncClient, sample_incident
+    ):
         """Test filtering incidents by status."""
         response = await async_client.get("/api/incidents?status=extracted")
 
@@ -88,7 +91,9 @@ class TestSourcesAPI:
         assert data["pagination"]["total"] == 0
 
     @pytest.mark.asyncio
-    async def test_list_sources_with_data(self, async_client: AsyncClient, sample_source):
+    async def test_list_sources_with_data(
+        self, async_client: AsyncClient, sample_source
+    ):
         """Test listing sources when data exists."""
         response = await async_client.get("/api/sources")
 
@@ -118,7 +123,9 @@ class TestSourcesAPI:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_list_sources_filter_by_source_type(self, async_client: AsyncClient, sample_source):
+    async def test_list_sources_filter_by_source_type(
+        self, async_client: AsyncClient, sample_source
+    ):
         """Test filtering sources by source_type."""
         response = await async_client.get("/api/sources?source_type=news")
 
@@ -128,7 +135,9 @@ class TestSourcesAPI:
             assert source["source_type"] == "news"
 
     @pytest.mark.asyncio
-    async def test_list_sources_filter_by_input_category(self, async_client: AsyncClient, sample_source):
+    async def test_list_sources_filter_by_input_category(
+        self, async_client: AsyncClient, sample_source
+    ):
         """Test filtering sources by input_category."""
         # The sample_source uses default input_category='url'
         response = await async_client.get("/api/sources?input_category=url")
@@ -183,7 +192,9 @@ class TestAPIValidation:
     """Tests for API input validation."""
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="API bug: IUU-Fishing-1mi - Invalid ObjectId raises unhandled exception")
+    @pytest.mark.skip(
+        reason="API bug: IUU-Fishing-1mi - Invalid ObjectId raises unhandled exception"
+    )
     async def test_invalid_incident_id_format(self, async_client: AsyncClient, test_db):
         """Test that invalid ObjectId format returns appropriate error."""
         response = await async_client.get("/api/incidents/invalid-id-format")
@@ -192,7 +203,9 @@ class TestAPIValidation:
         assert response.status_code in [404, 422]
 
     @pytest.mark.asyncio
-    async def test_list_incidents_invalid_limit(self, async_client: AsyncClient, test_db):
+    async def test_list_incidents_invalid_limit(
+        self, async_client: AsyncClient, test_db
+    ):
         """Test that invalid limit parameter is handled."""
         response = await async_client.get("/api/incidents?limit=-1")
 
@@ -200,7 +213,9 @@ class TestAPIValidation:
         assert response.status_code in [200, 422]
 
     @pytest.mark.asyncio
-    async def test_list_incidents_invalid_skip(self, async_client: AsyncClient, test_db):
+    async def test_list_incidents_invalid_skip(
+        self, async_client: AsyncClient, test_db
+    ):
         """Test that invalid skip parameter is handled."""
         response = await async_client.get("/api/incidents?skip=-1")
 

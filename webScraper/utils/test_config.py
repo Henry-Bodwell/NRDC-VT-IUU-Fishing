@@ -6,8 +6,7 @@ before running full scraping operations.
 """
 
 import asyncio
-from typing import Optional, Dict, List
-from pathlib import Path
+from typing import Dict
 from playwright.async_api import async_playwright
 from webScraper.config.site_config import get_site_config, get_config_manager
 
@@ -142,7 +141,7 @@ class ConfigTester:
             )
 
             results["tests"]["submit_query"] = {"success": True}
-            print(f"  ✓ Successfully submitted query and loaded results")
+            print("  ✓ Successfully submitted query and loaded results")
         except Exception as e:
             results["tests"]["submit_query"] = {"success": False, "error": str(e)}
             results["success"] = False
@@ -185,7 +184,7 @@ class ConfigTester:
 
         # Test 6: Check optional selectors (result title, snippet)
         if config.selectors.result_title:
-            print(f"\nTest 6a: Finding result titles...")
+            print("\nTest 6a: Finding result titles...")
             try:
                 title_elements = await self.page.query_selector_all(
                     config.selectors.result_title
@@ -198,13 +197,13 @@ class ConfigTester:
                 if count > 0:
                     print(f"  ✓ Found {count} result titles")
                 else:
-                    print(f"  ⚠ No result titles found (optional)")
+                    print("  ⚠ No result titles found (optional)")
             except Exception as e:
                 results["tests"]["result_title"] = {"success": False, "error": str(e)}
                 print(f"  ⚠ Error finding result titles: {e}")
 
         if config.selectors.result_snippet:
-            print(f"\nTest 6b: Finding result snippets...")
+            print("\nTest 6b: Finding result snippets...")
             try:
                 snippet_elements = await self.page.query_selector_all(
                     config.selectors.result_snippet
@@ -217,14 +216,14 @@ class ConfigTester:
                 if count > 0:
                     print(f"  ✓ Found {count} result snippets")
                 else:
-                    print(f"  ⚠ No result snippets found (optional)")
+                    print("  ⚠ No result snippets found (optional)")
             except Exception as e:
                 results["tests"]["result_snippet"] = {"success": False, "error": str(e)}
                 print(f"  ⚠ Error finding result snippets: {e}")
 
         # Test 7: Check pagination
         if config.pagination.enabled and config.pagination.next_button:
-            print(f"\nTest 7: Checking pagination...")
+            print("\nTest 7: Checking pagination...")
             try:
                 next_button = await self.page.query_selector(
                     config.pagination.next_button
@@ -239,14 +238,14 @@ class ConfigTester:
                         "success": False,
                         "error": "Pagination button not found",
                     }
-                    print(f"  ⚠ Pagination button not found (might be on later pages)")
+                    print("  ⚠ Pagination button not found (might be on later pages)")
             except Exception as e:
                 results["tests"]["pagination"] = {"success": False, "error": str(e)}
                 print(f"  ⚠ Error checking pagination: {e}")
 
         # Test 8: Navigate to first result and test detail selectors
         if result_elements and len(result_elements) > 0:
-            print(f"\nTest 8: Testing detail page selectors...")
+            print("\nTest 8: Testing detail page selectors...")
             try:
                 first_link = result_elements[0]
                 detail_url = await first_link.get_attribute("href")
@@ -275,7 +274,7 @@ class ConfigTester:
                         print(f"  ✓ Found detail title: {title_text[:50]}...")
                     else:
                         detail_tests["title"] = {"success": False}
-                        print(f"  ⚠ Detail title not found")
+                        print("  ⚠ Detail title not found")
 
                 # Test detail content
                 if config.selectors.detail_content:
@@ -292,7 +291,7 @@ class ConfigTester:
                         print(f"  ✓ Found detail content ({len(content_text)} chars)")
                     else:
                         detail_tests["content"] = {"success": False}
-                        print(f"  ⚠ Detail content not found")
+                        print("  ⚠ Detail content not found")
 
                 # Test detail date
                 if config.selectors.detail_date:
@@ -305,7 +304,7 @@ class ConfigTester:
                         print(f"  ✓ Found detail date: {date_text}")
                     else:
                         detail_tests["date"] = {"success": False}
-                        print(f"  ⚠ Detail date not found")
+                        print("  ⚠ Detail date not found")
 
                 # Test detail author
                 if config.selectors.detail_author:
@@ -318,7 +317,7 @@ class ConfigTester:
                         print(f"  ✓ Found detail author: {author_text}")
                     else:
                         detail_tests["author"] = {"success": False}
-                        print(f"  ⚠ Detail author not found")
+                        print("  ⚠ Detail author not found")
 
                 results["tests"]["detail_page"] = {
                     "success": True,

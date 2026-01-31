@@ -1,7 +1,5 @@
 import pandas as pd
-import os
 from pathlib import Path
-import glob
 from collections import defaultdict
 
 
@@ -186,7 +184,7 @@ def merge_and_deduplicate_csvs_by_type(base_path="data/WildlifeTradePortal"):
 
     # Create joined dataset on Report ID
     print(f"\n{'='*60}")
-    print(f"Creating joined dataset on Report ID")
+    print("Creating joined dataset on Report ID")
     print(f"{'='*60}")
 
     joined_df = None
@@ -271,17 +269,17 @@ def merge_and_deduplicate_csvs_by_type(base_path="data/WildlifeTradePortal"):
             )
 
             # Show sample
-            print(f"  Sample of joined data (first 3 rows, first 10 columns):")
+            print("  Sample of joined data (first 3 rows, first 10 columns):")
             sample_cols = joined_df.columns[:10]
             print(f"  {joined_df[sample_cols].head(3).to_string()}")
 
         else:
             print(
-                f"  Cannot create joined dataset: Need Report ID columns in at least 2 datasets"
+                "  Cannot create joined dataset: Need Report ID columns in at least 2 datasets"
             )
             print(f"  Found Report ID columns in {len(report_id_cols)} datasets")
     else:
-        print(f"  Cannot create joined dataset: Need at least 2 datasets to join")
+        print("  Cannot create joined dataset: Need at least 2 datasets to join")
 
     # Create comprehensive summary report
     summary_file = output_dir / "merge_summary_by_type.txt"
@@ -292,7 +290,7 @@ def merge_and_deduplicate_csvs_by_type(base_path="data/WildlifeTradePortal"):
         for base_type, result in results.items():
             f.write(f"{base_type.upper()}\n")
             f.write("-" * len(base_type) + "\n")
-            f.write(f"Source Files:\n")
+            f.write("Source Files:\n")
             for info in result["file_info"]:
                 f.write(
                     f"  {info['folder']}/{info['file']}: {info['rows']} rows, {info['columns']} columns\n"
@@ -306,7 +304,7 @@ def merge_and_deduplicate_csvs_by_type(base_path="data/WildlifeTradePortal"):
             f.write(f"Output file: {result['output_file'].name}\n")
 
             if len(result["dataframe"].columns) > 0:
-                f.write(f"\nColumn names:\n")
+                f.write("\nColumn names:\n")
                 for i, col in enumerate(result["dataframe"].columns, 1):
                     f.write(f"  {i:2d}. {col}\n")
 
@@ -318,7 +316,7 @@ def merge_and_deduplicate_csvs_by_type(base_path="data/WildlifeTradePortal"):
             f.write("-" * 15 + "\n")
             f.write(f"Final joined rows: {len(joined_df)}\n")
             f.write(f"Final joined columns: {len(joined_df.columns)}\n")
-            f.write(f"Output file: joined_all_incident_data.csv\n\n")
+            f.write("Output file: joined_all_incident_data.csv\n\n")
 
             f.write("Join details:\n")
             for base_type, info in join_info.items():
@@ -326,7 +324,7 @@ def merge_and_deduplicate_csvs_by_type(base_path="data/WildlifeTradePortal"):
                     f"  {base_type}: {info['original_rows']} rows, joined on '{info['join_column']}'\n"
                 )
 
-            f.write(f"\nJoined column names:\n")
+            f.write("\nJoined column names:\n")
             for i, col in enumerate(joined_df.columns, 1):
                 f.write(f"  {i:2d}. {col}\n")
         else:
@@ -335,7 +333,7 @@ def merge_and_deduplicate_csvs_by_type(base_path="data/WildlifeTradePortal"):
             f.write("Could not create joined dataset - see log for details\n")
 
     print(f"\n{'='*60}")
-    print(f"SUMMARY")
+    print("SUMMARY")
     print(f"{'='*60}")
     for base_type, result in results.items():
         print(
@@ -356,15 +354,15 @@ if __name__ == "__main__":
     results, joined_data = merge_and_deduplicate_csvs_by_type()
 
     if results:
-        print(f"\nProcess completed successfully!")
+        print("\nProcess completed successfully!")
         print(f"Generated {len(results)} merged datasets:")
         for base_type in results.keys():
             print(f"  - {base_type}")
         if joined_data is not None:
-            print(f"  - joined dataset with all data")
+            print("  - joined dataset with all data")
         print(
             f"\nAccess individual dataframes using: results['{list(results.keys())[0]}']['dataframe']"
         )
-        print(f"Access joined dataframe using: joined_data")
+        print("Access joined dataframe using: joined_data")
     else:
         print("\nProcess completed with errors - check the messages above")

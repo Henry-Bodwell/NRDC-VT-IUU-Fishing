@@ -5,7 +5,7 @@ Defines the abstract interface that all storage implementations must follow.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from webScraper.scrapers.base_scraper import ScrapedContent
 from datetime import datetime
 

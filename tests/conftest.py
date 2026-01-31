@@ -2,7 +2,6 @@
 Pytest configuration and fixtures for IUU-Fishing tests.
 """
 
-import asyncio
 import os
 import pytest
 from typing import AsyncGenerator, Generator
@@ -10,6 +9,7 @@ from unittest.mock import patch, MagicMock
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Set test environment variables before importing app modules

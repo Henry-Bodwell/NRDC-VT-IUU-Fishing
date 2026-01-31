@@ -210,7 +210,7 @@ class ScraperRunner:
         if not queries:
             queries = DEFAULT_QUERIES
 
-        self.logger.info(f"Starting scraper run")
+        self.logger.info("Starting scraper run")
         self.logger.info(f"  Sites: {', '.join(site_names)}")
         self.logger.info(f"  Queries: {', '.join(queries)}")
         self.logger.info(f"  Storage: {self.storage_type}")

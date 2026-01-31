@@ -1,4 +1,3 @@
-from typing import Dict
 import app.dspy_files.functions as fn
 from app.dspy_files.scraper import ArticleExtractionPipeline
 from app.models.sources import Source
@@ -42,15 +41,21 @@ class ContentExtractor:
 
             if not text or not text.strip():
                 logger.error("No text extracted from PDF")
-                raise ValueError("Failed to extract text from PDF. Document may be empty or corrupted.")
+                raise ValueError(
+                    "Failed to extract text from PDF. Document may be empty or corrupted."
+                )
 
             author = response.get("metadata", {}).get("author")
             title = response.get("metadata", {}).get("title")
             # date = response.get("metadata", {}).get("date")
             source = Source(
-                article_text=text, author=author, article_title=title, input_category="pdf", status="extracted"
+                article_text=text,
+                author=author,
+                article_title=title,
+                input_category="pdf",
+                status="extracted",
             )
-            logger.info(f"Successfully extracted content from PDF")
+            logger.info("Successfully extracted content from PDF")
             return source
 
         except ValueError as e:

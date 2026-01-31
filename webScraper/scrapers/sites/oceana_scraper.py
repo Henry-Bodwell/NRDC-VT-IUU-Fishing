@@ -8,7 +8,6 @@ This scraper extends GenericScraper to handle Oceana-specific features:
 
 from typing import List, Optional
 from webScraper.scrapers.generic_scraper import GenericScraper
-from webScraper.scrapers.base_scraper import SearchResult
 
 
 class OceanaScraper(GenericScraper):

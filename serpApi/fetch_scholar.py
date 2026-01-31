@@ -186,7 +186,8 @@ class ScholarFetcher:
                     year = None
                     if pub_summary:
                         import re
-                        year_match = re.search(r'\b(19|20)\d{2}\b', pub_summary)
+
+                        year_match = re.search(r"\b(19|20)\d{2}\b", pub_summary)
                         if year_match:
                             year = int(year_match.group(0))
 
@@ -492,7 +493,9 @@ if __name__ == "__main__":
         description="Fetch Google Scholar papers via SerpAPI"
     )
     parser.add_argument("--api-key", help="SerpAPI key (or set SERPAPI_KEY env var)")
-    parser.add_argument("--query", help="Search query (not required for --stats or --download-pdfs)")
+    parser.add_argument(
+        "--query", help="Search query (not required for --stats or --download-pdfs)"
+    )
     parser.add_argument(
         "--num-results", type=int, default=100, help="Number of results to fetch"
     )
@@ -533,7 +536,7 @@ if __name__ == "__main__":
             print("Fetch papers first to create the database.")
         else:
             stats = ScholarFetcher.get_processing_stats(args.db_path)
-            print(f"\nProcessing Statistics:")
+            print("\nProcessing Statistics:")
             print(f"  Total papers: {stats['total']}")
             print(f"  Processed: {stats['processed']}")
             print(f"  Unprocessed: {stats['unprocessed']}")
@@ -549,7 +552,9 @@ if __name__ == "__main__":
         papers = ScholarFetcher.get_unprocessed_papers(db_path=args.db_path)
 
         if not papers:
-            print("\nNo papers found in database. Fetch papers first before downloading PDFs.")
+            print(
+                "\nNo papers found in database. Fetch papers first before downloading PDFs."
+            )
         else:
             print(f"\nDownloading PDFs for {len(papers)} unprocessed papers...")
             downloaded = 0

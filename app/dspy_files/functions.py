@@ -21,23 +21,23 @@ def clean_extracted_text(text: str) -> str:
         Cleaned text with normalized spacing
     """
     # Replace multiple newlines with double newline (paragraph breaks)
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
 
     # Replace single newlines with spaces (join broken lines)
-    text = re.sub(r'(?<!\n)\n(?!\n)', ' ', text)
+    text = re.sub(r"(?<!\n)\n(?!\n)", " ", text)
 
     # Replace multiple spaces with single space
-    text = re.sub(r' {2,}', ' ', text)
+    text = re.sub(r" {2,}", " ", text)
 
     # Replace tabs with spaces
-    text = text.replace('\t', ' ')
+    text = text.replace("\t", " ")
 
     # Remove spaces at the beginning and end of lines
-    lines = [line.strip() for line in text.split('\n')]
-    text = '\n'.join(lines)
+    lines = [line.strip() for line in text.split("\n")]
+    text = "\n".join(lines)
 
     # Remove empty lines that are just whitespace
-    text = re.sub(r'\n\s*\n', '\n\n', text)
+    text = re.sub(r"\n\s*\n", "\n\n", text)
 
     return text.strip()
 
@@ -91,7 +91,7 @@ def extract_text_pdf(pdf_bytes: bytes) -> Dict[str, any]:
 
         doc.close()
         if not full_text.strip():
-            logger.warning(f"No text extracted from PDF")
+            logger.warning("No text extracted from PDF")
             raise ValueError(
                 "No text content found in PDF. Document may be scanned or image-based."
             )
@@ -101,7 +101,7 @@ def extract_text_pdf(pdf_bytes: bytes) -> Dict[str, any]:
 
         return {"text": cleaned_text, "metadata": doc_info}
     except IOError:
-        logger.error(f"IO Exception when reading pdf bytes")
+        logger.error("IO Exception when reading pdf bytes")
         raise
 
 

@@ -5,8 +5,6 @@ Tests audit context management, audit strategies, and audit trail creation.
 """
 
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.audit.context import AuditContext
 from app.audit.strategies import (
@@ -16,13 +14,6 @@ from app.audit.strategies import (
 )
 from app.audit.enums import ChangeType
 from app.models.sources import Source
-from app.models.incidents import (
-    IncidentReport,
-    ExtractedIncidentData,
-    EventData,
-    IncidentClassification,
-    IllegalFishingClassification,
-)
 from app.audit.models import AuditLog
 
 
@@ -198,12 +189,9 @@ class TestReferenceTrackingStrategy:
         config = {"IncidentReport": ["sources", "primary_source"]}
         strategy = ReferenceTrackingStrategy(config)
 
+        assert strategy.should_handle([], [], "sources", "IncidentReport") is True
         assert (
-            strategy.should_handle([], [], "sources", "IncidentReport") is True
-        )
-        assert (
-            strategy.should_handle([], [], "primary_source", "IncidentReport")
-            is True
+            strategy.should_handle([], [], "primary_source", "IncidentReport") is True
         )
 
     def test_should_not_handle_unconfigured_fields(self):
@@ -211,10 +199,7 @@ class TestReferenceTrackingStrategy:
         config = {"IncidentReport": ["sources"]}
         strategy = ReferenceTrackingStrategy(config)
 
-        assert (
-            strategy.should_handle([], [], "other_field", "IncidentReport")
-            is False
-        )
+        assert strategy.should_handle([], [], "other_field", "IncidentReport") is False
 
     def test_should_not_handle_without_document_type(self):
         """Test that strategy requires document_type."""
@@ -369,9 +354,11 @@ class TestAuditIntegration:
             await sample_source.save()
 
         # Retrieve all audit logs for this source
-        audit_logs = await AuditLog.find(
-            AuditLog.document_id == str(sample_source.id)
-        ).sort("+timestamp").to_list()
+        audit_logs = (
+            await AuditLog.find(AuditLog.document_id == str(sample_source.id))
+            .sort("+timestamp")
+            .to_list()
+        )
 
         # Should have CREATE + 2 UPDATEs
         assert len(audit_logs) >= 3
