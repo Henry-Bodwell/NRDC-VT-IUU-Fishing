@@ -12,8 +12,10 @@ bd show <id>                          # View issue details
 bd create "Description"               # Create new issue
 bd update <id> --status in_progress   # Claim work
 bd close <id>                         # Complete work
-bd sync                               # Sync with git
+bd sync                               # Flush changes to JSONL (run before commit)
 ```
+
+**Important**: Beads stores data in `.beads/issues.jsonl`. Always run `bd sync` and include `.beads/` in your commits to keep issues in sync with code.
 
 ### Session Completion Checklist
 
@@ -22,14 +24,22 @@ When ending a work session, complete ALL steps:
 1. **File issues** for any remaining/follow-up work (`bd create`)
 2. **Run quality gates** if code changed (tests, linters)
 3. **Update issue status** - close finished, update in-progress (`bd close`/`bd update`)
-4. **Push to remote**:
+4. **Sync beads and commit** (beads changes must be included in commit):
    ```bash
-   git pull --rebase && bd sync && git push
+   bd sync                              # Flush pending beads changes to JSONL
+   git add .beads/ <your-files>         # Stage beads + your changes
+   git commit -m "Your message"         # Commit everything together
+   ```
+5. **Push to remote**:
+   ```bash
+   git pull --rebase && git push
    git status  # Must show "up to date with origin"
    ```
-5. **Hand off** - Provide context for next session
+6. **Hand off** - Provide context for next session
 
 **Critical**: Work is NOT complete until `git push` succeeds.
+
+**Note**: Always run `bd sync` and stage `.beads/` BEFORE committing. Running `bd sync` after commit creates unstaged changes that block `git pull --rebase`.
 
 ---
 ## Style Guide
