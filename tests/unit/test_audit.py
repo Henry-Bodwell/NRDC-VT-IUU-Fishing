@@ -12,7 +12,7 @@ from app.audit.strategies import (
     TextDiffStrategy,
     ReferenceTrackingStrategy,
 )
-from app.audit.enums import ChangeType
+from app.audit.enums import ChangeType, OperationType
 from app.models.sources import Source
 from app.audit.models import AuditLog
 
@@ -278,11 +278,9 @@ class TestAuditIntegration:
         assert source.version == 1
 
         # Verify audit log was created
-        audit_logs = await AuditLog.find(
-            AuditLog.document_id == str(source.id)
-        ).to_list()
+        audit_logs = await AuditLog.find(AuditLog.document_id == source.id).to_list()
         assert len(audit_logs) > 0
-        assert audit_logs[0].action == "CREATE"
+        assert audit_logs[0].operation == OperationType.CREATE
 
     @pytest.mark.asyncio
     async def test_source_update_audit(self, test_db, sample_source):
@@ -292,7 +290,6 @@ class TestAuditIntegration:
         # Update the source
         with AuditContext.with_user(user_id):
             sample_source.status = "modified"
-            sample_source.verified = True
             await sample_source.save()
 
         # Verify audit fields were updated
@@ -301,8 +298,8 @@ class TestAuditIntegration:
 
         # Verify audit log was created for update
         audit_logs = await AuditLog.find(
-            AuditLog.document_id == str(sample_source.id),
-            AuditLog.action == "UPDATE",
+            AuditLog.document_id == sample_source.id,
+            AuditLog.operation == OperationType.UPDATE,
         ).to_list()
         assert len(audit_logs) > 0
 
@@ -322,8 +319,8 @@ class TestAuditIntegration:
 
         # Verify audit log
         audit_logs = await AuditLog.find(
-            AuditLog.document_id == str(sample_incident.id),
-            AuditLog.action == "UPDATE",
+            AuditLog.document_id == sample_incident.id,
+            AuditLog.operation == OperationType.UPDATE,
         ).to_list()
         assert len(audit_logs) > 0
 
@@ -350,17 +347,17 @@ class TestAuditIntegration:
             sample_source.status = "modified"
             await sample_source.save()
 
-            sample_source.verified = True
+            sample_source.article_title = "Updated Title"
             await sample_source.save()
 
         # Retrieve all audit logs for this source
         audit_logs = (
-            await AuditLog.find(AuditLog.document_id == str(sample_source.id))
+            await AuditLog.find(AuditLog.document_id == sample_source.id)
             .sort("+timestamp")
             .to_list()
         )
 
         # Should have CREATE + 2 UPDATEs
         assert len(audit_logs) >= 3
-        assert audit_logs[0].action == "CREATE"
-        assert any(log.action == "UPDATE" for log in audit_logs)
+        assert audit_logs[0].operation == OperationType.CREATE
+        assert any(log.operation == OperationType.UPDATE for log in audit_logs)
