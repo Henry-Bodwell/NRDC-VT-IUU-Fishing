@@ -66,7 +66,9 @@ class JSONStorage(BaseStorage):
 
         # Load indexes: URL -> filepath, content_hash -> URL
         self.index: Dict[str, str] = self._load_index(self.index_file)
-        self.hash_index: Dict[str, str] = self._load_index(self.hash_index_file) if enable_content_hash else {}
+        self.hash_index: Dict[str, str] = (
+            self._load_index(self.hash_index_file) if enable_content_hash else {}
+        )
 
     def _load_index(self, index_path: Path) -> Dict[str, str]:
         """Load an index file mapping keys to values."""
@@ -86,7 +88,9 @@ class JSONStorage(BaseStorage):
 
             if self.enable_content_hash:
                 with open(self.hash_index_file, "w", encoding="utf-8") as f:
-                    json.dump(self.hash_index, f, indent=2 if self.pretty_print else None)
+                    json.dump(
+                        self.hash_index, f, indent=2 if self.pretty_print else None
+                    )
         except Exception as e:
             self.logger.error(f"Could not save indexes: {e}")
 
@@ -120,7 +124,9 @@ class JSONStorage(BaseStorage):
             )
         if data_copy.get("scraped_at"):
             data_copy["scraped_at"] = (
-                datetime.fromisoformat(data_copy["scraped_at"]) if data_copy["scraped_at"] else None
+                datetime.fromisoformat(data_copy["scraped_at"])
+                if data_copy["scraped_at"]
+                else None
             )
         return ScrapedContent(**data_copy)
 
@@ -476,10 +482,13 @@ class JSONStorage(BaseStorage):
         try:
             if self.mode == "individual":
                 # Count JSON files (excluding index files)
-                return len([
-                    f for f in self.output_dir.glob("*.json")
-                    if not f.name.startswith(".")
-                ])
+                return len(
+                    [
+                        f
+                        for f in self.output_dir.glob("*.json")
+                        if not f.name.startswith(".")
+                    ]
+                )
 
             else:  # single file mode
                 filepath = self.output_dir / self.filename

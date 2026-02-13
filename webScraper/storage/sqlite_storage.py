@@ -51,7 +51,8 @@ class SQLiteStorage(BaseStorage):
         cursor = self.conn.cursor()
 
         # Main content table
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS scraped_content (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url TEXT UNIQUE NOT NULL,
@@ -65,10 +66,12 @@ class SQLiteStorage(BaseStorage):
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
 
         # Tags table (many-to-many)
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS tags (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 content_id INTEGER NOT NULL,
@@ -76,7 +79,8 @@ class SQLiteStorage(BaseStorage):
                 FOREIGN KEY (content_id) REFERENCES scraped_content(id) ON DELETE CASCADE,
                 UNIQUE(content_id, tag)
             )
-        """)
+        """
+        )
 
         # Create indexes
         cursor.execute(
@@ -93,7 +97,8 @@ class SQLiteStorage(BaseStorage):
 
         # Full-text search virtual table
         if self.enable_fts:
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE VIRTUAL TABLE IF NOT EXISTS scraped_content_fts
                 USING fts5(
                     title,
@@ -102,32 +107,39 @@ class SQLiteStorage(BaseStorage):
                     content='scraped_content',
                     content_rowid='id'
                 )
-            """)
+            """
+            )
 
             # Triggers to keep FTS table in sync
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TRIGGER IF NOT EXISTS scraped_content_ai
                 AFTER INSERT ON scraped_content BEGIN
                     INSERT INTO scraped_content_fts(rowid, title, content, author)
                     VALUES (new.id, new.title, new.content, new.author);
                 END
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TRIGGER IF NOT EXISTS scraped_content_ad
                 AFTER DELETE ON scraped_content BEGIN
                     DELETE FROM scraped_content_fts WHERE rowid = old.id;
                 END
-            """)
+            """
+            )
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TRIGGER IF NOT EXISTS scraped_content_au
                 AFTER UPDATE ON scraped_content BEGIN
                     UPDATE scraped_content_fts
                     SET title = new.title, content = new.content, author = new.author
                     WHERE rowid = new.id;
                 END
-            """)
+            """
+            )
 
         self.conn.commit()
         self.logger.info(f"Database initialized at {self.db_path}")
@@ -143,9 +155,11 @@ class SQLiteStorage(BaseStorage):
             "content": content.content,
             "date": content.date.isoformat() if content.date else None,
             "author": content.author,
-            "scraped_at": content.scraped_at.isoformat()
-            if content.scraped_at
-            else datetime.now().isoformat(),
+            "scraped_at": (
+                content.scraped_at.isoformat()
+                if content.scraped_at
+                else datetime.now().isoformat()
+            ),
             "metadata": json.dumps(content.metadata) if content.metadata else None,
         }
 
@@ -164,9 +178,9 @@ class SQLiteStorage(BaseStorage):
             author=row["author"],
             tags=tags if tags else None,
             metadata=json.loads(row["metadata"]) if row["metadata"] else None,
-            scraped_at=datetime.fromisoformat(row["scraped_at"])
-            if row["scraped_at"]
-            else None,
+            scraped_at=(
+                datetime.fromisoformat(row["scraped_at"]) if row["scraped_at"] else None
+            ),
         )
 
     async def save(self, content: ScrapedContent) -> bool:
@@ -400,33 +414,39 @@ class SQLiteStorage(BaseStorage):
             date_range = cursor.fetchone()
 
             # Top authors
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT author, COUNT(*) as count
                 FROM scraped_content
                 WHERE author IS NOT NULL
                 GROUP BY author
                 ORDER BY count DESC
                 LIMIT 10
-            """)
+            """
+            )
             top_authors = [
                 {"author": row["author"], "count": row["count"]}
                 for row in cursor.fetchall()
             ]
 
             # Top tags
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT tag, COUNT(*) as count
                 FROM tags
                 GROUP BY tag
                 ORDER BY count DESC
                 LIMIT 10
-            """)
+            """
+            )
             top_tags = [
                 {"tag": row["tag"], "count": row["count"]} for row in cursor.fetchall()
             ]
 
             # Database size
-            cursor.execute("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
+            cursor.execute(
+                "SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()"
+            )
             db_size = cursor.fetchone()["size"]
 
             return {

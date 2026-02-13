@@ -3,6 +3,7 @@
 Test script to verify all webScraper imports are working correctly.
 """
 
+
 def test_imports():
     """Test all major imports from the webScraper module."""
     print("Testing webScraper imports...\n")
@@ -17,6 +18,7 @@ def test_imports():
             get_site_config,
             get_config_manager,
         )
+
         print("   ✓ Main package imports successful")
     except ImportError as e:
         print(f"   ✗ Main package imports failed: {e}")
@@ -32,6 +34,7 @@ def test_imports():
             RateLimitConfig,
             PaginationConfig,
         )
+
         print("   ✓ Config imports successful")
     except ImportError as e:
         print(f"   ✗ Config imports failed: {e}")
@@ -47,6 +50,7 @@ def test_imports():
             SearchResult,
             ScrapedContent,
         )
+
         print("   ✓ Scraper imports successful")
     except ImportError as e:
         print(f"   ✗ Scraper imports failed: {e}")
@@ -56,6 +60,7 @@ def test_imports():
     print("\n4. Testing utility imports...")
     try:
         from webScraper.utils import ConfigBuilder, ConfigTester
+
         print("   ✓ Utility imports successful")
     except ImportError as e:
         print(f"   ✗ Utility imports failed: {e}")
@@ -87,5 +92,6 @@ def test_imports():
 
 if __name__ == "__main__":
     import sys
+
     success = test_imports()
     sys.exit(0 if success else 1)

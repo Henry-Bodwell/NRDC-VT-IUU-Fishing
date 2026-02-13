@@ -1,11 +1,9 @@
 import logging
 
-from fastapi import HTTPException, status
-from pydantic import ValidationError
 
 from app.models.sources import Source
 from app.models.incidents import IndustryOverview
-from app.service.service import Service, _filter_valid_fields
+from app.service.service import Service
 
 logger = logging.getLogger(__name__)
 

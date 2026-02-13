@@ -1,4 +1,3 @@
-from webScraper.scrapers.sites.oceana_scraper import scrape_oceana
 from webScraper.scrapers.generic_scraper import GenericScraper
 
 import asyncio

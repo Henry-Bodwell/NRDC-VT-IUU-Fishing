@@ -67,6 +67,7 @@ class ScrapedContent:
             SHA256 hex digest of the content
         """
         import hashlib
+
         return hashlib.sha256(self.content.encode()).hexdigest()
 
 
@@ -331,7 +332,7 @@ class BaseScraper(ABC):
 
             # Navigate to search page
             self.status = ScraperStatus.NAVIGATING
-            self.logger.info(f"Navigating to search page...")
+            self.logger.info("Navigating to search page...")
             await self._retry_operation(self.navigate_to_search)
             await self._random_delay()
 

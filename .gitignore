@@ -193,7 +193,16 @@ cython_debug/
 
 # MISC
 *.DS_Store
+.claude/
 
 # NewsAPI data files
 data/newsapi/**/*.json
 data/newsapi.db
+
+
+data/scholar/**/*.json
+data/scholar.db
+*.pdf
+
+# Development Docker overrides
+docker-compose.override.yml

@@ -4,7 +4,6 @@ Run this after starting the API server.
 """
 
 import requests
-import json
 import time
 from datetime import datetime, timedelta
 

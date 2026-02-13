@@ -134,9 +134,17 @@ def get_publisher_from_config(url: str, config_manager: ConfigManager) -> str:
         config = config_manager.get_config(site_name)
         if config and config.base_url:
             config_domain = urlparse(config.base_url).netloc
-            if domain == config_domain or domain.endswith(f".{config_domain}") or config_domain.endswith(f".{domain}"):
+            if (
+                domain == config_domain
+                or domain.endswith(f".{config_domain}")
+                or config_domain.endswith(f".{domain}")
+            ):
                 # Return the name from metadata, or description, or site_name as fallback
-                return config.metadata.get("name") or config.metadata.get("description") or config.site_name
+                return (
+                    config.metadata.get("name")
+                    or config.metadata.get("description")
+                    or config.site_name
+                )
 
     # Fallback to domain if no config match
     return domain if domain else url
@@ -168,7 +176,13 @@ def map_category_to_source_type(category: str) -> str:
 
 
 async def process_article(
-    article_data, api_url, auth_token, tracker: ProcessingTracker, index, total, config_manager: ConfigManager
+    article_data,
+    api_url,
+    auth_token,
+    tracker: ProcessingTracker,
+    index,
+    total,
+    config_manager: ConfigManager,
 ):
     """
     Process a single article and update tracking database.
@@ -251,7 +265,7 @@ async def process_batch(
             "Authentication token is required. Provide via --auth-token or AUTH_TOKEN environment variable."
         )
 
-    print(f"Authenticating with provided token...")
+    print("Authenticating with provided token...")
 
     # Initialize processor and config manager
     processor = ScraperProcessor(json_file, db_path)
@@ -310,13 +324,13 @@ async def process_batch(
 
     # Print summary
     print("\n" + "=" * 60)
-    print(f"Batch processing complete:")
+    print("Batch processing complete:")
     print(f"  Successful: {stats['success']}")
     print(f"  Failed: {stats['failed']}")
 
     # Print overall stats
     overall_stats = processor.tracker.get_stats()
-    print(f"\nOverall database stats:")
+    print("\nOverall database stats:")
     print(f"  Total articles: {overall_stats['total']}")
     print(f"  Processed: {overall_stats['processed']}")
     print(f"  Unprocessed: {overall_stats['unprocessed']}")

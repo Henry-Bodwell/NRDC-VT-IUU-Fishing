@@ -1,4 +1,3 @@
-from typing import List
 import dspy
 from app.dspy_files.config import setup_dspy
 from app.dspy_files.source_scope import SourceScope

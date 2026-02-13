@@ -78,18 +78,18 @@ async def submit_article_to_pipeline(
                 elif response.status == 401:  # Unauthorized
                     error_msg = "Authentication failed - check your auth token"
                     if verbose:
-                        print(f"  x Authentication failed: Invalid or expired token")
+                        print("  x Authentication failed: Invalid or expired token")
                     return (False, error_msg)
 
                 elif response.status == 403:  # Forbidden
                     error_msg = "Access forbidden - check user permissions"
                     if verbose:
-                        print(f"  x Access forbidden: Insufficient permissions")
+                        print("  x Access forbidden: Insufficient permissions")
                     return (False, error_msg)
 
                 elif response.status == 409:  # Conflict - already exists
                     if verbose:
-                        print(f"  x Article already exists in database (duplicate)")
+                        print("  x Article already exists in database (duplicate)")
                     return (True, None)
 
                 else:
@@ -134,7 +134,9 @@ async def submit_article_to_pipeline(
                             return (True, None)
                         elif pipeline_status == "unrelated":
                             if verbose:
-                                print(f"  x Article classified as unrelated to IUU fishing")
+                                print(
+                                    "  x Article classified as unrelated to IUU fishing"
+                                )
                             return (True, None)
                         else:
                             error_msg = f"Pipeline status: {pipeline_status}"
@@ -189,7 +191,9 @@ class ProcessingTracker:
     - Prevent duplicate processing
     """
 
-    def __init__(self, db_path: str, table_name: str = "articles", key_field: str = "uri"):
+    def __init__(
+        self, db_path: str, table_name: str = "articles", key_field: str = "uri"
+    ):
         """
         Initialize processing tracker.
 
@@ -235,7 +239,9 @@ class ProcessingTracker:
         con.commit()
         con.close()
 
-    def mark_processed(self, key: str, success: bool = True, error_msg: Optional[str] = None):
+    def mark_processed(
+        self, key: str, success: bool = True, error_msg: Optional[str] = None
+    ):
         """
         Mark an article as processed.
 
@@ -316,7 +322,9 @@ class ProcessingTracker:
             "errors": row[3] or 0,
         }
 
-    def import_keys(self, keys: List[str], additional_data: Optional[Dict[str, List]] = None) -> int:
+    def import_keys(
+        self, keys: List[str], additional_data: Optional[Dict[str, List]] = None
+    ) -> int:
         """
         Import article keys into tracking database.
 

@@ -1,7 +1,16 @@
 from datetime import datetime, timezone
 import logging
 from typing import Optional, Dict, Any
-from beanie import Delete, Document, Insert, Replace, Update, before_event, after_event
+from beanie import (
+    Delete,
+    Document,
+    Insert,
+    Replace,
+    Save,
+    Update,
+    before_event,
+    after_event,
+)
 from pydantic import Field
 from .context import AuditContext
 
@@ -21,7 +30,7 @@ class AuditedDocument(Document):
     # Internal state tracking
     _original_state: Optional[Dict[str, Any]] = None
 
-    @before_event([Update, Replace])
+    @before_event([Save, Replace])
     async def capture_original_state(self):
         """Capture current state before changes for comparison"""
         logger.info(
@@ -42,7 +51,7 @@ class AuditedDocument(Document):
         else:
             logger.warning("Document has no ID; cannot capture original state")
 
-    @before_event([Update, Replace])
+    @before_event([Save, Replace])
     async def update_audit_fields(self):
         """Update audit fields before save"""
 

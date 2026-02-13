@@ -1,0 +1,18 @@
+# Development overrides - copy to docker-compose.override.yml
+# Docker Compose automatically loads this file alongside docker-compose.yml
+#
+# Usage:
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#   docker compose up
+#
+# This file exposes MongoDB for local testing and enables auto-reload.
+# DO NOT use in production.
+
+services:
+  mongo:
+    ports:
+      - "27018:27017"  # Use 27018 to avoid conflict with other MongoDB instances
+
+  backend:
+    # Enable auto-reload for development
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

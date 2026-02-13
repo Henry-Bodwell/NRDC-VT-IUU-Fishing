@@ -1,5 +1,5 @@
 import csv
-from typing import List, Set, Dict
+from typing import List, Dict
 import math
 
 
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     else:
         print(f"⚠ {stats['over_limit']} queries exceed 500 characters")
 
-    print(f"\nQueries ensure each result will contain:")
+    print("\nQueries ensure each result will contain:")
     print("- At least one fish/seafood term (fish, seafood, unagi, etc.)")
     print("- At least one illegal/enforcement term (illegal, fraud, violation, etc.)")
     print("- Various other relevant terms as OR conditions")
