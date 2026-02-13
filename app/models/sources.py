@@ -164,7 +164,9 @@ class Source(AuditedDocument):
                 unique=True,
                 partialFilterExpression={"url": {"$type": "string"}},
             ),
-            IndexModel([("article_text", TEXT)]),
+            IndexModel(
+                [("article_text", TEXT), ("article_title", TEXT), ("publisher", TEXT)]
+            ),
         ]
 
     @model_validator(mode="after")

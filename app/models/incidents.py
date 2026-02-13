@@ -3,6 +3,7 @@ import hashlib
 from typing import TYPE_CHECKING, List, Literal
 from beanie import Insert, Link, Replace, before_event
 from pydantic import BaseModel, Field
+from pymongo import TEXT, IndexModel
 
 from app.audit.base import AuditedDocument
 
@@ -295,7 +296,7 @@ class EventData(BaseModel):
     )
     eventCountry: str | None = Field(
         default=None,
-        description="What country was this event? NA if The primary event did not occur in a country",
+        description="What is the alpha 3 code of the country where this event was? NA if The primary event did not occur in a country",
     )
     eventLocationCategory: (
         Literal["EEZ", "High Seas", "Inland Water", "Land"] | None
@@ -307,7 +308,7 @@ class EventData(BaseModel):
     )
     enforcementCountry: str | None = Field(
         default=None,
-        description="What country was this enforcement event? NA if The enforcement event did not occur in a country",
+        description="What is the alpha 3 code of the country where this enforcement event was? NA if The enforcement event did not occur in a country",
     )
     enforcementLocationCategory: (
         Literal["EEZ", "High Seas", "Inland Water", "Land"] | None
@@ -926,6 +927,19 @@ class IndustryOverview(AuditedDocument):
 
     class Settings:
         name = "industry_overviews"
+        indexes = [
+            # Species
+            IndexModel(
+                [
+                    ("extracted_information.species.speciesCommonName", TEXT),
+                    ("extracted_information.species.scientificName", TEXT),
+                    # Countries
+                    ("extracted_information.countries", TEXT),
+                    # Text
+                    ("extracted_information.summary", TEXT),
+                ]
+            ),
+        ]
 
     async def delete(self):
         """Override delete method to handle source removal"""
@@ -967,6 +981,25 @@ class IncidentReport(AuditedDocument):
 
     class Settings:
         name = "incidents"
+
+        indexes = [
+            IndexModel(
+                # Species
+                [
+                    ("extracted_information.speciesInvolved.speciesCommonName", TEXT),
+                    ("extracted_information.speciesInvolved.scientificName", TEXT),
+                    # Vessel
+                    ("extracted_information.vesselInformation.vesselName", TEXT),
+                    ("extracted_information.vesselInformation.vesselUniqueID", TEXT),
+                    ("extracted_information.vesselInformation.vesselFlag", TEXT),
+                    # Location
+                    ("extracted_information.eventData.eventCountry", TEXT),
+                    ("extracted_information.eventData.enforcementCountry", TEXT),
+                    # text
+                    ("extracted_information.description", TEXT),
+                ]
+            )
+        ]
 
     @before_event([Insert, Replace])
     def generate_fingerprint(self):
