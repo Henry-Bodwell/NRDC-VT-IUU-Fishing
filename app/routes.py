@@ -458,6 +458,9 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
             "$options": "i",
         }
 
+    if filter_query.search:
+        query_filters["$text"] = {"$search": filter_query.search}
+
     # Sort order
     from pymongo import ASCENDING
 
@@ -602,6 +605,9 @@ async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
     if filter_query.publication_date_before:
         query_filters["publication_date"] = query_filters.get("publication_date", {})
         query_filters["publication_date"]["$lte"] = filter_query.publication_date_before
+
+    if filter_query.search:
+        query_filters["$text"] = {"$search": filter_query.search}
 
     # Sort order
     from pymongo import ASCENDING
@@ -786,6 +792,9 @@ async def list_overviews(filter_query: Annotated[OverviewFilters, Query()]):
         query_filters["created_by"] = filter_query.created_by
     if filter_query.modified_by:
         query_filters["updated_by"] = filter_query.modified_by
+
+    if filter_query.search:
+        query_filters["$text"] = {"$search": filter_query.search}
 
     # Sort order
     from pymongo import ASCENDING

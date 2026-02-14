@@ -69,6 +69,8 @@ class Filter(BaseModel):
     modified_by: str | None = Field(
         default=None, description="Filter by user who last modified the record"
     )
+    # Search
+    search: str | None = Field(default=None, description="term to search for")
 
 
 class IncidentFilters(Filter):
