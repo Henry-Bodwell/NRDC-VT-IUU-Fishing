@@ -1,7 +1,7 @@
 import os
 from fastapi import HTTPException, status
 from app.models.incidents import IncidentReport
-from app.models.sources import Source
+from app.models.sources import Source, ArticleScopeClassification
 from app.models.task import TaskStatus
 from pymongo.errors import DuplicateKeyError
 from app.dspy_files.news_analysis import (
@@ -218,6 +218,46 @@ class IncidentService(Service):
             model_id=report_id,
             model_name="report",
         )
+
+    # ── Composable entry points ─────────────────────────────────────
+
+    @staticmethod
+    async def analyze_existing_source(
+        source: Source,
+        assumed_scope: str | None = None,
+    ) -> PipelineOutput:
+        """
+        Run analysis on a pre-existing Source, optionally overriding its
+        classification. Does NOT persist results -- call save_pipeline_output()
+        on the returned PipelineOutput to save.
+
+        Args:
+            source: An existing Source object (may or may not be in the DB)
+            assumed_scope: If provided, override source.article_scope.
+                          One of: "Single Incident", "Multiple Incidents",
+                          "Industry Overview", "Unrelated to IUU Fishing"
+
+        Returns:
+            PipelineOutput ready for persistence via save_pipeline_output()
+        """
+        if assumed_scope:
+            source.article_scope = ArticleScopeClassification(
+                articleType=assumed_scope,
+                confidence=1.0,
+            )
+
+        orchestrator = IncidentService._get_orchestrator()
+        return await orchestrator.analysis_from_source(source=source)
+
+    @staticmethod
+    async def save_pipeline_output(output: PipelineOutput) -> PipelineOutput:
+        """
+        Persist a PipelineOutput to the database.
+
+        Handles inserting incidents, overview, and source; duplicate-race
+        cleanup; and relationship linking.
+        """
+        return await IncidentService._create_report(output)
 
     @staticmethod
     async def run_analysis_with_task_tracking(

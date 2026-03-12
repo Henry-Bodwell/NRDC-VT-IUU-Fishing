@@ -62,6 +62,108 @@ class AnalysisOrchestrator:
         # Store the LM for use in dspy.context()
         self.lm = self.pipeline.lm
 
+    # ── Composable pipeline stages ──────────────────────────────────
+
+    @staticmethod
+    async def check_duplicate(source: Source) -> PipelineOutput | None:
+        """
+        Check if a source with the same article_hash already exists in the DB.
+
+        Returns PipelineOutput with DUPLICATE_HASHED_TEXT if found, None otherwise.
+        """
+        existing_source = await Source.find_one({"article_hash": source.article_hash})
+        if existing_source:
+            logger.info(f"Source already exists: {existing_source.id}")
+            return PipelineOutput(
+                status=PipelineResult.DUPLICATE_HASHED_TEXT,
+                source=existing_source,
+                error_message="Duplicate Article",
+            )
+        return None
+
+    async def classify_source(
+        self,
+        source: Source,
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
+    ) -> Source:
+        """
+        Classify a source's article scope (Single Incident, Multiple Incidents,
+        Industry Overview, or Unrelated). Mutates source.article_scope in place.
+
+        Idempotent: returns immediately if article_scope is already set.
+        """
+        if source.article_scope:
+            return source
+
+        with dspy.context(lm=self.lm):
+            if progress_callback:
+                await progress_callback("classification", 30)
+            source = await self.pipeline.source_scope.run(source=source)
+            if progress_callback:
+                await progress_callback("classification", 40)
+        return source
+
+    async def analyze_source(
+        self,
+        source: Source,
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
+    ) -> dspy.Prediction:
+        """
+        Run DSPy analysis modules on a classified source.
+
+        Requires source.article_scope to be set. Raises ValueError if not.
+        Returns the raw dspy.Prediction for downstream formatting.
+        """
+        if not source.article_scope:
+            raise ValueError(
+                "Source must be classified before analysis. "
+                "Call classify_source() first or set source.article_scope manually."
+            )
+
+        with dspy.context(lm=self.lm):
+            if progress_callback:
+                await progress_callback("analysis", 50)
+            prediction = await self.pipeline.run(source)
+            if progress_callback:
+                await progress_callback("analysis", 60)
+        return prediction
+
+    async def format_output(
+        self,
+        source: Source,
+        prediction: dspy.Prediction,
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
+    ) -> PipelineOutput:
+        """
+        Format a DSPy prediction into a PipelineOutput with incidents/overview.
+
+        Routes to the appropriate _process_* method based on source.article_scope.
+        """
+        if not source.article_scope:
+            raise ValueError("Source must be classified before formatting.")
+
+        scope = source.article_scope.articleType
+
+        if scope == "Unrelated to IUU Fishing":
+            logger.info(f"Article from {source.id} is unrelated to IUU fishing")
+            return PipelineOutput(
+                status=PipelineResult.UNRELATED_CONTENT, source=source
+            )
+        elif scope == "Industry Overview":
+            return await self._process_industry_overview(
+                prediction, source, progress_callback
+            )
+        elif scope == "Multiple Incidents":
+            return await self._process_multiple_incidents(
+                prediction, source, progress_callback
+            )
+        elif scope == "Single Incident":
+            return await self._process_single_incident(
+                prediction, source, progress_callback
+            )
+
+    # ── End-to-end entry points ─────────────────────────────────────
+
     async def run_full_analysis_from_url(
         self,
         url: str,
@@ -82,23 +184,15 @@ class AnalysisOrchestrator:
             if progress_callback:
                 await progress_callback("content_extraction", 10)
 
-            # Use dspy.context() for async task execution
             with dspy.context(lm=self.lm):
                 source = await self.extractor.from_url(url)
 
             if progress_callback:
                 await progress_callback("content_extraction", 20)
 
-            existing_source = await Source.find_one(
-                {"article_hash": source.article_hash}
-            )
-            if existing_source:
-                logger.info(f"Source already exists: {existing_source.id}")
-                return PipelineOutput(
-                    status=PipelineResult.DUPLICATE_HASHED_TEXT,
-                    source=existing_source,
-                    error_message="Duplicate Article",
-                )
+            duplicate = await self.check_duplicate(source)
+            if duplicate:
+                return duplicate
         except Exception as e:
             logging.error(f"Content Extraction failed for {url}: {e}")
             return PipelineOutput(
@@ -160,16 +254,9 @@ class AnalysisOrchestrator:
             if progress_callback:
                 await progress_callback("content_extraction", 20)
 
-            existing_source = await Source.find_one(
-                {"article_hash": source.article_hash}
-            )
-            if existing_source:
-                logger.info(f"Source already exists: {existing_source.id}")
-                return PipelineOutput(
-                    status=PipelineResult.DUPLICATE_HASHED_TEXT,
-                    source=existing_source,
-                    error_message="Duplicate Article",
-                )
+            duplicate = await self.check_duplicate(source)
+            if duplicate:
+                return duplicate
 
             logger.info(source.article_text[:50])
         except Exception as e:
@@ -187,78 +274,57 @@ class AnalysisOrchestrator:
         progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
     ) -> PipelineOutput:
         """
-        Run analysis pipeline on a source document.
+        Run the full analysis pipeline on a source document.
+        Delegates to classify_source -> analyze_source -> format_output.
 
         Args:
             source: The source document to analyze
-            progress_callback: Optional async callback(stage: str, percent: int) for progress updates
+            progress_callback: Optional async callback(stage: str, percent: int)
         """
         logger.info(
             f"Running analysis for source (article_hash): {source.article_hash}"
         )
 
-        # Use dspy.context() for async task execution
-        with dspy.context(lm=self.lm):
-            # Stage 2: Classification (20-40%)
-            if progress_callback:
-                await progress_callback("classification", 30)
+        try:
+            source = await self.classify_source(source, progress_callback)
+        except Exception as e:
+            logging.error(f"Classification failed for {source.id}: {e}")
+            return PipelineOutput(
+                status=PipelineResult.FAILED_CLASSIFICATION,
+                source=source,
+                error_message=str(e),
+            )
 
-            try:
-                prediction = await self.pipeline.run(source)
-                if not prediction:
-                    return PipelineOutput(
-                        status=PipelineResult.FAILED_ANALYSIS,
-                        sources=source,
-                        error_message="Analysis Pipeline returned no result",
-                    )
-            except Exception as e:
-                logging.error(f"Analysis failed for {source.id}: {e}")
+        try:
+            prediction = await self.analyze_source(source, progress_callback)
+            if not prediction:
                 return PipelineOutput(
                     status=PipelineResult.FAILED_ANALYSIS,
                     source=source,
-                    error_message=str(e),
+                    error_message="Analysis Pipeline returned no result",
                 )
+        except Exception as e:
+            logging.error(f"Analysis failed for {source.id}: {e}")
+            return PipelineOutput(
+                status=PipelineResult.FAILED_ANALYSIS,
+                source=source,
+                error_message=str(e),
+            )
 
-            if progress_callback:
-                await progress_callback("classification", 40)
-
-            # Stage 3: Analysis & Formatting (40-80%)
-            if progress_callback:
-                await progress_callback("analysis", 50)
-
-            try:
-                scope = source.article_scope.articleType
-                if scope == "Unrelated to IUU Fishing":
-                    logger.info(f"Article from {source.id} is unrelated to IUU fishing")
-                    return PipelineOutput(
-                        status=PipelineResult.UNRELATED_CONTENT, source=source
-                    )
-                elif scope == "Industry Overview":
-                    return await self._process_industry_overview(
-                        prediction, source, progress_callback
-                    )
-                elif scope == "Multiple Incidents":
-                    return await self._process_multiple_incidents(
-                        prediction, source, progress_callback
-                    )
-                elif scope == "Single Incident":
-                    return await self._process_single_incident(
-                        prediction, source, progress_callback
-                    )
-
-            except Exception as e:
-                error_details = {
-                    "exception_type": type(e).__name__,
-                    "exception_message": str(e),
-                    "traceback": traceback.format_exc(),
-                }
-                logger.error(f"Error processing prediction: {error_details}")
-
-                return PipelineOutput(
-                    status=PipelineResult.FAILED_FORMATTING,
-                    source=source,
-                    error_message=f"{type(e).__name__}: {str(e)}",
-                )
+        try:
+            return await self.format_output(source, prediction, progress_callback)
+        except Exception as e:
+            error_details = {
+                "exception_type": type(e).__name__,
+                "exception_message": str(e),
+                "traceback": traceback.format_exc(),
+            }
+            logger.error(f"Error processing prediction: {error_details}")
+            return PipelineOutput(
+                status=PipelineResult.FAILED_FORMATTING,
+                source=source,
+                error_message=f"{type(e).__name__}: {str(e)}",
+            )
 
     async def _process_industry_overview(
         self,
