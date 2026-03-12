@@ -98,6 +98,15 @@ class IncidentService(Service):
                 output.source = existing_source
                 output.status = PipelineResult.DUPLICATE_HASHED_TEXT
                 logger.info(f"Using existing source: {existing_source.id}")
+                if output.has_incident:
+                    for incident in output.incidents:
+                        logger.warning(
+                            f"Deleting orphaned incident {incident.id} from duplicate source race"
+                        )
+                        await incident.delete()
+                if output.has_overview and industry and hasattr(industry, "source"):
+                    industry.source = existing_source
+                    await industry.save()
                 return output
             else:
                 # This shouldn't happen, but handle it just in case
@@ -107,6 +116,17 @@ class IncidentService(Service):
                 raise e
         except Exception as e:
             logger.error(f"Database save failed for {source.id}: {e}")
+            if output.has_incident:
+                for incident in output.incidents:
+                    logger.warning(
+                        f"Source insert failed; deleting orphaned incident {incident.id}"
+                    )
+                    await incident.delete()
+            if output.has_overview and industry and hasattr(industry, "source"):
+                logger.warning(
+                    f"Source insert failed; deleting orphaned industry overview {industry.id}"
+                )
+                await industry.delete()
             raise e
 
         if output.status == PipelineResult.UNRELATED_CONTENT:
