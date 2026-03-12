@@ -76,7 +76,8 @@ AQUACULTURE_SUBTYPES = Literal[
 
 OTHER_SUBTYPES = Literal[
     "Information not sufficient to determine specific IUU+ behavior",
-    "Other"
+    "Crimes related to fishing or associated trade but distinct from IUU+ typology (e.g., murder of journalists investigating IUU+ fishing)",
+    "Other",
 ]
 
 
@@ -258,10 +259,10 @@ class OtherIUUClassification(BaseModel):
     IUUSubType: List[OTHER_SUBTYPES] | None = Field(
         default=None,
         min_length=1,
-        description='ALL violations found. Options "Information not sufficient to determine specific IUU+ behavior", "Other"' 
+        description='ALL violations found. Options "Information not sufficient to determine specific IUU+ behavior", "Other"',
     )
     IUUTypeReason: str = Field(
-        ...,Other
+        ...,
         description="REQUIRED: Explain the violation and why it doesn't fit other categories. Provide specific evidence.",
     )
     verified: bool = Field(default=False)
