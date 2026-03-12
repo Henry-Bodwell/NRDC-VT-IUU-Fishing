@@ -6,6 +6,7 @@ including database operations.
 """
 
 import pytest
+from unittest.mock import patch, AsyncMock
 
 from app.service.incident_service import IncidentService
 from app.models.sources import Source
@@ -17,6 +18,8 @@ from app.models.incidents import (
     IncidentClassification,
     IllegalFishingClassification,
     Species,
+    IndustryOverview,
+    IndustryOverviewExtract,
 )
 from app.dspy_files.news_analysis import PipelineOutput, PipelineResult
 
@@ -154,3 +157,194 @@ class TestIncidentServiceIntegration:
         assert result is True
         deleted = await IncidentReport.get(incident_id)
         assert deleted is None
+
+    @pytest.mark.asyncio
+    async def test_create_report_with_overview_links_source(self, test_db):
+        """Test that a successfully created industry overview has its source linked."""
+        source = Source(
+            article_text="Industry overview about IUU fishing trends in Pacific.",
+            url="https://example.com/overview",
+        )
+        overview = IndustryOverview(
+            extracted_information=IndustryOverviewExtract(
+                species=[],
+                countries=["Pacific"],
+                companies=[],
+                incidents=[],
+                summary="Overview of IUU trends.",
+            )
+        )
+
+        output = PipelineOutput(
+            source=source,
+            status=PipelineResult.SUCCESS,
+            incidents=[],
+            industry_overview=overview,
+        )
+
+        result = await IncidentService._create_report(output)
+
+        assert result.status == PipelineResult.SUCCESS
+        assert result.source.id is not None
+        # Verify the overview has the source linked
+        saved_overview = await IndustryOverview.get(overview.id, fetch_links=True)
+        assert saved_overview is not None
+        assert saved_overview.source is not None
+        assert saved_overview.source.id == result.source.id
+
+    @pytest.mark.asyncio
+    async def test_create_report_duplicate_hash_with_overview(self, test_db):
+        """Test that a duplicate-hash race links the overview to the existing source."""
+        # Insert existing source with the same article text
+        existing_source = Source(
+            article_text="Industry overview duplicate race condition text.",
+            url="https://example.com/overview-original",
+        )
+        await existing_source.insert()
+
+        # New source with identical text (same hash) but different URL
+        new_source = Source(
+            article_text="Industry overview duplicate race condition text.",
+            url="https://example.com/overview-duplicate",
+        )
+        overview = IndustryOverview(
+            extracted_information=IndustryOverviewExtract(
+                species=[],
+                countries=[],
+                companies=[],
+                incidents=[],
+                summary="Duplicate race overview.",
+            )
+        )
+        await overview.insert()  # Already saved (as the service does before source)
+
+        output = PipelineOutput(
+            source=new_source,
+            status=PipelineResult.SUCCESS,
+            incidents=[],
+            industry_overview=overview,
+        )
+
+        result = await IncidentService._create_report(output)
+
+        # Should detect duplicate and return existing source
+        assert result.status == PipelineResult.DUPLICATE_HASHED_TEXT
+        assert result.source.id == existing_source.id
+        # Overview must be linked to the existing source
+        saved_overview = await IndustryOverview.get(overview.id, fetch_links=True)
+        assert saved_overview is not None
+        assert saved_overview.source is not None
+        assert saved_overview.source.id == existing_source.id
+
+    @pytest.mark.asyncio
+    async def test_create_report_duplicate_hash_cleans_up_incidents(self, test_db):
+        """Test that orphaned incidents are deleted when a duplicate hash race occurs."""
+        existing_source = Source(
+            article_text="Incident duplicate race condition text.",
+            url="https://example.com/incident-original",
+        )
+        await existing_source.insert()
+
+        new_source = Source(
+            article_text="Incident duplicate race condition text.",
+            url="https://example.com/incident-duplicate",
+        )
+        incident = IncidentReport(
+            extracted_information=ExtractedIncidentData(
+                vesselInformation=VesselData(vesselName="Race Vessel"),
+                eventData=EventData(
+                    eventDate="2024-03-01",
+                    eventLocation="Atlantic",
+                    resolution="Detained",
+                ),
+                speciesInvolved=[],
+                productsInvolved=[],
+                description="Orphan incident from race.",
+            ),
+            incident_classification=IncidentClassification(
+                iuuClassifications=[
+                    IllegalFishingClassification(
+                        IUUSubType=["Invalid or no permit or license"],
+                        IUUTypeReason="No valid license",
+                    )
+                ]
+            ),
+        )
+        await incident.insert()  # Already saved (as the service does before source)
+        incident_id = incident.id
+
+        output = PipelineOutput(
+            source=new_source,
+            status=PipelineResult.SUCCESS,
+            incidents=[incident],
+            industry_overview=None,
+        )
+
+        result = await IncidentService._create_report(output)
+
+        assert result.status == PipelineResult.DUPLICATE_HASHED_TEXT
+        assert result.source.id == existing_source.id
+        # Orphan incident must have been deleted
+        deleted_incident = await IncidentReport.get(incident_id)
+        assert deleted_incident is None
+
+    @pytest.mark.asyncio
+    async def test_create_report_source_failure_cleans_up_orphans(self, test_db):
+        """Test that orphaned incidents and overviews are deleted when source.insert fails."""
+        source = Source(
+            article_text="Source failure cleanup test text.",
+            url="https://example.com/source-failure",
+        )
+        incident = IncidentReport(
+            extracted_information=ExtractedIncidentData(
+                vesselInformation=VesselData(vesselName="Orphan Vessel"),
+                eventData=EventData(
+                    eventDate="2024-04-01",
+                    eventLocation="Indian Ocean",
+                    resolution="None",
+                ),
+                speciesInvolved=[],
+                productsInvolved=[],
+                description="Orphan from source failure.",
+            ),
+            incident_classification=IncidentClassification(
+                iuuClassifications=[
+                    IllegalFishingClassification(
+                        IUUSubType=["Invalid or no permit or license"],
+                        IUUTypeReason="No valid license",
+                    )
+                ]
+            ),
+        )
+        await incident.insert()
+        incident_id = incident.id
+
+        overview = IndustryOverview(
+            extracted_information=IndustryOverviewExtract(
+                species=[],
+                countries=[],
+                companies=[],
+                incidents=[],
+                summary="Orphan overview from source failure.",
+            )
+        )
+        await overview.insert()
+        overview_id = overview.id
+
+        output = PipelineOutput(
+            source=source,
+            status=PipelineResult.SUCCESS,
+            incidents=[incident],
+            industry_overview=overview,
+        )
+
+        # Simulate source.insert() raising a non-duplicate error
+        with patch.object(
+            Source, "insert", AsyncMock(side_effect=RuntimeError("DB connection lost"))
+        ):
+            with pytest.raises(RuntimeError, match="DB connection lost"):
+                await IncidentService._create_report(output)
+
+        # Both orphans must have been cleaned up
+        assert await IncidentReport.get(incident_id) is None
+        assert await IndustryOverview.get(overview_id) is None
