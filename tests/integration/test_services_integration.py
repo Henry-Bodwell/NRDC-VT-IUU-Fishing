@@ -6,7 +6,7 @@ including database operations.
 """
 
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 from app.service.incident_service import IncidentService
 from app.models.sources import Source
@@ -30,33 +30,58 @@ class TestIncidentServiceIntegration:
 
     @pytest.mark.asyncio
     async def test_create_report_duplicate_hash(self, test_db):
-        """Test handling of duplicate article hash."""
-        # Create a source
+        """Test handling of duplicate article hash via DuplicateKeyError on source.insert()."""
+        # Create a source already in the DB
         existing_source = Source(
             article_text="Duplicate article text",
             url="https://example.com/original",
         )
         await existing_source.insert()
 
-        # Create output with same text hash
+        # Create output with same text hash but different URL.
+        # Must include an incident so _create_report doesn't early-return
+        # at the "no incident and no overview" guard.
         new_source = Source(
             article_text="Duplicate article text",
             url="https://example.com/duplicate",
+        )
+        incident = IncidentReport(
+            extracted_information=ExtractedIncidentData(
+                vesselInformation=VesselData(vesselName="Dup Vessel"),
+                eventData=EventData(
+                    eventDate="2024-01-15",
+                    eventLocation="Pacific",
+                    resolution="Detained",
+                ),
+                speciesInvolved=[],
+                productsInvolved=[],
+                description="Duplicate hash test incident.",
+            ),
+            incident_classification=IncidentClassification(
+                iuuClassifications=[
+                    IllegalFishingClassification(
+                        IUUSubType=["Invalid or no permit or license"],
+                        IUUTypeReason="No valid license",
+                    )
+                ]
+            ),
         )
 
         output = PipelineOutput(
             source=new_source,
             status=PipelineResult.SUCCESS,
-            incidents=[],
+            incidents=[incident],
             industry_overview=None,
         )
 
-        # Execute
+        # Execute -- source.insert() will hit DuplicateKeyError on article_hash
         result = await IncidentService._create_report(output)
 
         # Verify - should detect duplicate and return existing source
         assert result.status == PipelineResult.DUPLICATE_HASHED_TEXT
         assert result.source.id == existing_source.id
+        # Orphan incident should have been cleaned up
+        assert await IncidentReport.get(incident.id) is None
 
     @pytest.mark.asyncio
     async def test_create_report_unrelated_content(self, test_db):
@@ -186,11 +211,18 @@ class TestIncidentServiceIntegration:
 
         assert result.status == PipelineResult.SUCCESS
         assert result.source.id is not None
-        # Verify the overview has the source linked
-        saved_overview = await IndustryOverview.get(overview.id, fetch_links=True)
+        # Verify the overview has the source linked (use fetch_links=False
+        # due to Beanie/Motor cursor incompatibility, check ref ID directly)
+        saved_overview = await IndustryOverview.get(overview.id)
         assert saved_overview is not None
         assert saved_overview.source is not None
-        assert saved_overview.source.id == result.source.id
+        # Link stored as DBRef -- extract the referenced ID
+        source_ref_id = (
+            saved_overview.source.ref.id
+            if hasattr(saved_overview.source, "ref")
+            else saved_overview.source.id
+        )
+        assert source_ref_id == result.source.id
 
     @pytest.mark.asyncio
     async def test_create_report_duplicate_hash_with_overview(self, test_db):
@@ -216,7 +248,7 @@ class TestIncidentServiceIntegration:
                 summary="Duplicate race overview.",
             )
         )
-        await overview.insert()  # Already saved (as the service does before source)
+        # Do NOT pre-insert -- _create_report inserts the overview itself
 
         output = PipelineOutput(
             source=new_source,
@@ -231,10 +263,15 @@ class TestIncidentServiceIntegration:
         assert result.status == PipelineResult.DUPLICATE_HASHED_TEXT
         assert result.source.id == existing_source.id
         # Overview must be linked to the existing source
-        saved_overview = await IndustryOverview.get(overview.id, fetch_links=True)
+        saved_overview = await IndustryOverview.get(overview.id)
         assert saved_overview is not None
         assert saved_overview.source is not None
-        assert saved_overview.source.id == existing_source.id
+        source_ref_id = (
+            saved_overview.source.ref.id
+            if hasattr(saved_overview.source, "ref")
+            else saved_overview.source.id
+        )
+        assert source_ref_id == existing_source.id
 
     @pytest.mark.asyncio
     async def test_create_report_duplicate_hash_cleans_up_incidents(self, test_db):
@@ -270,8 +307,7 @@ class TestIncidentServiceIntegration:
                 ]
             ),
         )
-        await incident.insert()  # Already saved (as the service does before source)
-        incident_id = incident.id
+        # Do NOT pre-insert -- _create_report inserts the incident itself
 
         output = PipelineOutput(
             source=new_source,
@@ -285,7 +321,7 @@ class TestIncidentServiceIntegration:
         assert result.status == PipelineResult.DUPLICATE_HASHED_TEXT
         assert result.source.id == existing_source.id
         # Orphan incident must have been deleted
-        deleted_incident = await IncidentReport.get(incident_id)
+        deleted_incident = await IncidentReport.get(incident.id)
         assert deleted_incident is None
 
     @pytest.mark.asyncio
@@ -316,8 +352,7 @@ class TestIncidentServiceIntegration:
                 ]
             ),
         )
-        await incident.insert()
-        incident_id = incident.id
+        # Do NOT pre-insert -- _create_report inserts incidents/overviews itself
 
         overview = IndustryOverview(
             extracted_information=IndustryOverviewExtract(
@@ -328,8 +363,6 @@ class TestIncidentServiceIntegration:
                 summary="Orphan overview from source failure.",
             )
         )
-        await overview.insert()
-        overview_id = overview.id
 
         output = PipelineOutput(
             source=source,
@@ -338,13 +371,15 @@ class TestIncidentServiceIntegration:
             industry_overview=overview,
         )
 
-        # Simulate source.insert() raising a non-duplicate error
-        with patch.object(
-            Source, "insert", AsyncMock(side_effect=RuntimeError("DB connection lost"))
-        ):
+        # Let _create_report insert the incident and overview normally,
+        # then fail on source.insert(). We patch only Source.insert.
+        async def failing_source_insert(self_):
+            raise RuntimeError("DB connection lost")
+
+        with patch.object(Source, "insert", failing_source_insert):
             with pytest.raises(RuntimeError, match="DB connection lost"):
                 await IncidentService._create_report(output)
 
         # Both orphans must have been cleaned up
-        assert await IncidentReport.get(incident_id) is None
-        assert await IndustryOverview.get(overview_id) is None
+        assert await IncidentReport.get(incident.id) is None
+        assert await IndustryOverview.get(overview.id) is None
