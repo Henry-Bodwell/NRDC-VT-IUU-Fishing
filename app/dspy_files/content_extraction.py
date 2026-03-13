@@ -66,6 +66,6 @@ class ContentExtractor:
             raise
 
     @staticmethod
-    def from_image(self, image_path: str, language: str = "eng") -> tuple[str, str]:
+    def from_image(image_path: str, language: str = "eng") -> tuple[str, str]:
         """Extracts text from an image file using OCR."""
         return fn.read_image(image_path, language=language), image_path

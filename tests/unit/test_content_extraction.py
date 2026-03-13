@@ -139,7 +139,7 @@ class TestContentExtractorFromPdf:
                 mock_source_instance = MagicMock()
                 mock_source_class.return_value = mock_source_instance
 
-                result = ContentExtractor.from_pdf(b"fake pdf bytes")
+                ContentExtractor.from_pdf(b"fake pdf bytes")
 
         # Verify read_pdf was called
         mock_fn.read_pdf.assert_called_once_with(b"fake pdf bytes")
@@ -240,11 +240,8 @@ class TestContentExtractorFromImage:
         with patch("app.dspy_files.content_extraction.fn") as mock_fn:
             mock_fn.read_image.return_value = "Extracted OCR text from image"
 
-            # Note: from_image has a bug - it's a static method but uses self
-            # This test documents the expected behavior if the bug were fixed
-            extractor = ContentExtractor.__new__(ContentExtractor)
             text, path = ContentExtractor.from_image(
-                extractor, "/path/to/image.png", language="eng"
+                "/path/to/image.png", language="eng"
             )
 
         mock_fn.read_image.assert_called_once_with("/path/to/image.png", language="eng")
@@ -257,8 +254,7 @@ class TestContentExtractorFromImage:
         with patch("app.dspy_files.content_extraction.fn") as mock_fn:
             mock_fn.read_image.return_value = "Text"
 
-            extractor = ContentExtractor.__new__(ContentExtractor)
-            ContentExtractor.from_image(extractor, "/path/to/image.jpg")
+            ContentExtractor.from_image("/path/to/image.jpg")
 
         mock_fn.read_image.assert_called_once_with("/path/to/image.jpg", language="eng")
 
@@ -268,10 +264,7 @@ class TestContentExtractorFromImage:
         with patch("app.dspy_files.content_extraction.fn") as mock_fn:
             mock_fn.read_image.return_value = "Spanish text"
 
-            extractor = ContentExtractor.__new__(ContentExtractor)
-            ContentExtractor.from_image(
-                extractor, "/path/to/spanish.png", language="spa"
-            )
+            ContentExtractor.from_image("/path/to/spanish.png", language="spa")
 
         mock_fn.read_image.assert_called_once_with(
             "/path/to/spanish.png", language="spa"

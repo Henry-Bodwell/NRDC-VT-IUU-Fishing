@@ -1,0 +1,2 @@
+[per-file-ignores]
+"tests/conftest.py" = ["E402"]

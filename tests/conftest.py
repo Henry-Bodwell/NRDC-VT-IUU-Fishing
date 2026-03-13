@@ -29,10 +29,118 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.main import app
 from app.models.sources import Source
-from app.models.incidents import IncidentReport, IndustryOverview, Species
+from app.models.incidents import (
+    IncidentReport,
+    IndustryOverview,
+    Species,
+    ExtractedIncidentData,
+    VesselData,
+    EventData,
+    IncidentClassification,
+    IllegalFishingClassification,
+    IndustryOverviewExtract,
+)
 from app.models.users import User
 from app.models.task import TaskStatus
 from app.audit.models import AuditLog
+from app.dspy_files.news_analysis import PipelineOutput, PipelineResult
+
+
+# ---------------------------------------------------------------------------
+# Factories -- lightweight builders that reduce boilerplate across tests.
+# Call with keyword overrides; defaults produce valid, minimal objects.
+# ---------------------------------------------------------------------------
+
+_source_counter = 0
+
+
+def make_source(**overrides) -> Source:
+    """Build a Source with sensible defaults. Not yet inserted into the DB."""
+    global _source_counter
+    _source_counter += 1
+    defaults = dict(
+        article_text=f"Test article text #{_source_counter}",
+        source_type="news",
+        status="extracted",
+    )
+    defaults.update(overrides)
+    return Source(**defaults)
+
+
+def make_extracted_data(**overrides) -> ExtractedIncidentData:
+    """Build minimal ExtractedIncidentData."""
+    defaults = dict(
+        vesselInformation=VesselData(vesselName="Factory Vessel"),
+        eventData=EventData(
+            eventDate="2024-01-15",
+            eventLocation="Pacific Ocean",
+            resolution="Detained",
+        ),
+        speciesInvolved=[Species(speciesCommonName="Tuna")],
+        productsInvolved=[],
+        description="Factory-generated incident description.",
+    )
+    defaults.update(overrides)
+    return ExtractedIncidentData(**defaults)
+
+
+def make_classification(**overrides) -> IncidentClassification:
+    """Build minimal IncidentClassification."""
+    defaults = dict(
+        iuuClassifications=[
+            IllegalFishingClassification(
+                IUUSubType=["Invalid or no permit or license"],
+                IUUTypeReason="No valid license.",
+            )
+        ],
+    )
+    defaults.update(overrides)
+    return IncidentClassification(**defaults)
+
+
+def make_incident(**overrides) -> IncidentReport:
+    """Build an IncidentReport with sensible defaults. Not yet inserted."""
+    defaults = dict(
+        extracted_information=make_extracted_data(),
+        incident_classification=make_classification(),
+        status="extracted",
+    )
+    defaults.update(overrides)
+    return IncidentReport(**defaults)
+
+
+def make_overview_extract(**overrides) -> IndustryOverviewExtract:
+    """Build minimal IndustryOverviewExtract."""
+    defaults = dict(
+        species=[],
+        countries=[],
+        companies=[],
+        incidents=[],
+        summary="Factory overview summary.",
+    )
+    defaults.update(overrides)
+    return IndustryOverviewExtract(**defaults)
+
+
+def make_overview(**overrides) -> IndustryOverview:
+    """Build an IndustryOverview with sensible defaults. Not yet inserted."""
+    defaults = dict(
+        extracted_information=make_overview_extract(),
+    )
+    defaults.update(overrides)
+    return IndustryOverview(**defaults)
+
+
+def make_pipeline_output(**overrides) -> PipelineOutput:
+    """Build a PipelineOutput with sensible defaults."""
+    defaults = dict(
+        source=make_source(),
+        status=PipelineResult.SUCCESS,
+        incidents=[],
+        industry_overview=None,
+    )
+    defaults.update(overrides)
+    return PipelineOutput(**defaults)
 
 
 # Test database name
@@ -100,14 +208,12 @@ def sync_client(test_db) -> Generator[TestClient, None, None]:
 @pytest.fixture
 async def sample_source(test_db) -> Source:
     """Create and return a sample Source for testing."""
-    source = Source(
+    source = make_source(
         url="https://example.com/test-article",
         article_text="This is a test article about illegal fishing. A vessel named Test Vessel was caught fishing illegally in protected waters on January 15, 2024.",
-        title="Test Illegal Fishing Article",
+        article_title="Test Illegal Fishing Article",
         author="Test Author",
         publisher="Test News",
-        source_type="news",
-        status="extracted",
     )
     await source.insert()
     return source
@@ -116,16 +222,8 @@ async def sample_source(test_db) -> Source:
 @pytest.fixture
 async def sample_incident(test_db, sample_source: Source) -> IncidentReport:
     """Create and return a sample IncidentReport for testing."""
-    from app.models.incidents import (
-        ExtractedIncidentData,
-        VesselData,
-        EventData,
-        IncidentClassification,
-        IllegalFishingClassification,
-    )
-
-    incident = IncidentReport(
-        extracted_information=ExtractedIncidentData(
+    incident = make_incident(
+        extracted_information=make_extracted_data(
             vesselInformation=VesselData(
                 vesselName="Test Vessel",
                 vesselFlag="Unknown",
@@ -135,19 +233,8 @@ async def sample_incident(test_db, sample_source: Source) -> IncidentReport:
                 eventLocation="Protected Waters",
                 resolution="Under investigation",
             ),
-            speciesInvolved=[Species(speciesCommonName="Tuna")],
-            productsInvolved=[],
             description="Test vessel caught fishing illegally in protected waters.",
         ),
-        incident_classification=IncidentClassification(
-            iuuClassifications=[
-                IllegalFishingClassification(
-                    IUUSubType=["Invalid or no permit or license"],
-                    IUUTypeReason="Vessel operated without valid fishing license.",
-                )
-            ]
-        ),
-        status="extracted",
     )
     await incident.insert()
 
