@@ -508,6 +508,43 @@ async def delete_incident(
         )
 
 
+@router.post("/{report_id}/sources", response_model=IncidentReport)
+async def add_source_to_incident(
+    report_id: str,
+    body: dict,
+    current_user: User = Depends(get_current_user),
+):
+    """Adds a source to an incident report by ID."""
+    source_id = body.get("source_id")
+    if not source_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="source_id is required",
+        )
+    is_primary = body.get("is_primary", False)
+    return await IncidentService.add_source_to_report(
+        report_id=report_id,
+        source_id=source_id,
+        is_primary=is_primary,
+    )
+
+
+@router.delete(
+    "/{report_id}/sources/{source_id}",
+    response_model=IncidentReport,
+)
+async def remove_source_from_incident(
+    report_id: str,
+    source_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Removes a source from an incident report."""
+    return await IncidentService.remove_source_from_report(
+        report_id=report_id,
+        source_id=source_id,
+    )
+
+
 @router.put("/{report_id}", response_model=IncidentReport)
 async def update_incident_report(
     report_id: str,

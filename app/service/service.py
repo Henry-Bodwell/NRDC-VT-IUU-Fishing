@@ -143,21 +143,27 @@ def _validate_no_link_updates(model_cls, updates: dict, model_name: str):
         for field in link_fields:
             if "source" in field.lower():
                 suggestions.append(
-                    "To update source data, use PUT /api/sources/{source_id}"
+                    "To add/remove sources, use "
+                    "POST /api/incidents/{incident_id}/sources "
+                    "or DELETE /api/incidents/{incident_id}/sources/{source_id}. "
+                    "To update source data directly, use PUT /api/sources/{source_id}."
                 )
             elif "incident" in field.lower():
                 suggestions.append(
-                    "To update incident data, use PUT /api/incidents/{incident_id}"
+                    "To add/remove incidents from a source, use "
+                    "POST /api/incidents/{incident_id}/sources "
+                    "or DELETE /api/incidents/{incident_id}/sources/{source_id}. "
+                    "To update incident data directly, use PUT /api/incidents/{incident_id}."
                 )
             elif "overview" in field.lower():
                 suggestions.append(
-                    "To update overview data, use PUT /api/overviews/{overview_id}"
+                    "To update overview data, use PUT /api/overviews/{overview_id}."
                 )
 
         suggestion_text = (
             " ".join(set(suggestions))
             if suggestions
-            else "Update the linked document directly using its specific endpoint."
+            else "Use the dedicated sub-resource endpoints to manage relationships."
         )
 
         logger.warning(
