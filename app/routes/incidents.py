@@ -19,7 +19,11 @@ from typing import Annotated
 from pydantic import ValidationError
 
 from app.auth import get_current_user, get_current_admin_user
-from app.interfaces import GenRequest, IncidentFilters
+from app.interfaces import (
+    AddSourceRequest,
+    GenRequest,
+    IncidentFilters,
+)
 from app.models.incidents import IncidentReport
 from app.models.sources import Source
 from app.models.task import TaskStatus
@@ -511,21 +515,14 @@ async def delete_incident(
 @router.post("/{report_id}/sources", response_model=IncidentReport)
 async def add_source_to_incident(
     report_id: str,
-    body: dict,
+    body: AddSourceRequest,
     current_user: User = Depends(get_current_admin_user),
 ):
     """Adds a source to an incident report by ID."""
-    source_id = body.get("source_id")
-    if not source_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="source_id is required",
-        )
-    is_primary = body.get("is_primary", False)
     return await IncidentService.add_source_to_report(
         report_id=report_id,
-        source_id=source_id,
-        is_primary=is_primary,
+        source_id=body.source_id,
+        is_primary=body.is_primary,
     )
 
 
