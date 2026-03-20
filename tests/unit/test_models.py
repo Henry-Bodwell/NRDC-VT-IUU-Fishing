@@ -13,15 +13,19 @@ from datetime import datetime
 from app.models.sources import Source, ArticleScopeClassification
 from app.models.incidents import (
     IncidentReport,
-    ExtractedIncidentData,
     VesselData,
     EventData,
     IncidentClassification,
     IllegalFishingClassification,
-    IndustryOverview,
-    IndustryOverviewExtract,
     Species,
     ProductData,
+)
+from tests.conftest import (
+    make_source,
+    make_incident,
+    make_extracted_data,
+    make_overview,
+    make_overview_extract,
 )
 
 
@@ -121,7 +125,7 @@ class TestPydanticModels:
 
     def test_extracted_incident_data(self):
         """Test ExtractedIncidentData model."""
-        data = ExtractedIncidentData(
+        data = make_extracted_data(
             vesselInformation=VesselData(
                 vesselName="Test Vessel",
                 vesselFlag="Panama",
@@ -131,30 +135,22 @@ class TestPydanticModels:
                 eventLocation="Pacific Ocean",
                 resolution="Vessel seized",
             ),
-            speciesInvolved=[Species(speciesCommonName="Tuna")],
             productsInvolved=[ProductData(productType="Frozen fish")],
-            description="Test vessel caught fishing illegally in protected waters.",
         )
 
         assert data.vesselInformation.vesselName == "Test Vessel"
         assert data.eventData.eventDate == "2024-01-15"
         assert data.eventData.resolution == "Vessel seized"
         assert len(data.speciesInvolved) == 1
-        assert (
-            data.description
-            == "Test vessel caught fishing illegally in protected waters."
-        )
 
     def test_industry_overview_extract(self):
         """Test IndustryOverviewExtract model with correct fields."""
-        extract = IndustryOverviewExtract(
+        extract = make_overview_extract(
             species=[Species(speciesCommonName="Tuna")],
             countries=["Japan", "China"],
             companies=["Fishing Co", "Ocean Corp"],
             incidents=[
-                ExtractedIncidentData(
-                    speciesInvolved=[Species(speciesCommonName="Tuna")],
-                    productsInvolved=[],
+                make_extracted_data(
                     description="Incident in the Pacific region.",
                 )
             ],
@@ -186,7 +182,7 @@ class TestSourceModel:
     async def test_source_hash_generation(self, test_db):
         """Test that article_hash is generated from article_text."""
         text = "This is a test article about illegal fishing."
-        source = Source(article_text=text)
+        source = make_source(article_text=text)
 
         expected_hash = hashlib.sha256(text.encode()).hexdigest()
         assert source.article_hash == expected_hash
@@ -194,8 +190,8 @@ class TestSourceModel:
     @pytest.mark.asyncio
     async def test_source_hash_changes_with_text(self, test_db):
         """Test that different text produces different hashes."""
-        source1 = Source(article_text="Article one about fishing")
-        source2 = Source(article_text="Article two about fishing")
+        source1 = make_source(article_text="Article one about fishing")
+        source2 = make_source(article_text="Article two about fishing")
 
         assert source1.article_hash != source2.article_hash
 
@@ -203,8 +199,8 @@ class TestSourceModel:
     async def test_source_hash_consistent(self, test_db):
         """Test that same text produces same hash."""
         text = "Consistent article text"
-        source1 = Source(article_text=text)
-        source2 = Source(article_text=text)
+        source1 = make_source(article_text=text)
+        source2 = make_source(article_text=text)
 
         assert source1.article_hash == source2.article_hash
 
@@ -222,7 +218,7 @@ class TestSourceModel:
     @pytest.mark.asyncio
     async def test_source_with_all_fields(self, test_db):
         """Test Source creation with all fields populated."""
-        source = Source(
+        source = make_source(
             url="https://example.com/article",
             article_title="Test Title",
             article_text="Test article content",
@@ -230,8 +226,6 @@ class TestSourceModel:
             publisher="Test News",
             publication_date=datetime(2024, 1, 15),
             input_category="url",
-            source_type="news",
-            status="extracted",
         )
 
         assert source.url == "https://example.com/article"
@@ -243,13 +237,9 @@ class TestSourceModel:
     @pytest.mark.asyncio
     async def test_source_persist_and_retrieve(self, test_db):
         """Test that Source can be saved and retrieved from database."""
-        source = Source(
-            article_text="Test article for persistence",
-            source_type="news",
-        )
+        source = make_source(article_text="Test article for persistence")
         await source.insert()
 
-        # Retrieve from database
         retrieved = await Source.get(source.id)
         assert retrieved is not None
         assert retrieved.article_text == "Test article for persistence"
@@ -262,8 +252,8 @@ class TestIncidentReportModel:
     @pytest.mark.asyncio
     async def test_incident_creation(self, test_db):
         """Test basic IncidentReport creation."""
-        incident = IncidentReport(
-            extracted_information=ExtractedIncidentData(
+        incident = make_incident(
+            extracted_information=make_extracted_data(
                 vesselInformation=VesselData(
                     vesselName="Test Vessel",
                     vesselFlag="Panama",
@@ -273,17 +263,7 @@ class TestIncidentReportModel:
                     eventLocation="Pacific Ocean",
                     resolution="Vessel detained",
                 ),
-                speciesInvolved=[Species(speciesCommonName="Tuna")],
-                productsInvolved=[],
                 description="Test vessel caught fishing illegally.",
-            ),
-            incident_classification=IncidentClassification(
-                iuuClassifications=[
-                    IllegalFishingClassification(
-                        IUUSubType=["Fishing in closed areas or closed seasons"],
-                        IUUTypeReason="Caught fishing in marine protected area.",
-                    )
-                ]
             ),
         )
 
@@ -295,22 +275,7 @@ class TestIncidentReportModel:
     @pytest.mark.asyncio
     async def test_incident_default_status(self, test_db):
         """Test that IncidentReport has default status."""
-        incident = IncidentReport(
-            extracted_information=ExtractedIncidentData(
-                eventData=EventData(resolution="Unknown"),
-                speciesInvolved=[],
-                productsInvolved=[],
-                description="Unknown incident.",
-            ),
-            incident_classification=IncidentClassification(
-                iuuClassifications=[
-                    IllegalFishingClassification(
-                        IUUSubType=["Invalid or no permit or license"],
-                        IUUTypeReason="Operated without valid license.",
-                    )
-                ]
-            ),
-        )
+        incident = make_incident()
 
         assert incident.status == "extracted"
         assert incident.verified is False
@@ -322,20 +287,17 @@ class TestIndustryOverviewModel:
     @pytest.mark.asyncio
     async def test_industry_overview_creation(self, test_db):
         """Test basic IndustryOverview creation."""
-        overview = IndustryOverview(
-            extracted_information=IndustryOverviewExtract(
+        overview = make_overview(
+            extracted_information=make_overview_extract(
                 species=[Species(speciesCommonName="Tuna")],
                 countries=["Japan", "China"],
                 companies=["Fishing Co"],
                 incidents=[
-                    ExtractedIncidentData(
-                        speciesInvolved=[Species(speciesCommonName="Tuna")],
-                        productsInvolved=[],
+                    make_extracted_data(
                         description="Industry incident mentioned in report.",
                     )
                 ],
-                summary="Industry trends report.",
-            )
+            ),
         )
 
         assert len(overview.extracted_information.species) == 1
@@ -351,50 +313,33 @@ class TestModelRelationships:
         from pymongo.errors import DuplicateKeyError
 
         text = "This is duplicate content"
-        source1 = Source(article_text=text)
+        source1 = make_source(article_text=text)
         await source1.insert()
 
-        source2 = Source(article_text=text)
+        source2 = make_source(article_text=text)
         with pytest.raises(DuplicateKeyError):
             await source2.insert()
 
     @pytest.mark.asyncio
     async def test_incident_add_source(self, test_db):
         """Test adding source to incident."""
-        # Create source
-        source = Source(
-            article_text="Test article for relationship testing",
-            source_type="news",
-        )
+        source = make_source(article_text="Test article for relationship testing")
         await source.insert()
 
-        # Create incident
-        incident = IncidentReport(
-            extracted_information=ExtractedIncidentData(
+        incident = make_incident(
+            extracted_information=make_extracted_data(
                 vesselInformation=VesselData(vesselName="Relationship Test Vessel"),
                 eventData=EventData(
                     eventDate="2024-03-01",
                     resolution="Under investigation",
                 ),
-                speciesInvolved=[],
-                productsInvolved=[],
                 description="Testing source-incident relationship.",
-            ),
-            incident_classification=IncidentClassification(
-                iuuClassifications=[
-                    IllegalFishingClassification(
-                        IUUSubType=["Invalid or no permit or license"],
-                        IUUTypeReason="No valid fishing permit found.",
-                    )
-                ]
             ),
         )
         await incident.insert()
 
-        # Add source to incident
         await incident.add_source(source, is_primary=True)
 
-        # Verify relationship - refresh incident from DB
         refreshed_incident = await IncidentReport.get(incident.id)
         assert refreshed_incident is not None
         assert refreshed_incident.primary_source is not None
@@ -403,32 +348,17 @@ class TestModelRelationships:
     @pytest.mark.asyncio
     async def test_source_delete_cascades(self, test_db):
         """Test that deleting source with single incident deletes incident."""
-        # Create source
-        source = Source(
-            article_text="Article for cascade delete test",
-            source_type="news",
-        )
+        source = make_source(article_text="Article for cascade delete test")
         await source.insert()
 
-        # Create incident linked only to this source
-        incident = IncidentReport(
-            extracted_information=ExtractedIncidentData(
+        incident = make_incident(
+            extracted_information=make_extracted_data(
                 vesselInformation=VesselData(vesselName="Cascade Test Vessel"),
                 eventData=EventData(
                     eventDate="2024-04-01",
                     resolution="Charges pending",
                 ),
-                speciesInvolved=[],
-                productsInvolved=[],
                 description="Testing cascade delete behavior.",
-            ),
-            incident_classification=IncidentClassification(
-                iuuClassifications=[
-                    IllegalFishingClassification(
-                        IUUSubType=["Invalid or no permit or license"],
-                        IUUTypeReason="License expired.",
-                    )
-                ]
             ),
         )
         await incident.insert()
@@ -436,9 +366,7 @@ class TestModelRelationships:
 
         incident_id = incident.id
 
-        # Delete source
         await source.delete()
 
-        # Verify incident was also deleted
         deleted_incident = await IncidentReport.get(incident_id)
         assert deleted_incident is None

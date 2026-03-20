@@ -57,7 +57,7 @@ class Service:
         logger.info(f"Updating {model_name} {model_id} with data: {update_data}")
 
         # Get the instance with links
-        instance = await model_cls.get(model_id, fetch_links=True)
+        instance = await model_cls.get(model_id)
         if not instance:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

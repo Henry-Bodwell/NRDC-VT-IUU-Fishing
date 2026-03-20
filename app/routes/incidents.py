@@ -1,5 +1,6 @@
 import json
-from beanie import PydanticObjectId
+import logging
+
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -12,45 +13,30 @@ from fastapi import (
     status,
 )
 from fastapi.responses import JSONResponse
-from pymongo import DESCENDING
+from pymongo import ASCENDING, DESCENDING
 from starlette.datastructures import UploadFile
-from typing import Annotated, Optional, Type, TypeVar
-from pydantic import BaseModel, ValidationError
-from app.audit.models import AuditLog
-from app.models.incidents import IncidentReport, IndustryOverview
+from typing import Annotated
+from pydantic import ValidationError
+
+from app.auth import get_current_user, get_current_admin_user
+from app.interfaces import GenRequest, IncidentFilters
+from app.models.incidents import IncidentReport
 from app.models.sources import Source
 from app.models.task import TaskStatus
+from app.models.users import User
 from app.service.incident_service import IncidentService
-from app.service.overview_service import OverviewService
-from app.service.source_service import SourceService
-from app.interfaces import GenRequest, IncidentFilters, SourceFilters, OverviewFilters
-
-
-router = APIRouter()
-import logging
+from app.routes.helpers import valid_response
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", bound=BaseModel)
-
-# Import authentication dependencies
-from app.auth import get_current_user, get_current_admin_user
-from app.models.users import User
+router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
-# Get limiter instance (will be injected by main.py)
-def get_limiter():
-    from app.main import limiter
-
-    return limiter
-
-
-# Incident Routes
-@router.post("/incidents", status_code=status.HTTP_202_ACCEPTED)
+@router.post("", status_code=status.HTTP_202_ACCEPTED)
 async def create_incident_report(
     request: Request,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user),  # Require authentication
+    current_user: User = Depends(get_current_user),
 ):
     """
     Submits a URL or file for analysis and saves the resulting incident report to database.
@@ -87,7 +73,7 @@ async def _handle_json_request(
     try:
         json_payload = await request.json()
         payload = GenRequest(**json_payload)
-        user_id = str(current_user.id)  # Use authenticated user's ID
+        user_id = str(current_user.id)
 
         # Create task
         task = TaskStatus(
@@ -193,7 +179,7 @@ async def _handle_file_request(
         form = await request.form()
         logger.info(f"Form received with keys: {list(form.keys())}")
         pdf_file = None
-        user_id = str(current_user.id)  # Use authenticated user's ID
+        user_id = str(current_user.id)
 
         # Extract metadata from form fields
         metadata = {}
@@ -227,7 +213,6 @@ async def _handle_file_request(
                 ]:
                     metadata[key] = value
                 elif key == "publication_date":
-                    # Parse publication_date if provided
                     from datetime import datetime
 
                     try:
@@ -265,7 +250,6 @@ async def _handle_file_request(
             )
 
         # Check for duplicate PDF by extracting text and computing hash
-        # We need to extract text first because the database stores hash of extracted text, not PDF bytes
         from app.dspy_files.content_extraction import ContentExtractor
         import hashlib
 
@@ -296,7 +280,7 @@ async def _handle_file_request(
 
         # Create task with metadata
         input_params = {"input_type": "pdf", "filename": pdf_file.filename}
-        input_params.update(metadata)  # Include metadata in task params
+        input_params.update(metadata)
 
         task = TaskStatus(
             task_type="incident_analysis",
@@ -313,7 +297,7 @@ async def _handle_file_request(
             input_type="pdf",
             pdf_bytes=pdf_bytes,
             filename=pdf_file.filename,
-            **metadata,  # Pass all metadata fields
+            **metadata,
         )
 
         return {"task_id": task.task_id, "status": "pending"}
@@ -346,7 +330,6 @@ async def _check_for_existing_text(text: str) -> Source | None:
 async def _check_for_existing_url(url: str) -> Source | None:
     """
     Check if a report already exists for the given URL.
-    Adjust this query based on your actual data model structure.
     """
     try:
         existing = await Source.find_one(Source.url == url)
@@ -356,7 +339,7 @@ async def _check_for_existing_url(url: str) -> Source | None:
         return None
 
 
-@router.get("/incidents")
+@router.get("")
 async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()]):
     """
     Retrieves a l incident reports with pagination and filtering.
@@ -461,9 +444,6 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
     if filter_query.search:
         query_filters["$text"] = {"$search": filter_query.search}
 
-    # Sort order
-    from pymongo import ASCENDING
-
     sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
     sort_field = filter_query.sort_by
 
@@ -489,7 +469,7 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
     }
 
 
-@router.get("/incidents/{report_id}", response_model=IncidentReport)
+@router.get("/{report_id}", response_model=IncidentReport)
 async def get_incident_report(report_id: str):
     """
     Retrieves a specific incident report by its ID.
@@ -500,18 +480,17 @@ async def get_incident_report(report_id: str):
 
 
 @router.delete(
-    "/incidents/{report_id}",
+    "/{report_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
 )
 async def delete_incident(
     report_id: str,
-    current_user: User = Depends(get_current_admin_user),  # Require admin
+    current_user: User = Depends(get_current_admin_user),
 ):
     """
     Deletes an incident report by its ID.
     """
-
     try:
         was_deleted = await IncidentService.delete_report(report_id=report_id)
         if was_deleted:
@@ -529,11 +508,11 @@ async def delete_incident(
         )
 
 
-@router.put("/incidents/{report_id}", response_model=IncidentReport)
+@router.put("/{report_id}", response_model=IncidentReport)
 async def update_incident_report(
     report_id: str,
     update_data: dict,
-    current_user: User = Depends(get_current_user),  # Require authentication
+    current_user: User = Depends(get_current_user),
 ):
     """Updates an existing incident report by its ID."""
     try:
@@ -553,441 +532,3 @@ async def update_incident_report(
                 "details": str(e),
             },
         )
-
-
-# Source routes
-@router.get("/sources")
-async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
-    """
-    Retrieves a list of sources with pagination and filtering.
-    """
-    query_filters = {}
-
-    if filter_query.input_category != "all":
-        query_filters["input_category"] = filter_query.input_category
-
-    if filter_query.source_type != "all":
-        query_filters["source_type"] = filter_query.source_type
-
-    if filter_query.status != "all":
-        query_filters["status"] = filter_query.status
-
-    if filter_query.verified != "all":
-        query_filters["verified"] = filter_query.verified == "true"
-
-    if filter_query.article_scope != "all":
-        query_filters["article_scope.articleType"] = filter_query.article_scope
-
-    # Date range filters
-    if filter_query.created_after:
-        query_filters["created_at"] = query_filters.get("created_at", {})
-        query_filters["created_at"]["$gte"] = filter_query.created_after
-    if filter_query.created_before:
-        query_filters["created_at"] = query_filters.get("created_at", {})
-        query_filters["created_at"]["$lte"] = filter_query.created_before
-    if filter_query.modified_after:
-        query_filters["updated_at"] = query_filters.get("updated_at", {})
-        query_filters["updated_at"]["$gte"] = filter_query.modified_after
-    if filter_query.modified_before:
-        query_filters["updated_at"] = query_filters.get("updated_at", {})
-        query_filters["updated_at"]["$lte"] = filter_query.modified_before
-
-    # User filters
-    if filter_query.created_by:
-        query_filters["created_by"] = filter_query.created_by
-    if filter_query.modified_by:
-        query_filters["updated_by"] = filter_query.modified_by
-
-    # Publication date filters
-    if filter_query.publication_date_after:
-        query_filters["publication_date"] = query_filters.get("publication_date", {})
-        query_filters["publication_date"]["$gte"] = filter_query.publication_date_after
-    if filter_query.publication_date_before:
-        query_filters["publication_date"] = query_filters.get("publication_date", {})
-        query_filters["publication_date"]["$lte"] = filter_query.publication_date_before
-
-    if filter_query.search:
-        query_filters["$text"] = {"$search": filter_query.search}
-
-    # Sort order
-    from pymongo import ASCENDING
-
-    sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
-    sort_field = filter_query.sort_by
-
-    logger.info(f"Query Filters: {query_filters}")
-    sources = (
-        await Source.find(query_filters, fetch_links=False)
-        .sort([(sort_field, sort_direction)])
-        .skip(filter_query.skip)
-        .limit(filter_query.limit)
-        .to_list()
-    )
-
-    total_count = await Source.find(query_filters).count()
-
-    return {
-        "sources": sources,
-        "pagination": {
-            "total": total_count,
-            "skip": filter_query.skip,
-            "limit": filter_query.limit,
-            "has_more": (filter_query.skip + filter_query.limit) < total_count,
-        },
-    }
-
-
-@router.get("/sources/{source_id}", response_model=Source)
-async def get_source(source_id: str):
-    source = await Source.get(source_id)
-    valid_response(source, Source)
-    return source
-
-
-@router.delete(
-    "/sources/{source_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def delete_source(
-    source_id: str,
-    current_user: User = Depends(get_current_admin_user),  # Require admin
-):
-    try:
-        was_deleted = await SourceService.delete_source(source_id)
-        if was_deleted:
-            return
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Source not found",
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting source {source_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete source.",
-        )
-
-
-@router.put("/sources/{source_id}", response_model=Source)
-async def update_source(
-    source_id: str,
-    update_data: dict,
-    current_user: User = Depends(get_current_user),  # Require authentication
-):
-    """Updates an existing incident report by its ID."""
-    try:
-        updated_source = await SourceService.update_source(
-            source_id=source_id, update_data=update_data
-        )
-        valid_response(updated_source, Source)
-        return updated_source
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "error": "update_failed",
-                "message": "Failed to update source",
-                "details": str(e),
-            },
-        )
-
-
-# Overview routes
-@router.delete(
-    "/overviews/{overview_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_class=Response,
-)
-async def delete_overview(
-    overview_id: str,
-    current_user: User = Depends(get_current_admin_user),  # Require admin
-):
-    try:
-        was_deleted = await OverviewService.delete_overview(overview_id)
-        if was_deleted:
-            return
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Industry overview not found",
-            )
-    except Exception as e:
-        logger.error(f"Error deleting industry overview {overview_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete industry overview.",
-        )
-
-
-@router.put("/overviews/{overview_id}", response_model=IndustryOverview)
-async def update_overview(
-    overview_id: str,
-    update_data: dict,
-    current_user: User = Depends(get_current_user),  # Require authentication
-):
-    """Updates an existing industry overview by its ID."""
-    try:
-        updated_overview = await OverviewService.update_overview(
-            overview_id=overview_id, update_data=update_data
-        )
-        valid_response(updated_overview, IndustryOverview)
-        return updated_overview
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "error": "update_failed",
-                "message": "Failed to update industry overview",
-                "details": str(e),
-            },
-        )
-
-
-@router.get("/overviews/{overview_id}", response_model=IndustryOverview)
-async def get_overview(overview_id: str):
-    overview = await IndustryOverview.get(overview_id)
-    valid_response(overview, IndustryOverview)
-    return overview
-
-
-@router.get("/overviews")
-async def list_overviews(filter_query: Annotated[OverviewFilters, Query()]):
-    """
-    Retrieves a list of industry overviews with pagination and filtering.
-    """
-    query_filters = {}
-
-    if filter_query.input_category != "all":
-        query_filters["source.input_category"] = filter_query.input_category
-
-    if filter_query.status != "all":
-        query_filters["status"] = filter_query.status
-
-    if filter_query.verified != "all":
-        query_filters["verified"] = filter_query.verified == "true"
-
-    # Date range filters
-    if filter_query.created_after:
-        query_filters["created_at"] = query_filters.get("created_at", {})
-        query_filters["created_at"]["$gte"] = filter_query.created_after
-    if filter_query.created_before:
-        query_filters["created_at"] = query_filters.get("created_at", {})
-        query_filters["created_at"]["$lte"] = filter_query.created_before
-    if filter_query.modified_after:
-        query_filters["updated_at"] = query_filters.get("updated_at", {})
-        query_filters["updated_at"]["$gte"] = filter_query.modified_after
-    if filter_query.modified_before:
-        query_filters["updated_at"] = query_filters.get("updated_at", {})
-        query_filters["updated_at"]["$lte"] = filter_query.modified_before
-
-    # User filters
-    if filter_query.created_by:
-        query_filters["created_by"] = filter_query.created_by
-    if filter_query.modified_by:
-        query_filters["updated_by"] = filter_query.modified_by
-
-    if filter_query.search:
-        query_filters["$text"] = {"$search": filter_query.search}
-
-    # Sort order
-    from pymongo import ASCENDING
-
-    sort_direction = ASCENDING if filter_query.sort_order == "asc" else DESCENDING
-    sort_field = filter_query.sort_by
-
-    overviews = (
-        await IndustryOverview.find(query_filters, fetch_links=False)
-        .sort([(sort_field, sort_direction)])
-        .skip(filter_query.skip)
-        .limit(filter_query.limit)
-        .to_list()
-    )
-
-    total_count = await IndustryOverview.find(query_filters).count()
-
-    return {
-        "overviews": overviews,
-        "pagination": {
-            "total": total_count,
-            "skip": filter_query.skip,
-            "limit": filter_query.limit,
-            "has_more": (filter_query.skip + filter_query.limit) < total_count,
-        },
-    }
-
-
-def valid_response(response: Optional[T], pydanticModel: Type[T]):
-    """
-    Helper function to throw an exception if the response is not valid.
-    """
-    if not response:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "error": "not_found",
-                "message": f"{pydanticModel.__name__} not found",
-            },
-        )
-
-    if not isinstance(response, pydanticModel):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "error": "invalid_response",
-                "message": f"Expected {pydanticModel.__name__}, got {type(response).__name__}",
-            },
-        )
-
-
-# Audit Logs
-@router.get("/logs/{document_id}")
-async def get_document_logs(
-    document_id: str,
-    limit: int = 25,
-    skip: int = 0,
-    current_user: User = Depends(get_current_admin_user),  # Require admin
-):
-    """Get all audit logs for a specific document by its ID.
-
-    Requires admin authentication."""
-    try:
-        object_id = PydanticObjectId(document_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid document_id format")
-
-    document_logs = (
-        await AuditLog.find(AuditLog.document_id == object_id)
-        .sort([("timestamp", DESCENDING)])
-        .skip(skip)
-        .limit(limit)
-        .to_list()
-    )
-
-    total_count = await AuditLog.find(AuditLog.document_id == document_id).count()
-
-    return {
-        "logs": document_logs,
-        "pagination": {
-            "total": total_count,
-            "skip": skip,
-            "limit": limit,
-            "has_more": (skip + limit) < total_count,
-        },
-    }
-
-
-@router.get("/logs")
-async def list_all_logs(
-    limit: int = 25,
-    skip: int = 0,
-    current_user: User = Depends(get_current_admin_user),  # Require admin
-):
-    """
-    Retrieves a list of all logs with pagination.
-
-    Requires admin authentication.
-    """
-    document_logs = (
-        await AuditLog.find({})
-        .sort([("timestamp", DESCENDING)])
-        .skip(skip)
-        .limit(limit)
-        .to_list()
-    )
-
-    total_count = await AuditLog.find({}).count()
-
-    return {
-        "logs": document_logs,
-        "pagination": {
-            "total": total_count,
-            "skip": skip,
-            "limit": limit,
-            "has_more": (skip + limit) < total_count,
-        },
-    }
-
-
-# Task Routes
-@router.get("/tasks")
-async def list_tasks(
-    user_id: Optional[str] = None,
-    status_filter: Optional[str] = Query(None, alias="status"),
-    limit: int = 25,
-    skip: int = 0,
-):
-    """
-    List all tasks with optional filtering by user_id and status.
-    """
-    query_filters = {}
-
-    if user_id:
-        query_filters["user_id"] = user_id
-
-    if status_filter:
-        query_filters["status"] = status_filter
-
-    tasks = (
-        await TaskStatus.find(query_filters)
-        .sort([("created_at", DESCENDING)])
-        .skip(skip)
-        .limit(limit)
-        .to_list()
-    )
-
-    total_count = await TaskStatus.find(query_filters).count()
-
-    return {
-        "tasks": [
-            {
-                "task_id": task.task_id,
-                "status": task.status,
-                "task_type": task.task_type,
-                "progress": task.progress,
-                "created_at": task.created_at,
-                "updated_at": task.updated_at,
-            }
-            for task in tasks
-        ],
-        "pagination": {
-            "total": total_count,
-            "skip": skip,
-            "limit": limit,
-            "has_more": (skip + limit) < total_count,
-        },
-    }
-
-
-@router.get("/tasks/{task_id}")
-async def get_task_status(task_id: str):
-    """
-    Get the status of a background task by its ID.
-    """
-    task = await TaskStatus.find_one(TaskStatus.task_id == task_id)
-    if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found",
-        )
-
-    return {
-        "task_id": task.task_id,
-        "status": task.status,
-        "progress": task.progress,
-        "result": task.result,
-        "error": task.error,
-        "created_at": task.created_at,
-        "updated_at": task.updated_at,
-    }
-
-
-@router.get("/ping")
-async def ping():
-    return {"message": "Pong"}

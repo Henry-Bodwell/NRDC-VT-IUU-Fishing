@@ -12,9 +12,7 @@ from app.service.incident_service import IncidentService
 from app.service.source_service import SourceService
 from app.service.overview_service import OverviewService
 from app.models.sources import Source
-from app.models.incidents import (
-    IndustryOverview,
-)
+from app.models.incidents import IndustryOverview
 from app.dspy_files.news_analysis import PipelineOutput, PipelineResult
 
 
@@ -39,21 +37,19 @@ class TestIncidentService:
         """Test successful report creation from URL."""
         url = "https://example.com/test-article"
 
-        # Mock the orchestrator and its methods
         with patch.object(
             IncidentService, "_get_orchestrator"
         ) as mock_get_orch, patch.object(
             IncidentService, "_create_report"
         ) as mock_create:
-            # Setup mocks
             mock_orchestrator = AsyncMock()
             mock_get_orch.return_value = mock_orchestrator
 
-            # Create a mock pipeline output
             mock_source = MagicMock(spec=Source)
-            mock_source.article_text = "Test article about illegal fishing"
             mock_source.url = url
+            mock_source.article_text = "Test article"
             mock_source.article_hash = None
+
             mock_output = PipelineOutput(
                 source=mock_source,
                 status=PipelineResult.SUCCESS,
@@ -66,10 +62,8 @@ class TestIncidentService:
             )
             mock_create.return_value = mock_output
 
-            # Execute
             result = await IncidentService.create_report_from_url(url)
 
-            # Verify
             mock_get_orch.assert_called_once()
             mock_orchestrator.run_full_analysis_from_url.assert_called_once_with(
                 url=url
@@ -89,15 +83,13 @@ class TestIncidentService:
         ) as mock_get_orch, patch.object(
             IncidentService, "_create_report"
         ) as mock_create:
-            # Setup mocks
             mock_orchestrator = AsyncMock()
             mock_get_orch.return_value = mock_orchestrator
 
             mock_source = MagicMock(spec=Source)
             mock_source.article_text = text
-            mock_source.article_title = title
-            mock_source.author = author
             mock_source.article_hash = None
+
             mock_output = PipelineOutput(
                 source=mock_source,
                 status=PipelineResult.SUCCESS,
@@ -110,12 +102,10 @@ class TestIncidentService:
             )
             mock_create.return_value = mock_output
 
-            # Execute
             result = await IncidentService.create_report_from_text(
                 text=text, title=title, author=author
             )
 
-            # Verify
             mock_orchestrator.run_full_analysis_from_text.assert_called_once()
             call_kwargs = mock_orchestrator.run_full_analysis_from_text.call_args.kwargs
             assert call_kwargs["text"] == text
@@ -134,7 +124,6 @@ class TestSourceService:
         source_id = "507f1f77bcf86cd799439011"
         update_data = {"status": "modified", "verified": True}
 
-        # Create a mock source to return
         mock_source = MagicMock(spec=Source)
         mock_source.id = source_id
         mock_source.status = "modified"
@@ -218,7 +207,6 @@ class TestOverviewService:
         overview_id = "507f1f77bcf86cd799439011"
         update_data = {"status": "modified", "verified": True}
 
-        # Create a mock overview to return
         mock_overview = MagicMock(spec=IndustryOverview)
         mock_overview.id = overview_id
         mock_overview.status = "modified"
