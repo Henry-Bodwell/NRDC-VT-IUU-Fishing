@@ -203,6 +203,52 @@ class IncidentService(Service):
         return results
 
     @staticmethod
+    async def add_source_to_report(
+        report_id: str, source_id: str, is_primary: bool = False
+    ) -> IncidentReport:
+        report = await IncidentReport.get(report_id, fetch_links=True)
+        if not report:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Report with ID {report_id} not found",
+            )
+
+        source = await Source.get(source_id)
+        if not source:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Source with ID {source_id} not found",
+            )
+
+        await report.add_source(source, is_primary=is_primary)
+        logger.info(f"Added source {source_id} to report {report_id}")
+        # Re-fetch without links to avoid circular reference recursion during serialization
+        return await IncidentReport.get(report_id, fetch_links=False)
+
+    @staticmethod
+    async def remove_source_from_report(
+        report_id: str, source_id: str
+    ) -> IncidentReport:
+        report = await IncidentReport.get(report_id, fetch_links=True)
+        if not report:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Report with ID {report_id} not found",
+            )
+
+        source = await Source.get(source_id)
+        if not source:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Source with ID {source_id} not found",
+            )
+
+        await report.remove_source(source)
+        logger.info(f"Removed source {source_id} from report {report_id}")
+        # Re-fetch without links to avoid circular reference recursion during serialization
+        return await IncidentReport.get(report_id, fetch_links=False)
+
+    @staticmethod
     async def update_report(report_id: str, update_data: dict) -> IncidentReport:
         return await Service.update_model(
             model_cls=IncidentReport,

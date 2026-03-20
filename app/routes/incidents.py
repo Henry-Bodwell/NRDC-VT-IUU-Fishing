@@ -19,7 +19,11 @@ from typing import Annotated
 from pydantic import ValidationError
 
 from app.auth import get_current_user, get_current_admin_user
-from app.interfaces import GenRequest, IncidentFilters
+from app.interfaces import (
+    AddSourceRequest,
+    GenRequest,
+    IncidentFilters,
+)
 from app.models.incidents import IncidentReport
 from app.models.sources import Source
 from app.models.task import TaskStatus
@@ -506,6 +510,36 @@ async def delete_incident(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete incident report.",
         )
+
+
+@router.post("/{report_id}/sources", response_model=IncidentReport)
+async def add_source_to_incident(
+    report_id: str,
+    body: AddSourceRequest,
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Adds a source to an incident report by ID."""
+    return await IncidentService.add_source_to_report(
+        report_id=report_id,
+        source_id=body.source_id,
+        is_primary=body.is_primary,
+    )
+
+
+@router.delete(
+    "/{report_id}/sources/{source_id}",
+    response_model=IncidentReport,
+)
+async def remove_source_from_incident(
+    report_id: str,
+    source_id: str,
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Removes a source from an incident report."""
+    return await IncidentService.remove_source_from_report(
+        report_id=report_id,
+        source_id=source_id,
+    )
 
 
 @router.put("/{report_id}", response_model=IncidentReport)

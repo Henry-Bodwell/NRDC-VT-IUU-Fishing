@@ -165,3 +165,15 @@ class OverviewFilters(Filter):
     status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(
         default="all"
     )
+
+
+# ── Request bodies ────────────────────────────────────────────────
+
+
+class AddSourceRequest(BaseModel):
+    """Request body for adding a source to an incident report."""
+
+    source_id: str = Field(..., description="ID of the source to link")
+    is_primary: bool = Field(
+        default=False, description="Whether this is the primary source"
+    )

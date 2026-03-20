@@ -78,6 +78,7 @@ class IncidentReport(AuditedDocument):
 
     class Settings:
         name = "incidents"
+        max_nesting_depth = 1
 
         indexes = [
             IndexModel(
