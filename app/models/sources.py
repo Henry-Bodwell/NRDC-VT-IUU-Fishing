@@ -157,6 +157,7 @@ class Source(AuditedDocument):
 
     class Settings:
         name = "sources"
+        max_nesting_depth = 1
         indexes = [
             IndexModel([("article_hash", ASCENDING)], unique=True),
             IndexModel(

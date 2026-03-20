@@ -222,7 +222,8 @@ class IncidentService(Service):
 
         await report.add_source(source, is_primary=is_primary)
         logger.info(f"Added source {source_id} to report {report_id}")
-        return report
+        # Re-fetch without links to avoid circular reference recursion during serialization
+        return await IncidentReport.get(report_id, fetch_links=False)
 
     @staticmethod
     async def remove_source_from_report(
@@ -244,7 +245,8 @@ class IncidentService(Service):
 
         await report.remove_source(source)
         logger.info(f"Removed source {source_id} from report {report_id}")
-        return report
+        # Re-fetch without links to avoid circular reference recursion during serialization
+        return await IncidentReport.get(report_id, fetch_links=False)
 
     @staticmethod
     async def update_report(report_id: str, update_data: dict) -> IncidentReport:

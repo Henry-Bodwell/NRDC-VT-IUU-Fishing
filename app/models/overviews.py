@@ -38,6 +38,7 @@ class IndustryOverview(AuditedDocument):
 
     class Settings:
         name = "industry_overviews"
+        max_nesting_depth = 1
         indexes = [
             IndexModel(
                 [

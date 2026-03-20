@@ -512,7 +512,7 @@ async def delete_incident(
 async def add_source_to_incident(
     report_id: str,
     body: dict,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     """Adds a source to an incident report by ID."""
     source_id = body.get("source_id")
@@ -536,7 +536,7 @@ async def add_source_to_incident(
 async def remove_source_from_incident(
     report_id: str,
     source_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_admin_user),
 ):
     """Removes a source from an incident report."""
     return await IncidentService.remove_source_from_report(
