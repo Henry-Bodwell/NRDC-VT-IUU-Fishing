@@ -23,6 +23,9 @@ class AuditLog(Document):
     changes: List[Dict[str, Any]] = Field(default_factory=list)
     change_summary: Optional[Dict[str, Any]] = None
 
+    # Full document snapshot -- only populated on DELETE operations
+    snapshot: Optional[Dict[str, Any]] = None
+
     class Settings:
         name = "audit_logs"
         indexes = [

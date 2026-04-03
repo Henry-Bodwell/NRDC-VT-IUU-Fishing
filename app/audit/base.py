@@ -113,11 +113,12 @@ class AuditedDocument(Document):
 
     @after_event(Delete)
     async def audit_delete(self):
-        """Log document deletion"""
+        """Log document deletion with full-state snapshot for reconstruction."""
         # Import here to avoid circular imports
         from .service import AuditService
 
         try:
-            await AuditService.log_delete(self)
+            snapshot = self.model_dump(exclude={"_original_state"})
+            await AuditService.log_delete(self, snapshot=snapshot)
         except Exception as e:
             logger.warning(f"Audit logging failed for delete: {e}")
