@@ -104,8 +104,12 @@ class AuditService:
         return audit_entry
 
     @classmethod
-    async def log_delete(cls, document: Document) -> AuditLog:
-        """Log document deletion"""
+    async def log_delete(
+        cls,
+        document: Document,
+        snapshot: Optional[Dict[str, Any]] = None,
+    ) -> AuditLog:
+        """Log document deletion with optional full-state snapshot."""
         current_version = getattr(document, "version", 1)
 
         audit_entry = AuditLog(
@@ -116,6 +120,7 @@ class AuditService:
             user_id=AuditContext.get_user(),
             changes=[],
             change_summary={"operation": "delete"},
+            snapshot=snapshot,
         )
 
         await audit_entry.insert()

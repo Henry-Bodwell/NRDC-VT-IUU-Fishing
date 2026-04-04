@@ -42,6 +42,7 @@ class JsonPatchStrategy(AuditStrategy):
             "change_type": ChangeType.JSON_PATCH,
             "field_path": field_path,
             "patches": patches if patches else [],
+            "old_value": old_value,
             "old_value_size": len(str(old_value)) if old_value is not None else 0,
             "new_value_size": len(str(new_value)) if new_value is not None else 0,
         }
@@ -98,6 +99,20 @@ class TextDiffStrategy(AuditStrategy):
         patches = self.dmp.patch_fromText(patch_text)
         result = self.dmp.patch_apply(patches, original_text)
         return result[0]  # Returns tuple (text, success_array)
+
+    def reverse_text_patches(self, patch_text: str) -> str:
+        """Reverse a patch so it goes new->old instead of old->new.
+
+        Swaps start1/start2, length1/length2, and flips diff operations
+        (-1 <-> 1) so the patch can be applied to the newer text to recover
+        the older text.
+        """
+        patches = self.dmp.patch_fromText(patch_text)
+        for p in patches:
+            p.start1, p.start2 = p.start2, p.start1
+            p.length1, p.length2 = p.length2, p.length1
+            p.diffs = [(-op, text) if op != 0 else (op, text) for op, text in p.diffs]
+        return self.dmp.patch_toText(patches)
 
 
 class ReferenceTrackingStrategy(AuditStrategy):

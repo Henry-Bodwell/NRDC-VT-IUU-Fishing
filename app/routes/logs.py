@@ -9,6 +9,7 @@ from fastapi import (
 from pymongo import DESCENDING
 
 from app.audit.models import AuditLog
+from app.audit.queries import AuditQueryService
 from app.auth import get_current_admin_user
 from app.models.users import User
 
@@ -51,6 +52,35 @@ async def get_document_logs(
             "has_more": (skip + limit) < total_count,
         },
     }
+
+
+@router.get("/{document_id}/version/{version}")
+async def get_document_at_version(
+    document_id: str,
+    version: int,
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Reconstruct a document's state at a specific version.
+
+    Uses walk-back reconstruction: starts from the current state (or DELETE
+    snapshot for deleted documents) and reverses audit diffs backward.
+
+    Requires admin authentication.
+    """
+    try:
+        object_id = PydanticObjectId(document_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid document_id format")
+
+    try:
+        result = await AuditQueryService.reconstruct_document_at_version(
+            document_id=object_id,
+            target_version=version,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return result
 
 
 @router.get("")
