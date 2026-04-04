@@ -17,8 +17,6 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from beanie import PydanticObjectId
 
-from bson import DBRef
-
 from app.audit.enums import ChangeType, OperationType
 from app.audit.models import AuditLog
 from app.audit.queries import AuditQueryService
@@ -368,21 +366,16 @@ class TestReconstructLiveDocument:
             assert result["is_deleted"] is False
 
     @pytest.mark.asyncio
-    async def test_reconstruct_current_version_sanitizes_dbrefs(self):
-        """DBRef and ObjectId in model_dump output are converted to strings."""
+    async def test_reconstruct_current_version_uses_json_mode(self):
+        """model_dump is called with mode='json' so state is always JSON-safe."""
         doc_id = PydanticObjectId()
-        ref_id = PydanticObjectId()
-        overview_ref = DBRef("IndustryOverview", ref_id)
-
+        # Simulate what model_dump(mode="json") produces: plain strings, not BSON types
         current_state = {
-            "id": doc_id,
+            "id": str(doc_id),
             "status": "modified",
             "version": 11,
-            "incidents": [
-                DBRef("IncidentReport", PydanticObjectId()),
-                DBRef("IncidentReport", PydanticObjectId()),
-            ],
-            "overview": overview_ref,
+            "incidents": ["inc_id_1", "inc_id_2"],
+            "overview": "overview_id_1",
         }
 
         create_log = _make_audit_log(doc_id, 1, OperationType.CREATE)
@@ -410,14 +403,13 @@ class TestReconstructLiveDocument:
                 target_version=11,
             )
 
+            # model_dump should have been called with mode="json"
+            mock_doc.model_dump.assert_called_once_with(mode="json")
+
             state = result["state"]
-            # DBRefs converted to string IDs
+            assert state["id"] == str(doc_id)
             assert all(isinstance(i, str) for i in state["incidents"])
             assert isinstance(state["overview"], str)
-            assert state["overview"] == str(ref_id)
-            # ObjectId converted to string
-            assert isinstance(state["id"], str)
-            assert state["id"] == str(doc_id)
 
     @pytest.mark.asyncio
     async def test_reconstruct_version_1_walks_back_all_updates(self):

@@ -3,28 +3,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
-from bson import DBRef
 
 from app.audit.enums import ChangeType, OperationType
 from app.audit.models import AuditLog
 from app.audit.strategies import TextDiffStrategy
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_for_json(obj: Any) -> Any:
-    """Recursively convert MongoDB types (DBRef, PydanticObjectId) to JSON-safe values."""
-    if isinstance(obj, DBRef):
-        return str(obj.id)
-    if isinstance(obj, PydanticObjectId):
-        return str(obj)
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    if isinstance(obj, dict):
-        return {k: _sanitize_for_json(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_sanitize_for_json(item) for item in obj]
-    return obj
 
 
 class AuditQueryService:
@@ -149,7 +133,7 @@ class AuditQueryService:
                 "document_type": document_type,
                 "version": target_version,
                 "is_deleted": is_deleted,
-                "state": _sanitize_for_json(starting_state),
+                "state": starting_state,
                 "skipped_fields": [],
             }
 
@@ -180,13 +164,12 @@ class AuditQueryService:
             )
             all_skipped.extend(skipped)
 
-        # Sanitize to convert DBRef/ObjectId/datetime to JSON-safe values
         return {
             "document_id": str(document_id),
             "document_type": document_type,
             "version": target_version,
             "is_deleted": is_deleted,
-            "state": _sanitize_for_json(reconstructed),
+            "state": reconstructed,
             "skipped_fields": list(set(all_skipped)),
         }
 

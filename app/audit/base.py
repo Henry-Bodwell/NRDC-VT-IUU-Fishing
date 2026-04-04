@@ -118,7 +118,7 @@ class AuditedDocument(Document):
         from .service import AuditService
 
         try:
-            snapshot = self.model_dump(exclude={"_original_state"})
+            snapshot = self.model_dump(mode="json", exclude={"_original_state"})
             await AuditService.log_delete(self, snapshot=snapshot)
         except Exception as e:
             logger.warning(f"Audit logging failed for delete: {e}")
