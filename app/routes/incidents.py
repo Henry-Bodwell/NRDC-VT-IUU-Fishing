@@ -15,7 +15,7 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 from pymongo import ASCENDING, DESCENDING
 from starlette.datastructures import UploadFile
-from typing import Annotated
+from typing import Annotated, List
 from pydantic import ValidationError
 
 from app.auth import get_current_user, get_current_admin_user
@@ -24,6 +24,7 @@ from app.interfaces import (
     GenRequest,
     IncidentFilters,
 )
+from app.literals import IUUType
 from app.models.incidents import IncidentReport
 from app.models.sources import Source
 from app.models.task import TaskStatus
@@ -475,6 +476,16 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
             "limit": filter_query.limit,
             "has_more": (filter_query.skip + filter_query.limit) < total_count,
         },
+    }
+
+
+@router.get("/types")
+async def get_incident_types(types: Annotated[List[IUUType] | None, Query()] = None):
+    """
+    Retrieves the list of IUU types and subtypes for filtering and form options.
+    """
+    return {
+        "IUU_types_and_subtypes": IncidentService.get_IUU_types(types),
     }
 
 

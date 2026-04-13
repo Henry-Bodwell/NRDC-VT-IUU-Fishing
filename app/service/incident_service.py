@@ -1,5 +1,7 @@
 import os
+from typing import List
 from fastapi import HTTPException, status
+from app.literals import IUUType
 from app.models.incidents import IncidentReport
 from app.models.sources import Source, ArticleScopeClassification
 from app.models.task import TaskStatus
@@ -435,3 +437,72 @@ class IncidentService(Service):
             logger.error(f"Task {task_id} failed with error: {str(e)}")
             await task.mark_failed(str(e))
             raise
+
+    def get_IUU_types(types: List[IUUType] | None = None) -> dict:
+
+        all_types = {
+            "Illegal Fishing": [
+                "Exceeding catch quotas",
+                "Keeping undersized fish",
+                "Catching unauthorized or prohibited species",
+                "Prohibited fishing gear",
+                "Fishing in closed areas or closed seasons",
+                "Invalid or no permit or license",
+                "Obscuring vessel identity",
+                "Unauthorized transshipment",
+                "Falisfying Documents",
+                "Obstructing inspectors",
+                "Illegal bycatch practices",
+            ],
+            "Unreported Catch": [
+                "Un/underreported target catch weight or size",
+                "Un/underreported discards/bycatch weight or size",
+                "Misreported target catch species",
+                "Misreported non-target catch species",
+                "Misreported location or timing of fishing",
+                "Misreported gear",
+                "Unreported transshipment activities",
+            ],
+            "Unregulated Fishing": [
+                "Stateless vessel",
+                "Fishing under flag not party to RFMO",
+                "Fishing in unregulated areas or for unregulated stock",
+            ],
+            "Seafood Fraud or Mislabeling": [
+                "Species mislabeling or fraud",
+                "Production information fraud",
+            ],
+            "Forced Labor or Labor Abuse": [
+                "Wage/Pay violations",
+                "Abusive living conditions",
+                "Abusive working conditions",
+                "Inadequate crew size",
+                "Physical or sexual violence",
+                "Intimidation",
+                "Families threatened",
+                "Deception",
+                "No work contracts",
+                "Isolation",
+                "Migrants threatened",
+            ],
+            "Circumventing Prohibitions or Sanctions": [
+                "Circumventing sanctions (individuals or corporations)",
+                "Circumventing import prohibitions (countries or products)",
+            ],
+            "Illegal Aquacultural Practices": [
+                "Unapproved/non-native species",
+                "Illegal sourcing of seed/broodstock",
+                "Misrepresentation or falsification of farming operations",
+                "Unlicensed/Unauthorized farm operations",
+                "Stolen products",
+            ],
+            "Other": [
+                "Information not sufficient to determine specific IUU+ behavior",
+                "Crimes related to fishing or associated trade but distinct from IUU+ typology (e.g., murder of journalists investigating IUU+ fishing)",
+                "Other",
+            ],
+        }
+        if not types:
+            return all_types
+
+        return {type_name: all_types.get(type_name, []) for type_name in types}
