@@ -74,8 +74,7 @@ IUUSubtype = Literal[
     "Information not sufficient to determine specific IUU+ behavior",
     "Crimes related to fishing or associated trade but distinct from IUU+ typology (e.g., murder of journalists investigating IUU+ fishing)",
     "Other",
-    # Catch All
-    "all",
+    # Catch All leave None
 ]
 
 SourceType = Literal[
