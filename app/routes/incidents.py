@@ -356,9 +356,14 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
     if filter_query.verified != "all":
         query_filters["verified"] = filter_query.verified == "true"
 
+    elem_match: dict = {}
     if filter_query.IUU_type != "all":
+        elem_match["IUUType"] = filter_query.IUU_type
+    if filter_query.IUU_subtype:
+        elem_match["IUUSubType"] = {"$in": list(filter_query.IUU_subtype)}
+    if elem_match:
         query_filters["incident_classification.iuuClassifications"] = {
-            "$elemMatch": {"IUUType": filter_query.IUU_type}
+            "$elemMatch": elem_match
         }
     if filter_query.status != "all":
         query_filters["status"] = filter_query.status

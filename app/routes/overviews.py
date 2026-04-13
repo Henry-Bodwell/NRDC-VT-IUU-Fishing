@@ -12,7 +12,7 @@ from pymongo import ASCENDING, DESCENDING
 from typing import Annotated
 
 from app.auth import get_current_user, get_current_admin_user
-from app.interfaces import OverviewFilters
+from app.interfaces import Filter
 from app.models.incidents import IndustryOverview
 from app.models.users import User
 from app.service.overview_service import OverviewService
@@ -83,17 +83,17 @@ async def get_overview(overview_id: str):
 
 
 @router.get("")
-async def list_overviews(filter_query: Annotated[OverviewFilters, Query()]):
+async def list_overviews(filter_query: Annotated[Filter, Query()]):
     """
     Retrieves a list of industry overviews with pagination and filtering.
     """
     query_filters = {}
 
-    if filter_query.input_category != "all":
-        query_filters["source.input_category"] = filter_query.input_category
+    # if filter_query.input_category != "all":
+    #     query_filters["source.input_category"] = filter_query.input_category
 
-    if filter_query.status != "all":
-        query_filters["status"] = filter_query.status
+    # if filter_query.status != "all":
+    #     query_filters["status"] = filter_query.status
 
     if filter_query.verified != "all":
         query_filters["verified"] = filter_query.verified == "true"

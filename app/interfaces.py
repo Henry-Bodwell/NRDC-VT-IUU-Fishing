@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Literal
+from typing import List, Literal
 from pydantic import BaseModel, Field, model_validator
+from app.literals import ArticleScope, IUUType, IUUSubtype, SourceType, Status
 
 
 class GenRequest(BaseModel):
@@ -11,9 +12,9 @@ class GenRequest(BaseModel):
     publisher: str | None = None
     publication_date: datetime | None = None
     user_id: str | None = None
-    source_type: Literal[
-        "government", "news", "industry report", "ngo", "academic", "not specified"
-    ] = Field(default="not specified", description="Type of source organization")
+    source_type: SourceType = Field(
+        default="not specified", description="Type of source organization"
+    )
     status: Literal["extracted", "from_api", "user_input", "modified"] = Field(
         default="user_input",
         description="Status of the source (extracted, from_api, user_input, or modified)",
@@ -72,22 +73,14 @@ class Filter(BaseModel):
     # Search
     search: str | None = Field(default=None, description="term to search for")
 
+    status: Status = Field(default="all")
+
 
 class IncidentFilters(Filter):
-    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(
-        default="all"
+    IUU_type: IUUType = Field(default="all", description="Filter by IUU incident type")
+    IUU_subtype: List[IUUSubtype] | None = Field(
+        default=None, description="Filter by one or more IUU subtypes (multi-select)"
     )
-    IUU_type: Literal[
-        "Illegal Fishing",
-        "Unreported Catch",
-        "Unregulated Fishing",
-        "Seafood Fraud or Mislabeling",
-        "Forced Labor or Labor Abuse",
-        "Circumventing Prohibitions or Sanctions",
-        "Illegal Aquacultural Practices",
-        "Other",
-        "all",
-    ] = Field(default="all", description="Filter by IUU incident type")
 
     # Event date filters
     event_date_after: str | None = Field(
@@ -131,24 +124,9 @@ class IncidentFilters(Filter):
 
 
 class SourceFilters(Filter):
-    article_scope: Literal[
-        "all",
-        "Single Incident",
-        "Multiple Incidents",
-        "Industry Overview",
-        "Unrelated to IUU Fishing",
-    ] = Field(default="all")
-    source_type: Literal[
-        "all",
-        "government",
-        "news",
-        "industry report",
-        "ngo",
-        "academic",
-        "not specified",
-    ] = Field(default="all", description="Filter by source organization type")
-    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(
-        default="all"
+    article_scope: ArticleScope = Field(default="all")
+    source_type: SourceType = Field(
+        default="all", description="Filter by source organization type"
     )
     verified: Literal["all", "true", "false"] = Field(default="all")
 
@@ -158,12 +136,6 @@ class SourceFilters(Filter):
     )
     publication_date_before: datetime | None = Field(
         default=None, description="Filter sources published before this date"
-    )
-
-
-class OverviewFilters(Filter):
-    status: Literal["all", "extracted", "from_api", "user_input", "modified"] = Field(
-        default="all"
     )
 
 
