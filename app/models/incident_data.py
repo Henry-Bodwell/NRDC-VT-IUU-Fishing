@@ -205,6 +205,12 @@ class CrewData(BaseModel):
 
 
 class LaborStandards(BaseModel):
+
+    validated: bool = Field(
+        default=False,
+        description="Whether the labor standards information has been verified by a human, leave false",
+    )
+
     # Labor Welfare
     hasHumanWelfarePolicy: bool | None = Field(
         default=None,
@@ -348,7 +354,7 @@ class ComplianceData(BaseModel):
     )
     partyToPMSA: bool | None = Field(
         default=None,
-        description="Whether the vessel is a party to the Port State Measures Agreement (PMSA), if available",
+        description="Whether the vessel is a party to the Port State Measures Agreement (PSMA), if available",
     )
     cardedUnderEUIUURegulation: bool | None = Field(
         default=None,

@@ -80,6 +80,7 @@ class IllegalFishingClassification(BaseModel):
     IUUType: Literal["Illegal Fishing"] = "Illegal Fishing"
     IUUSubType: List[ILLEGAL_FISHING_SUBTYPES] | None = Field(
         default=None,
+        min_length=1,
         description='ALL specific violations found. Options: "Exceeding catch quotas", '
         '"Keeping undersized fish", "Catching unauthorized or prohibited species", '
         '"Prohibited fishing gear", "Fishing in closed areas or closed seasons", '

@@ -350,8 +350,8 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
     """
     query_filters = {}
 
-    if filter_query.input_category != "all":
-        query_filters["primary_source.input_category"] = filter_query.input_category
+    # if filter_query.input_category != "all":
+    #     query_filters["primary_source.input_category"] = filter_query.input_category
 
     if filter_query.verified != "all":
         query_filters["verified"] = filter_query.verified == "true"
