@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, get_args, get_origin
 from beanie import (
     Delete,
     Document,
@@ -11,8 +11,38 @@ from beanie import (
     before_event,
     after_event,
 )
-from pydantic import Field
+from pydantic import BaseModel, Field, TypeAdapter, ValidationError, create_model
 from .context import AuditContext
+
+
+def _to_partial(annotation: Any) -> Any:
+    """Recursively convert BaseModel annotations to partial (all-optional) equivalents.
+
+    This allows validate_update_data to type-check the values that ARE present
+    in a partial update payload without failing on absent required fields.
+    Literal and other scalar constraints are preserved unchanged.
+    """
+    origin = get_origin(annotation)
+
+    # Union / Optional[X]
+    if origin is Union:
+        return Union[tuple(_to_partial(a) for a in get_args(annotation))]  # type: ignore[return-value]
+
+    # List[X]
+    if origin is list:
+        args = get_args(annotation)
+        return list[_to_partial(args[0])] if args else annotation  # type: ignore[return-value]
+
+    # Concrete BaseModel subclass — make every field optional recursively
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        partial_fields: dict = {}
+        for name, field in annotation.model_fields.items():
+            inner = _to_partial(field.annotation)
+            partial_fields[name] = (Optional[inner], None)
+        return create_model(f"_Partial{annotation.__name__}", **partial_fields)
+
+    return annotation
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +59,32 @@ class AuditedDocument(Document):
 
     # Internal state tracking
     _original_state: Optional[Dict[str, Any]] = None
+
+    @classmethod
+    def validate_update_data(cls, update_data: dict) -> list[str]:
+        """Validate update_data against the model's field types.
+
+        Returns a list of human-readable error strings. An empty list means the
+        data is valid.  Fields not present on the model are silently ignored so
+        that callers don't need to filter audit/meta keys before calling this.
+
+        Nested BaseModel fields are validated against partial equivalents so that
+        a payload containing only a subset of sub-fields does not trigger
+        required-field errors — only invalid values are reported.
+        """
+        errors: list[str] = []
+        for field_name, value in update_data.items():
+            if field_name not in cls.model_fields:
+                continue
+            annotation = _to_partial(cls.model_fields[field_name].annotation)
+            try:
+                TypeAdapter(annotation).validate_python(value)
+            except ValidationError as exc:
+                for err in exc.errors():
+                    loc_parts = [str(p) for p in err["loc"]] if err["loc"] else []
+                    loc = ".".join([field_name] + loc_parts)
+                    errors.append(f"{loc}: {err['msg']}")
+        return errors
 
     @before_event([Save, Replace])
     async def capture_original_state(self):

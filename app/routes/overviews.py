@@ -16,7 +16,7 @@ from app.interfaces import Filter
 from app.models.incidents import IndustryOverview
 from app.models.users import User
 from app.service.overview_service import OverviewService
-from app.routes.helpers import valid_response
+from app.routes.helpers import valid_object_id, valid_response
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,9 @@ async def delete_overview(
     overview_id: str,
     current_user: User = Depends(get_current_admin_user),
 ):
+    """Deletes an industry overview by its ID."""
+    valid_object_id(overview_id)
+
     try:
         was_deleted = await OverviewService.delete_overview(overview_id)
         if was_deleted:
@@ -56,6 +59,13 @@ async def update_overview(
     current_user: User = Depends(get_current_user),
 ):
     """Updates an existing industry overview by its ID."""
+    valid_object_id(overview_id)
+    validation_errors = IndustryOverview.validate_update_data(update_data)
+    if validation_errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "invalid_update_data", "errors": validation_errors},
+        )
     try:
         updated_overview = await OverviewService.update_overview(
             overview_id=overview_id, update_data=update_data
@@ -65,6 +75,9 @@ async def update_overview(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(
+            f"Error updating industry overview {overview_id}: {e}", exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -77,6 +90,7 @@ async def update_overview(
 
 @router.get("/{overview_id}", response_model=IndustryOverview)
 async def get_overview(overview_id: str):
+    valid_object_id(overview_id)
     overview = await IndustryOverview.get(overview_id)
     valid_response(overview, IndustryOverview)
     return overview

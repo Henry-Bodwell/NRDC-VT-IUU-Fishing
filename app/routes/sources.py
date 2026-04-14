@@ -15,7 +15,7 @@ from app.interfaces import SourceFilters
 from app.models.sources import Source
 from app.models.users import User
 from app.service.source_service import SourceService
-from app.routes.helpers import valid_response
+from app.routes.helpers import valid_object_id, valid_response
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,7 @@ async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
 
 @router.get("/{source_id}", response_model=Source)
 async def get_source(source_id: str):
+    valid_object_id(source_id)
     source = await Source.get(source_id)
     valid_response(source, Source)
     return source
@@ -115,6 +116,8 @@ async def delete_source(
     source_id: str,
     current_user: User = Depends(get_current_admin_user),
 ):
+    valid_object_id(source_id)
+
     try:
         was_deleted = await SourceService.delete_source(source_id)
         if was_deleted:
@@ -141,6 +144,13 @@ async def update_source(
     current_user: User = Depends(get_current_user),
 ):
     """Updates an existing source by its ID."""
+    valid_object_id(source_id)
+    validation_errors = Source.validate_update_data(update_data)
+    if validation_errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "invalid_update_data", "errors": validation_errors},
+        )
     try:
         updated_source = await SourceService.update_source(
             source_id=source_id, update_data=update_data
@@ -150,6 +160,7 @@ async def update_source(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error updating source {source_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={

@@ -30,7 +30,7 @@ from app.models.sources import Source
 from app.models.task import TaskStatus
 from app.models.users import User
 from app.service.incident_service import IncidentService
-from app.routes.helpers import valid_response
+from app.routes.helpers import valid_object_id, valid_response
 
 logger = logging.getLogger(__name__)
 
@@ -494,6 +494,7 @@ async def get_incident_report(report_id: str):
     """
     Retrieves a specific incident report by its ID.
     """
+    valid_object_id(report_id)
     report = await IncidentReport.get(report_id, fetch_links=False)
     valid_response(report, IncidentReport)
     return report
@@ -511,6 +512,7 @@ async def delete_incident(
     """
     Deletes an incident report by its ID.
     """
+    valid_object_id(report_id)
     try:
         was_deleted = await IncidentService.delete_report(report_id=report_id)
         if was_deleted:
@@ -535,6 +537,7 @@ async def add_source_to_incident(
     current_user: User = Depends(get_current_admin_user),
 ):
     """Adds a source to an incident report by ID."""
+    valid_object_id(report_id)
     return await IncidentService.add_source_to_report(
         report_id=report_id,
         source_id=body.source_id,
@@ -552,6 +555,8 @@ async def remove_source_from_incident(
     current_user: User = Depends(get_current_admin_user),
 ):
     """Removes a source from an incident report."""
+    valid_object_id(report_id)
+    valid_object_id(source_id)
     return await IncidentService.remove_source_from_report(
         report_id=report_id,
         source_id=source_id,
@@ -565,6 +570,14 @@ async def update_incident_report(
     current_user: User = Depends(get_current_user),
 ):
     """Updates an existing incident report by its ID."""
+    valid_object_id(report_id)
+
+    validation_errors = IncidentReport.validate_update_data(update_data)
+    if validation_errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": "invalid_update_data", "errors": validation_errors},
+        )
     try:
         updated_report = await IncidentService.update_report(
             report_id=report_id, update_data=update_data
@@ -574,6 +587,7 @@ async def update_incident_report(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error updating incident report {report_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={

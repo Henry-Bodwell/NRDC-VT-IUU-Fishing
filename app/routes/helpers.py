@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, Type, TypeVar
 
+from beanie import PydanticObjectId
 from fastapi import HTTPException, status
 from pydantic import BaseModel
 
@@ -29,6 +30,15 @@ def valid_response(response: Optional[T], pydanticModel: Type[T]):
                 "error": "invalid_response",
                 "message": f"Expected {pydanticModel.__name__}, got {type(response).__name__}",
             },
+        )
+
+
+def valid_object_id(value: str) -> None:
+    """Raise HTTP 400 if value is not a valid MongoDB ObjectId."""
+    if not PydanticObjectId.is_valid(value):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid ID format: {value}",
         )
 
 
