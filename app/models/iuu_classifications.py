@@ -1,6 +1,6 @@
 from typing import List, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # Subtype definitions for each IUU type
@@ -73,8 +73,21 @@ OTHER_SUBTYPES = Literal[
 ]
 
 
+# Base class that coerces empty lists to None so legacy DB records pass min_length=1 validation
+class IUUClassificationBase(BaseModel):
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_empty_lists_to_none(cls, data: object) -> object:
+        if isinstance(data, dict):
+            return {
+                k: (None if isinstance(v, list) and len(v) == 0 else v)
+                for k, v in data.items()
+            }
+        return data
+
+
 # Individual classification models for each IUU type (discriminated union approach)
-class IllegalFishingClassification(BaseModel):
+class IllegalFishingClassification(IUUClassificationBase):
     """Direct violations of fishing regulations"""
 
     IUUType: Literal["Illegal Fishing"] = "Illegal Fishing"
@@ -95,7 +108,7 @@ class IllegalFishingClassification(BaseModel):
     verified: bool = Field(default=False)
 
 
-class UnreportedCatchClassification(BaseModel):
+class UnreportedCatchClassification(IUUClassificationBase):
     """Failure to report or misreporting of catch data"""
 
     IUUType: Literal["Unreported Catch"] = "Unreported Catch"
@@ -111,7 +124,7 @@ class UnreportedCatchClassification(BaseModel):
     verified: bool = Field(default=False)
 
 
-class UnregulatedClassification(BaseModel):
+class UnregulatedClassification(IUUClassificationBase):
     """Vessels operating outside regulatory frameworks"""
 
     IUUType: Literal["Unregulated Fishing"] = "Unregulated Fishing"
@@ -125,7 +138,7 @@ class UnregulatedClassification(BaseModel):
     verified: bool = Field(default=False)
 
 
-class SeafoodFraudClassification(BaseModel):
+class SeafoodFraudClassification(IUUClassificationBase):
     """Fraudulent labeling or misrepresentation of seafood products"""
 
     IUUType: Literal["Seafood Fraud or Mislabeling"] = "Seafood Fraud or Mislabeling"
@@ -139,7 +152,7 @@ class SeafoodFraudClassification(BaseModel):
     verified: bool = Field(default=False)
 
 
-class ForcedLaborClassification(BaseModel):
+class ForcedLaborClassification(IUUClassificationBase):
     """Labor violations and abuse of crew members"""
 
     IUUType: Literal["Forced Labor or Labor Abuse"] = "Forced Labor or Labor Abuse"
@@ -154,7 +167,7 @@ class ForcedLaborClassification(BaseModel):
     verified: bool = Field(default=False)
 
 
-class SanctionsClassification(BaseModel):
+class SanctionsClassification(IUUClassificationBase):
     """Circumventing international sanctions or prohibitions"""
 
     IUUType: Literal["Circumventing Prohibitions or Sanctions"] = (
@@ -170,7 +183,7 @@ class SanctionsClassification(BaseModel):
     verified: bool = Field(default=False)
 
 
-class IllegalAquacultureClassification(BaseModel):
+class IllegalAquacultureClassification(IUUClassificationBase):
     """Violations in aquaculture/fish farming operations"""
 
     IUUType: Literal["Illegal Aquacultural Practices"] = (
@@ -187,7 +200,7 @@ class IllegalAquacultureClassification(BaseModel):
     verified: bool = Field(default=False)
 
 
-class OtherIUUClassification(BaseModel):
+class OtherIUUClassification(IUUClassificationBase):
     """Other IUU violations not covered by standard categories"""
 
     IUUType: Literal["Other"] = "Other"
