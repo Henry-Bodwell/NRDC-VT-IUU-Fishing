@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import logging
+import types as _builtin_types
 from typing import Optional, Dict, Any, Union, get_args, get_origin
 from beanie import (
     Delete,
@@ -24,8 +25,8 @@ def _to_partial(annotation: Any) -> Any:
     """
     origin = get_origin(annotation)
 
-    # Union / Optional[X]
-    if origin is Union:
+    # Union / Optional[X] — handle typing.Union and Python 3.10+ X | Y (types.UnionType)
+    if origin is Union or origin is _builtin_types.UnionType:
         return Union[tuple(_to_partial(a) for a in get_args(annotation))]  # type: ignore[return-value]
 
     # List[X]
