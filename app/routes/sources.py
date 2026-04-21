@@ -14,6 +14,7 @@ from app.auth import get_current_user, get_current_admin_user
 from app.interfaces import SourceFilters
 from app.models.sources import Source
 from app.models.users import User
+from app.audit.context import AuditContext
 from app.service.source_service import SourceService
 from app.routes.helpers import valid_object_id, valid_response
 
@@ -119,7 +120,8 @@ async def delete_source(
     valid_object_id(source_id)
 
     try:
-        was_deleted = await SourceService.delete_source(source_id)
+        with AuditContext.with_user(str(current_user.id)):
+            was_deleted = await SourceService.delete_source(source_id)
         if was_deleted:
             return
         else:
@@ -152,9 +154,10 @@ async def update_source(
             detail={"error": "invalid_update_data", "errors": validation_errors},
         )
     try:
-        updated_source = await SourceService.update_source(
-            source_id=source_id, update_data=update_data
-        )
+        with AuditContext.with_user(str(current_user.id)):
+            updated_source = await SourceService.update_source(
+                source_id=source_id, update_data=update_data
+            )
         valid_response(updated_source, Source)
         return updated_source
     except HTTPException:
