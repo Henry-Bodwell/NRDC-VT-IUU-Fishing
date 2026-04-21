@@ -103,15 +103,15 @@ class IncidentFilters(Filter):
         "all", "EEZ", "High Seas", "Inland Water", "Land"
     ] = Field(default="all", description="Filter by event location category")
     # Enforcement Location filters
-    enforcment_location: str | None = Field(
-        default=None, description="Filter by enforcment location (partial match)"
+    enforcement_location: str | None = Field(
+        default=None, description="Filter by  location (partial match)"
     )
-    enforcment_country: str | None = Field(
-        default=None, description="Filter by enforcment country, ISO Alpha 3"
+    enforcement_country: str | None = Field(
+        default=None, description="Filter by  country, ISO Alpha 3"
     )
-    enforcment_location_category: Literal[
+    enforcement_location_category: Literal[
         "all", "EEZ", "High Seas", "Inland Water", "Land"
-    ] = Field(default="all", description="Filter by enforcment location category")
+    ] = Field(default="all", description="Filter by  location category")
 
     # Vessel filters
     vessel_name: str | None = Field(
