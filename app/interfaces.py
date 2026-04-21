@@ -92,16 +92,26 @@ class IncidentFilters(Filter):
         description="Filter by event date before (extracted_information.eventData.eventDate)",
     )
 
-    # Location filters
+    # Event Location filters
     event_location: str | None = Field(
         default=None, description="Filter by event location (partial match)"
     )
     event_country: str | None = Field(
-        default=None, description="Filter by event country"
+        default=None, description="Filter by event country, ISO Alpha 3"
     )
     event_location_category: Literal[
         "all", "EEZ", "High Seas", "Inland Water", "Land"
     ] = Field(default="all", description="Filter by event location category")
+    # Enforcement Location filters
+    enforcment_location: str | None = Field(
+        default=None, description="Filter by enforcment location (partial match)"
+    )
+    enforcment_country: str | None = Field(
+        default=None, description="Filter by enforcment country, ISO Alpha 3"
+    )
+    enforcment_location_category: Literal[
+        "all", "EEZ", "High Seas", "Inland Water", "Land"
+    ] = Field(default="all", description="Filter by enforcment location category")
 
     # Vessel filters
     vessel_name: str | None = Field(
