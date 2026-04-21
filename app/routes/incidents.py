@@ -406,19 +406,19 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
         ] = filter_query.event_date_before
 
     # Enforcement Location filters
-    if filter_query.event_location:
+    if filter_query.enforcement_location:
         query_filters["extracted_information.eventData.enforcementLocation"] = {
-            "$regex": filter_query.event_location,
+            "$regex": filter_query.enforcement_location,
             "$options": "i",
         }
-    if filter_query.event_country:
+    if filter_query.enforcement_country:
         query_filters["extracted_information.eventData.enforcementCountry"] = {
-            "$regex": filter_query.event_country,
+            "$regex": filter_query.enforcement_country,
             "$options": "i",
         }
-    if filter_query.event_location_category != "all":
+    if filter_query.enforcement_location_category != "all":
         query_filters["extracted_information.eventData.enforcementLocationCategory"] = (
-            filter_query.event_location_category
+            filter_query.enforcement_location_category
         )
     # Event Location filters
     if filter_query.event_location:
