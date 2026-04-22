@@ -61,6 +61,8 @@ class ArticleScopeClassification(BaseModel):
             "- 'Industry Overview': Discusses IUU+ but NO specific incidents (e.g., policy announcements, coast guard patrols, industry trends, legislation, general enforcement activities, death of sea animals without identified perpetrator)\n"
             "- 'Single Incident': ONE specific IUU+ incident with identified actor(s)\n"
             "- 'Multiple Incidents': TWO OR MORE distinct IUU+ incidents with identified actors\n\n"
+            "Examples of 'Unrelated to IUU+ Fishing':\n"
+            "- Article about a situation surrounding incident but no details of an incident or broader trend\n"
             "Examples of Industry Overview (NOT incidents):\n"
             "- Coast guard conducts routine patrols\n"
             "- Government announces new fishing regulations\n"

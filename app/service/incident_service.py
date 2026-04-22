@@ -92,26 +92,31 @@ class IncidentService(Service):
             logger.warning(
                 f"Source with same content already exists (hash: {source.article_hash}). Fetching existing source."
             )
-            # Fetch the existing source instead of failing
             existing_source = await Source.find_one(
                 Source.article_hash == source.article_hash
             )
             if existing_source:
-                output.source = existing_source
-                output.status = PipelineResult.DUPLICATE_HASHED_TEXT
-                logger.info(f"Using existing source: {existing_source.id}")
-                if output.has_incident:
-                    for incident in output.incidents:
-                        logger.warning(
-                            f"Deleting orphaned incident {incident.id} from duplicate source race"
-                        )
-                        await incident.delete()
-                if output.has_overview and industry and hasattr(industry, "source"):
-                    industry.source = existing_source
-                    await industry.save()
-                return output
+                if existing_source.id == source.id:
+                    # Reclassification: source is already in DB, replace with updated state
+                    logger.info(f"Replacing existing source in place: {source.id}")
+                    await source.replace()
+                    # Fall through to linking code below
+                else:
+                    # True concurrent duplicate race: different in-memory source, same content
+                    output.source = existing_source
+                    output.status = PipelineResult.DUPLICATE_HASHED_TEXT
+                    logger.info(f"Using existing source: {existing_source.id}")
+                    if output.has_incident:
+                        for incident in output.incidents:
+                            logger.warning(
+                                f"Deleting orphaned incident {incident.id} from duplicate source race"
+                            )
+                            await incident.delete()
+                    if output.has_overview and industry and hasattr(industry, "source"):
+                        industry.source = existing_source
+                        await industry.save()
+                    return output
             else:
-                # This shouldn't happen, but handle it just in case
                 logger.error(
                     f"DuplicateKeyError but couldn't find existing source: {e}"
                 )
