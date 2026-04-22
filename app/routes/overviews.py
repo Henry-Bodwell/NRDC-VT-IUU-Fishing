@@ -15,6 +15,7 @@ from app.auth import get_current_user, get_current_admin_user
 from app.interfaces import Filter
 from app.models.incidents import IndustryOverview
 from app.models.users import User
+from app.audit.context import AuditContext
 from app.service.overview_service import OverviewService
 from app.routes.helpers import valid_object_id, valid_response
 
@@ -36,7 +37,8 @@ async def delete_overview(
     valid_object_id(overview_id)
 
     try:
-        was_deleted = await OverviewService.delete_overview(overview_id)
+        with AuditContext.with_user(str(current_user.id)):
+            was_deleted = await OverviewService.delete_overview(overview_id)
         if was_deleted:
             return
         else:
@@ -67,9 +69,10 @@ async def update_overview(
             detail={"error": "invalid_update_data", "errors": validation_errors},
         )
     try:
-        updated_overview = await OverviewService.update_overview(
-            overview_id=overview_id, update_data=update_data
-        )
+        with AuditContext.with_user(str(current_user.id)):
+            updated_overview = await OverviewService.update_overview(
+                overview_id=overview_id, update_data=update_data
+            )
         valid_response(updated_overview, IndustryOverview)
         return updated_overview
     except HTTPException:

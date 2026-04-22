@@ -29,6 +29,7 @@ from app.models.incidents import IncidentReport
 from app.models.sources import Source
 from app.models.task import TaskStatus
 from app.models.users import User
+from app.audit.context import AuditContext
 from app.service.incident_service import IncidentService
 from app.routes.helpers import valid_object_id, valid_response
 
@@ -405,7 +406,22 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
             "$lte"
         ] = filter_query.event_date_before
 
-    # Location filters
+    # Enforcement Location filters
+    if filter_query.enforcement_location:
+        query_filters["extracted_information.eventData.enforcementLocation"] = {
+            "$regex": filter_query.enforcement_location,
+            "$options": "i",
+        }
+    if filter_query.enforcement_country:
+        query_filters["extracted_information.eventData.enforcementCountry"] = {
+            "$regex": filter_query.enforcement_country,
+            "$options": "i",
+        }
+    if filter_query.enforcement_location_category != "all":
+        query_filters["extracted_information.eventData.enforcementLocationCategory"] = (
+            filter_query.enforcement_location_category
+        )
+    # Event Location filters
     if filter_query.event_location:
         query_filters["extracted_information.eventData.eventLocation"] = {
             "$regex": filter_query.event_location,
@@ -514,7 +530,8 @@ async def delete_incident(
     """
     valid_object_id(report_id)
     try:
-        was_deleted = await IncidentService.delete_report(report_id=report_id)
+        with AuditContext.with_user(str(current_user.id)):
+            was_deleted = await IncidentService.delete_report(report_id=report_id)
         if was_deleted:
             return
         else:
@@ -579,9 +596,10 @@ async def update_incident_report(
             detail={"error": "invalid_update_data", "errors": validation_errors},
         )
     try:
-        updated_report = await IncidentService.update_report(
-            report_id=report_id, update_data=update_data
-        )
+        with AuditContext.with_user(str(current_user.id)):
+            updated_report = await IncidentService.update_report(
+                report_id=report_id, update_data=update_data
+            )
         valid_response(updated_report, IncidentReport)
         return updated_report
     except HTTPException:
