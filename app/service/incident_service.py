@@ -511,3 +511,26 @@ class IncidentService(Service):
             return all_types
 
         return {type_name: all_types.get(type_name, []) for type_name in types}
+
+    @staticmethod
+    async def _country_code_counts(field_path: str) -> list[dict]:
+        """Group incidents by a country-code field, excluding null and 'NA'."""
+        pipeline = [
+            {"$match": {field_path: {"$nin": [None, "NA"]}}},
+            {"$group": {"_id": f"${field_path}", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1, "_id": 1}},
+            {"$project": {"_id": 0, "country_code": "$_id", "count": 1}},
+        ]
+        return await IncidentReport.aggregate(pipeline).to_list()
+
+    @staticmethod
+    async def event_country_counts() -> list[dict]:
+        return await IncidentService._country_code_counts(
+            "extracted_information.eventData.eventCountry"
+        )
+
+    @staticmethod
+    async def enforcement_country_counts() -> list[dict]:
+        return await IncidentService._country_code_counts(
+            "extracted_information.eventData.enforcementCountry"
+        )

@@ -505,6 +505,18 @@ async def get_incident_types(types: Annotated[List[IUUType] | None, Query()] = N
     }
 
 
+@router.get("/stats/event-countries")
+async def event_country_counts():
+    """Counts of incidents grouped by ISO alpha-3 eventCountry. Excludes null and 'NA'."""
+    return {"counts": await IncidentService.event_country_counts()}
+
+
+@router.get("/stats/enforcement-countries")
+async def enforcement_country_counts():
+    """Counts of incidents grouped by ISO alpha-3 enforcementCountry. Excludes null and 'NA'."""
+    return {"counts": await IncidentService.enforcement_country_counts()}
+
+
 @router.get("/{report_id}", response_model=IncidentReport)
 async def get_incident_report(report_id: str):
     """

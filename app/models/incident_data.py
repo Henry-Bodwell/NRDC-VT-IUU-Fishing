@@ -330,9 +330,9 @@ class ComplianceData(BaseModel):
         default=None,
         description="Whether the vessel had a valid fishing license, if available",
     )
-    licensedDateRange: str | None = Field(
+    licensedDateRange: str | None = Field(  # Change to start and end date
         default=None,
-        description="The period of time during which the fishing license is valid., if available",
+        description="The period of time during which the fishing license is valid, if available",
     )
     licensedFishingArea: str | None = Field(
         default=None,
