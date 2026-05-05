@@ -517,6 +517,15 @@ async def enforcement_country_counts():
     return {"counts": await IncidentService.enforcement_country_counts()}
 
 
+@router.get("/stats/KDEDistribution")
+async def kde_distribution(iuu_type: IUUType | None = Query(default=None)):
+    """Per-field non-null counts and rates across extracted_information.
+
+    Optionally filter to incidents tagged with a specific IUU type.
+    """
+    return await IncidentService.kde_distribution(iuu_type=iuu_type)
+
+
 @router.get("/{report_id}", response_model=IncidentReport)
 async def get_incident_report(report_id: str):
     """

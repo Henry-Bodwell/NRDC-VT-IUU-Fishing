@@ -197,11 +197,10 @@ cython_debug/
 
 # NewsAPI data files
 data/newsapi/**/*.json
-data/newsapi.db
 
 
 data/scholar/**/*.json
-data/scholar.db
+*.db
 *.pdf
 
 # Development Docker overrides

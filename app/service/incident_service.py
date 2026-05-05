@@ -1,8 +1,9 @@
 import os
-from typing import List
+from typing import List, get_args, get_origin
 from fastapi import HTTPException, status
 from app.literals import IUUType
 from app.models.incidents import IncidentReport
+from app.models.incident_data import ExtractedIncidentData
 from app.models.sources import Source, ArticleScopeClassification
 from app.models.task import TaskStatus
 from pymongo.errors import DuplicateKeyError
@@ -522,6 +523,84 @@ class IncidentService(Service):
             {"$project": {"_id": 0, "country_code": "$_id", "count": 1}},
         ]
         return await IncidentReport.aggregate(pipeline).to_list()
+
+    @staticmethod
+    async def kde_distribution(iuu_type: IUUType | None = None) -> dict:
+        """Return per-field non-null counts and rates over IncidentReport.extracted_information.
+
+        Optionally filter by an IUU type (matches incident_classification.iuuClassifications.IUUType).
+        """
+
+        def _is_list_field(annotation) -> bool:
+            if get_origin(annotation) is list:
+                return True
+            for arg in get_args(annotation):
+                if get_origin(arg) is list:
+                    return True
+            return False
+
+        list_fields = {
+            name
+            for name, info in ExtractedIncidentData.model_fields.items()
+            if _is_list_field(info.annotation)
+        }
+        fields = list(ExtractedIncidentData.model_fields.keys())
+
+        def _present_expr(field: str) -> dict:
+            path = f"$extracted_information.{field}"
+            if field in list_fields:
+                return {
+                    "$cond": [
+                        {"$gt": [{"$size": {"$ifNull": [path, []]}}, 0]},
+                        1,
+                        0,
+                    ]
+                }
+            return {"$cond": [{"$gt": [path, None]}, 1, 0]}
+
+        pipeline: list[dict] = []
+        if iuu_type and iuu_type != "all":
+            pipeline.append(
+                {
+                    "$match": {
+                        "incident_classification.iuuClassifications": {
+                            "$elemMatch": {"IUUType": iuu_type}
+                        }
+                    }
+                }
+            )
+
+        pipeline.append(
+            {
+                "$group": {
+                    "_id": None,
+                    "total": {"$sum": 1},
+                    **{
+                        f"{field}_count": {"$sum": _present_expr(field)}
+                        for field in fields
+                    },
+                }
+            }
+        )
+
+        results = await IncidentReport.aggregate(pipeline).to_list()
+        if not results:
+            return {"total": 0, "fields": {}}
+
+        row = results[0]
+        total = row["total"]
+        if total == 0:
+            return {"total": 0, "fields": {}}
+        return {
+            "total": total,
+            "fields": {
+                field: {
+                    "count": row[f"{field}_count"],
+                    "non_null_rate": round(row[f"{field}_count"] / total, 4),
+                }
+                for field in fields
+            },
+        }
 
     @staticmethod
     async def event_country_counts() -> list[dict]:
