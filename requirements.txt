@@ -35,3 +35,6 @@ black>=24.10.0
 ruff>=0.8.4
 mypy>=1.13.0
 pre-commit>=4.0.0
+matplotlib>=3.8
+geopandas>=0.14
+pyogrio>=0.7

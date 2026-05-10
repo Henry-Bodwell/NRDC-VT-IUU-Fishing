@@ -613,3 +613,195 @@ class IncidentService(Service):
         return await IncidentService._country_code_counts(
             "extracted_information.eventData.enforcementCountry"
         )
+
+    @staticmethod
+    async def year_counts() -> list[dict]:
+        """Counts of incidents grouped by year extracted from eventDate (YYYY-MM-DD)."""
+        pipeline = [
+            {
+                "$match": {
+                    "extracted_information.eventData.eventDate": {
+                        "$nin": [None, "", "NA"]
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "$substr": [
+                            "$extracted_information.eventData.eventDate",
+                            0,
+                            4,
+                        ]
+                    },
+                    "count": {"$sum": 1},
+                }
+            },
+            {"$match": {"_id": {"$regex": r"^\d{4}$"}}},
+            {"$sort": {"_id": 1}},
+            {"$project": {"_id": 0, "year": "$_id", "count": 1}},
+        ]
+        return await IncidentReport.aggregate(pipeline).to_list()
+
+    @staticmethod
+    async def iuu_type_counts() -> list[dict]:
+        """Counts of incidents per IUUType (an incident with N types contributes N rows)."""
+        pipeline = [
+            {"$unwind": "$incident_classification.iuuClassifications"},
+            {
+                "$group": {
+                    "_id": "$incident_classification.iuuClassifications.IUUType",
+                    "count": {"$sum": 1},
+                }
+            },
+            {"$sort": {"count": -1, "_id": 1}},
+            {"$project": {"_id": 0, "iuu_type": "$_id", "count": 1}},
+        ]
+        return await IncidentReport.aggregate(pipeline).to_list()
+
+    @staticmethod
+    async def iuu_subtype_counts() -> list[dict]:
+        """Counts per (IUUType, IUUSubType) pair across all incidents."""
+        pipeline = [
+            {"$unwind": "$incident_classification.iuuClassifications"},
+            {"$unwind": "$incident_classification.iuuClassifications.IUUSubType"},
+            {
+                "$group": {
+                    "_id": {
+                        "iuu_type": "$incident_classification.iuuClassifications.IUUType",
+                        "subtype": "$incident_classification.iuuClassifications.IUUSubType",
+                    },
+                    "count": {"$sum": 1},
+                }
+            },
+            {"$sort": {"_id.iuu_type": 1, "count": -1}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "iuu_type": "$_id.iuu_type",
+                    "subtype": "$_id.subtype",
+                    "count": "$count",
+                }
+            },
+        ]
+        return await IncidentReport.aggregate(pipeline).to_list()
+
+    @staticmethod
+    async def iuu_type_cooccurrence() -> list[dict]:
+        """Pairwise co-occurrence of IUUTypes within the same incident.
+
+        Returns rows {"a": typeA, "b": typeB, "count": n}. The diagonal
+        (a == b) counts incidents that include that type at all; off-diagonal
+        is symmetric (both (a,b) and (b,a) emitted).
+        """
+        from collections import Counter
+
+        pipeline = [
+            {
+                "$project": {
+                    "types": "$incident_classification.iuuClassifications.IUUType"
+                }
+            }
+        ]
+        rows = await IncidentReport.aggregate(pipeline).to_list()
+
+        pair_counts: Counter = Counter()
+        for row in rows:
+            types = row.get("types") or []
+            uniq = sorted({t for t in types if t})
+            for a in uniq:
+                pair_counts[(a, a)] += 1
+            for i, a in enumerate(uniq):
+                for b in uniq[i + 1 :]:
+                    pair_counts[(a, b)] += 1
+                    pair_counts[(b, a)] += 1
+        return [{"a": a, "b": b, "count": n} for (a, b), n in pair_counts.items()]
+
+    @staticmethod
+    async def iuu_subtype_cooccurrence() -> dict:
+        """Per-IUU-type subtype co-occurrence.
+
+        Returns {iuu_type: [{"a": subtypeA, "b": subtypeB, "count": n}, ...]}.
+        Diagonal (a == b) counts incidents that include that subtype at all
+        under this IUUType. Off-diagonal is symmetric.
+        """
+        from collections import Counter
+
+        pipeline = [
+            {"$unwind": "$incident_classification.iuuClassifications"},
+            {
+                "$project": {
+                    "iuu_type": "$incident_classification.iuuClassifications.IUUType",
+                    "subtypes": "$incident_classification.iuuClassifications.IUUSubType",
+                }
+            },
+        ]
+        rows = await IncidentReport.aggregate(pipeline).to_list()
+
+        per_type: dict[str, Counter] = {}
+        for row in rows:
+            iuu_type = row.get("iuu_type")
+            subs = row.get("subtypes") or []
+            uniq = sorted({s for s in subs if s})
+            if not iuu_type or not uniq:
+                continue
+            counter = per_type.setdefault(iuu_type, Counter())
+            for a in uniq:
+                counter[(a, a)] += 1
+            for i, a in enumerate(uniq):
+                for b in uniq[i + 1 :]:
+                    counter[(a, b)] += 1
+                    counter[(b, a)] += 1
+
+        return {
+            iuu_type: [{"a": a, "b": b, "count": n} for (a, b), n in counter.items()]
+            for iuu_type, counter in per_type.items()
+        }
+
+    @staticmethod
+    async def kde_fill_rate_per_incident() -> dict:
+        """Per-incident KDE fill rate over ExtractedIncidentData fields.
+
+        Returns {"total_fields": N, "rates": [r1, r2, ...], "counts": [c1, ...]}
+        where each entry corresponds to one incident.
+        """
+
+        def _is_list_field(annotation) -> bool:
+            if get_origin(annotation) is list:
+                return True
+            for arg in get_args(annotation):
+                if get_origin(arg) is list:
+                    return True
+            return False
+
+        list_fields = {
+            name
+            for name, info in ExtractedIncidentData.model_fields.items()
+            if _is_list_field(info.annotation)
+        }
+        fields = list(ExtractedIncidentData.model_fields.keys())
+        total_fields = len(fields)
+
+        def _present_expr(field: str) -> dict:
+            path = f"$extracted_information.{field}"
+            if field in list_fields:
+                return {
+                    "$cond": [
+                        {"$gt": [{"$size": {"$ifNull": [path, []]}}, 0]},
+                        1,
+                        0,
+                    ]
+                }
+            return {"$cond": [{"$gt": [path, None]}, 1, 0]}
+
+        pipeline = [
+            {"$project": {"filled": {"$add": [_present_expr(f) for f in fields]}}}
+        ]
+        rows = await IncidentReport.aggregate(pipeline).to_list()
+        counts = [int(r.get("filled", 0)) for r in rows]
+        rates = [round(c / total_fields, 4) if total_fields else 0.0 for c in counts]
+        return {
+            "total_fields": total_fields,
+            "counts": counts,
+            "rates": rates,
+        }

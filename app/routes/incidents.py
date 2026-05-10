@@ -526,6 +526,42 @@ async def kde_distribution(iuu_type: IUUType | None = Query(default=None)):
     return await IncidentService.kde_distribution(iuu_type=iuu_type)
 
 
+@router.get("/stats/years")
+async def year_counts():
+    """Counts of incidents grouped by year parsed from eventDate."""
+    return {"counts": await IncidentService.year_counts()}
+
+
+@router.get("/stats/iuu-types")
+async def iuu_type_counts():
+    """Counts of incidents per IUU type (multi-typed incidents counted under each type)."""
+    return {"counts": await IncidentService.iuu_type_counts()}
+
+
+@router.get("/stats/iuu-subtypes")
+async def iuu_subtype_counts():
+    """Counts per (IUUType, IUUSubType) pair across all incidents."""
+    return {"counts": await IncidentService.iuu_subtype_counts()}
+
+
+@router.get("/stats/iuu-cooccurrence")
+async def iuu_type_cooccurrence():
+    """Pairwise co-occurrence counts of IUU types within the same incident."""
+    return {"pairs": await IncidentService.iuu_type_cooccurrence()}
+
+
+@router.get("/stats/iuu-subtype-cooccurrence")
+async def iuu_subtype_cooccurrence():
+    """Per-IUU-type subtype pairwise co-occurrence counts."""
+    return {"by_type": await IncidentService.iuu_subtype_cooccurrence()}
+
+
+@router.get("/stats/KDEFillRate")
+async def kde_fill_rate():
+    """Per-incident KDE fill rates (non-null fields / total fields)."""
+    return await IncidentService.kde_fill_rate_per_incident()
+
+
 @router.get("/{report_id}", response_model=IncidentReport)
 async def get_incident_report(report_id: str):
     """
