@@ -556,10 +556,28 @@ async def iuu_subtype_cooccurrence():
     return {"by_type": await IncidentService.iuu_subtype_cooccurrence()}
 
 
+@router.get("/stats/avg-leaf-fields")
+async def avg_leaf_fields(
+    iuu_type: IUUType | None = Query(default=None),
+):
+    """Average populated leaf-field count per incident.
+
+    Recursively counts populated scalar leaves across all nested submodels
+    of ``ExtractedIncidentData`` (including leaves inside list-of-submodel
+    elements). Pass ``?iuu_type=...`` to restrict to incidents that
+    include a given IUU type.
+    """
+    return await IncidentService.avg_leaf_field_count(iuu_type=iuu_type)
+
+
 @router.get("/stats/KDEFillRate")
-async def kde_fill_rate():
-    """Per-incident KDE fill rates (non-null fields / total fields)."""
-    return await IncidentService.kde_fill_rate_per_incident()
+async def kde_fill_rate(exclude: List[str] = Query(default_factory=list)):
+    """Per-incident KDE fill rates (non-null fields / total fields).
+
+    Pass ``?exclude=field1&exclude=field2`` to drop fields from both the
+    numerator and the denominator.
+    """
+    return await IncidentService.kde_fill_rate_per_incident(exclude=set(exclude))
 
 
 @router.get("/{report_id}", response_model=IncidentReport)

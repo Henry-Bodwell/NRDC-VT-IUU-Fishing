@@ -66,8 +66,16 @@ async def fetch_all(base_url: str, auth_token: str | None) -> dict[str, Any]:
         "cooccurrence": "/api/incidents/stats/iuu-cooccurrence",
         "subtype_cooccurrence": "/api/incidents/stats/iuu-subtype-cooccurrence",
         "kde_fields": "/api/incidents/stats/KDEDistribution",
-        "kde_fill": "/api/incidents/stats/KDEFillRate",
+        "kde_fill": "/api/incidents/stats/KDEFillRate?"
+        + "&".join(f"exclude={f}" for f in sorted(KDE_FIELD_EXCLUDE)),
+        "avg_leaves_all": "/api/incidents/stats/avg-leaf-fields",
     }
+    from urllib.parse import quote
+
+    for t in IUU_TYPES_ORDER:
+        endpoints[f"avg_leaves::{t}"] = (
+            f"/api/incidents/stats/avg-leaf-fields?iuu_type={quote(t)}"
+        )
     async with httpx.AsyncClient(
         base_url=base_url, timeout=60.0, headers=headers
     ) as client:
@@ -175,31 +183,35 @@ def plot_iuu_types(rows: list[dict], out: Path) -> None:
     plt.close(fig)
 
 
-def plot_subtypes_by_class(rows: list[dict], out: Path) -> None:
+def plot_subtypes_by_class(rows: list[dict], out_dir: Path) -> None:
+    """One figure per IUU type. Writes ``iuu_subtypes_<slug>.png`` into out_dir."""
     by_type: dict[str, list[tuple[str, int]]] = {}
     for r in rows:
         by_type.setdefault(r["iuu_type"], []).append((r["subtype"], r["count"]))
 
     types_present = [t for t in IUU_TYPES_ORDER if t in by_type]
-    n = len(types_present)
-    if n == 0:
+    if not types_present:
         logger.warning("No subtype data to plot")
         return
 
-    fig, axes = plt.subplots(
-        nrows=n, ncols=1, figsize=(10, max(3, 2.2 * n)), constrained_layout=True
-    )
-    if n == 1:
-        axes = [axes]
-    for ax, iuu_type in zip(axes, types_present):
+    for iuu_type in types_present:
         items = sorted(by_type[iuu_type], key=lambda x: x[1])
-        labels = [s for s, _ in items]
+        labels = [_wrap_label(s, width=60) for s, _ in items]
         counts = [c for _, c in items]
+        max_label_chars = max((len(s) for s, _ in items), default=0)
+        width = min(16.0, max(9.0, 6.0 + min(max_label_chars, 60) * 0.10))
+        height = max(3.5, 0.45 * len(labels) + 1.5)
+
+        fig, ax = plt.subplots(figsize=(width, height))
         ax.barh(labels, counts, color="steelblue")
-        ax.set_title(iuu_type, fontsize=11, loc="left")
         ax.set_xlabel("Count")
-    fig.suptitle("IUU Subtype Prevalence by Class", fontsize=14)
-    fig.savefig(out, dpi=200, bbox_inches="tight")
+        ax.set_title(f"IUU Subtype Prevalence: {iuu_type}", fontsize=13)
+        for i, c in enumerate(counts):
+            ax.text(c, i, f" {c}", va="center", fontsize=8)
+        fig.tight_layout()
+        out = out_dir / f"iuu_subtypes_{_slug(iuu_type)}.png"
+        fig.savefig(out, dpi=200, bbox_inches="tight")
+        plt.close(fig)
     plt.close(fig)
 
 
@@ -244,6 +256,67 @@ def plot_kde_fill_distribution(payload: dict, out: Path) -> None:
     plt.close(fig)
 
 
+def plot_avg_leaf_fields_by_type(
+    all_payload: dict, per_type: dict[str, dict], out: Path
+) -> None:
+    """Bar chart of mean populated-leaf count per incident, grouped by IUU type."""
+    rows: list[tuple[str, float, int]] = []
+    if all_payload:
+        rows.append(
+            (
+                "All incidents",
+                all_payload.get("mean", 0.0),
+                all_payload.get("incidents", 0),
+            )
+        )
+    for t in IUU_TYPES_ORDER:
+        p = per_type.get(t) or {}
+        if not p.get("incidents"):
+            continue
+        rows.append((t, p.get("mean", 0.0), p.get("incidents", 0)))
+
+    if not rows:
+        logger.warning("No avg-leaf-field data to plot")
+        return
+
+    labels = [_wrap_label(r[0], width=18) for r in rows]
+    means = [r[1] for r in rows]
+    ns = [r[2] for r in rows]
+    total_possible = (all_payload or {}).get("total_possible_leaves", 0)
+
+    fig, ax = plt.subplots(figsize=(max(8, 0.9 * len(rows) + 3), 6))
+    colors = ["#444"] + ["steelblue"] * (len(rows) - 1)
+    bars = ax.bar(range(len(rows)), means, color=colors[: len(rows)])
+    ax.set_xticks(range(len(rows)))
+    ax.set_xticklabels(labels, rotation=30, ha="right")
+    ax.set_ylabel("Mean populated leaf fields per incident")
+    title = "Average Populated Leaf Fields per Incident by IUU Type"
+    if total_possible:
+        title += f"  (of {total_possible} possible)"
+    ax.set_title(title)
+
+    ymax = max(means) if means else 1
+    for bar, mean, n in zip(bars, means, ns):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + ymax * 0.01,
+            f"{mean:.1f}\nn={n}",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
+    ax.set_ylim(0, ymax * 1.18 if ymax else 1)
+    fig.tight_layout()
+    fig.savefig(out, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _wrap_label(s: str, width: int = 28) -> str:
+    import textwrap
+
+    return "\n".join(textwrap.wrap(s, width=width)) or s
+
+
 def _render_cooccurrence_heatmap(
     labels: list[str],
     pairs: list[dict],
@@ -262,9 +335,14 @@ def _render_cooccurrence_heatmap(
         if a in idx and b in idx:
             mat[idx[a]][idx[b]] = p["count"]
 
+    wrap_width = 28
+    wrapped = [_wrap_label(lbl, width=wrap_width) for lbl in labels]
+    max_label_len = max((len(lbl) for lbl in labels), default=0)
+    label_extent = min(max_label_len, wrap_width) * 0.10 + 1.5
+
     if figsize is None:
-        side = max(6.0, 0.5 * n + 4.0)
-        figsize = (side + 2.0, side)
+        side = max(6.0, 0.6 * n + 4.0)
+        figsize = (side + label_extent, side + label_extent * 0.6)
     fig, ax = plt.subplots(figsize=figsize)
     nonzero = mat[mat > 0]
     vmin = int(nonzero.min()) if nonzero.size else 1
@@ -275,8 +353,8 @@ def _render_cooccurrence_heatmap(
     im = ax.imshow(masked, cmap=cmap, norm=LogNorm(vmin=vmin, vmax=max(vmax, vmin + 1)))
     ax.set_xticks(range(n))
     ax.set_yticks(range(n))
-    ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=label_fontsize)
-    ax.set_yticklabels(labels, fontsize=label_fontsize)
+    ax.set_xticklabels(wrapped, rotation=40, ha="right", fontsize=label_fontsize)
+    ax.set_yticklabels(wrapped, fontsize=label_fontsize)
     log_max = np.log10(max(vmax, vmin + 1))
     log_min = np.log10(vmin)
     log_threshold = log_min + 0.6 * (log_max - log_min)
@@ -386,15 +464,18 @@ async def main_async(args: argparse.Namespace) -> None:
     plot_country_map(data["countries"]["counts"], out_dir / "incidents_by_country.png")
     plot_years(data["years"]["counts"], out_dir / "incidents_by_year.png")
     plot_iuu_types(data["iuu_types"]["counts"], out_dir / "incidents_by_iuu_type.png")
-    plot_subtypes_by_class(
-        data["iuu_subtypes"]["counts"], out_dir / "iuu_subtypes_by_class.png"
-    )
+    plot_subtypes_by_class(data["iuu_subtypes"]["counts"], out_dir)
     plot_kde_field_rates(data["kde_fields"], out_dir / "kde_field_rates.png")
     plot_kde_fill_distribution(
         data["kde_fill"], out_dir / "kde_fill_rate_distribution.png"
     )
     plot_cooccurrence(data["cooccurrence"]["pairs"], out_dir / "iuu_cooccurrence.png")
     plot_subtype_cooccurrence_per_type(data["subtype_cooccurrence"]["by_type"], out_dir)
+    plot_avg_leaf_fields_by_type(
+        data.get("avg_leaves_all", {}),
+        {t: data.get(f"avg_leaves::{t}", {}) for t in IUU_TYPES_ORDER},
+        out_dir / "avg_leaf_fields_by_iuu_type.png",
+    )
 
     logger.info("Wrote figures to %s", out_dir)
 

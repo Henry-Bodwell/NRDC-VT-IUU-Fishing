@@ -759,11 +759,14 @@ class IncidentService(Service):
         }
 
     @staticmethod
-    async def kde_fill_rate_per_incident() -> dict:
+    async def kde_fill_rate_per_incident(
+        exclude: set[str] | None = None,
+    ) -> dict:
         """Per-incident KDE fill rate over ExtractedIncidentData fields.
 
         Returns {"total_fields": N, "rates": [r1, r2, ...], "counts": [c1, ...]}
-        where each entry corresponds to one incident.
+        where each entry corresponds to one incident. Fields in ``exclude``
+        are dropped from both the numerator and the denominator.
         """
 
         def _is_list_field(annotation) -> bool:
@@ -774,12 +777,15 @@ class IncidentService(Service):
                     return True
             return False
 
+        exclude = exclude or set()
         list_fields = {
             name
             for name, info in ExtractedIncidentData.model_fields.items()
             if _is_list_field(info.annotation)
         }
-        fields = list(ExtractedIncidentData.model_fields.keys())
+        fields = [
+            f for f in ExtractedIncidentData.model_fields.keys() if f not in exclude
+        ]
         total_fields = len(fields)
 
         def _present_expr(field: str) -> dict:
@@ -804,4 +810,148 @@ class IncidentService(Service):
             "total_fields": total_fields,
             "counts": counts,
             "rates": rates,
+        }
+
+    @staticmethod
+    async def avg_leaf_field_count(
+        iuu_type: str | None = None,
+        exclude_keys: set[str] | None = None,
+    ) -> dict:
+        """Average number of populated leaf fields per incident.
+
+        A "leaf" is any scalar (str/int/float/bool) attribute in the
+        ``ExtractedIncidentData`` tree, including those inside nested
+        submodels and inside elements of list-of-submodel fields. A leaf
+        counts as populated when its value is not None and not an empty
+        string/list/dict. Verification booleans (``verified``/``validated``)
+        are excluded by default.
+
+        Args:
+            iuu_type: Optional. If set, only incidents whose
+                ``incident_classification.iuuClassifications.IUUType``
+                includes this value are considered.
+            exclude_keys: Field names to skip at any depth.
+
+        Returns:
+            ``{"incidents": N, "mean": x, "median": y, "min": a, "max": b,
+              "total_possible_leaves": L, "counts": [...]}``
+        """
+        exclude_keys = exclude_keys or {"verified", "validated"}
+
+        def _count_possible_leaves(model_cls) -> int:
+            total = 0
+            for name, info in model_cls.model_fields.items():
+                if name in exclude_keys:
+                    continue
+                ann = info.annotation
+                inner = _unwrap_optional(ann)
+                if _is_basemodel(inner):
+                    total += _count_possible_leaves(inner)
+                elif get_origin(inner) is list:
+                    (item_t,) = get_args(inner) or (None,)
+                    item_t = _unwrap_optional(item_t)
+                    if _is_basemodel(item_t):
+                        total += _count_possible_leaves(item_t)
+                    else:
+                        total += 1
+                else:
+                    total += 1
+            return total
+
+        def _unwrap_optional(ann):
+            if ann is None:
+                return ann
+            args = [a for a in get_args(ann) if a is not type(None)]  # noqa: E721
+            if get_origin(ann) is not None and args and get_origin(ann) is not list:
+                return args[0] if len(args) == 1 else ann
+            return ann
+
+        def _is_basemodel(t) -> bool:
+            try:
+                from pydantic import BaseModel
+
+                return isinstance(t, type) and issubclass(t, BaseModel)
+            except Exception:
+                return False
+
+        def _is_populated_leaf(v) -> bool:
+            if v is None:
+                return False
+            if isinstance(v, str):
+                return v.strip() != ""
+            if isinstance(v, (list, dict)):
+                return len(v) > 0
+            return True
+
+        def _count_filled_leaves(value, model_cls) -> int:
+            if value is None or not isinstance(value, dict):
+                return 0
+            filled = 0
+            for name, info in model_cls.model_fields.items():
+                if name in exclude_keys:
+                    continue
+                ann = info.annotation
+                inner = _unwrap_optional(ann)
+                v = value.get(name)
+                if _is_basemodel(inner):
+                    filled += _count_filled_leaves(v, inner)
+                elif get_origin(inner) is list:
+                    (item_t,) = get_args(inner) or (None,)
+                    item_t = _unwrap_optional(item_t)
+                    if _is_basemodel(item_t):
+                        if isinstance(v, list):
+                            for item in v:
+                                filled += _count_filled_leaves(item, item_t)
+                    else:
+                        if _is_populated_leaf(v):
+                            filled += 1
+                else:
+                    if _is_populated_leaf(v):
+                        filled += 1
+            return filled
+
+        total_possible = _count_possible_leaves(ExtractedIncidentData)
+
+        match: dict = {}
+        if iuu_type:
+            match["incident_classification.iuuClassifications.IUUType"] = iuu_type
+
+        pipeline = []
+        if match:
+            pipeline.append({"$match": match})
+        pipeline.append({"$project": {"extracted_information": 1}})
+
+        rows = await IncidentReport.aggregate(pipeline).to_list()
+        counts = [
+            _count_filled_leaves(r.get("extracted_information"), ExtractedIncidentData)
+            for r in rows
+        ]
+
+        n = len(counts)
+        if n == 0:
+            return {
+                "incidents": 0,
+                "mean": 0.0,
+                "median": 0.0,
+                "min": 0,
+                "max": 0,
+                "total_possible_leaves": total_possible,
+                "counts": [],
+            }
+
+        sorted_counts = sorted(counts)
+        mid = n // 2
+        median = (
+            sorted_counts[mid]
+            if n % 2
+            else (sorted_counts[mid - 1] + sorted_counts[mid]) / 2
+        )
+        return {
+            "incidents": n,
+            "mean": round(sum(counts) / n, 3),
+            "median": median,
+            "min": min(counts),
+            "max": max(counts),
+            "total_possible_leaves": total_possible,
+            "counts": counts,
         }
