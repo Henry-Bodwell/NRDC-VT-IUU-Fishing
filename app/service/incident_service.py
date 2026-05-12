@@ -1096,17 +1096,22 @@ class IncidentService(Service):
                         ]
                     },
                     "month": {
-                        "$toInt": {
-                            "$substr": [
-                                "$extracted_information.eventData.eventDate",
-                                5,
-                                2,
-                            ]
+                        "$convert": {
+                            "input": {
+                                "$substr": [
+                                    "$extracted_information.eventData.eventDate",
+                                    5,
+                                    2,
+                                ]
+                            },
+                            "to": "int",
+                            "onError": 0,
+                            "onNull": 0,
                         }
                     },
                 }
             },
-            {"$match": {"year": {"$regex": r"^\d{4}$"}}},
+            {"$match": {"year": {"$regex": r"^\d{4}$"}, "month": {"$gte": 1}}},
             {
                 "$project": {
                     "country": 1,
