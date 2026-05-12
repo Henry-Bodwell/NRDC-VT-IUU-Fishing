@@ -519,10 +519,12 @@ async def enforcement_country_counts():
 
 @router.get("/stats/enforcement-country-by-quarter")
 async def enforcement_country_by_quarter():
-    """Counts of incidents grouped by (enforcementCountry, YYYY-Q[1-4]).
+    """Counts grouped by (IUUType, IUUSubType, enforcementCountry, YYYY-Q[1-4]).
 
-    Quarter is derived from ``eventData.eventDate``. Rows missing either
-    field (or with the ``NA`` sentinel) are excluded.
+    Quarter is derived from ``eventData.eventDate``. Rows missing eventDate or
+    enforcementCountry (or with the ``NA`` sentinel) are excluded. Each
+    incident contributes one row per (IUUType, IUUSubType) it carries;
+    classifications with no IUUSubType use ``"NA"``.
     """
     return {"counts": await IncidentService.enforcement_country_by_quarter()}
 

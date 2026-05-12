@@ -1069,10 +1069,12 @@ class IncidentService(Service):
 
     @staticmethod
     async def enforcement_country_by_quarter() -> list[dict]:
-        """Counts of incidents grouped by (enforcementCountry, year-quarter).
+        """Counts grouped by (IUUType, IUUSubType, enforcementCountry, quarter).
 
         Quarter derived from ``eventData.eventDate`` (YYYY-MM-DD). Rows where
         either eventDate or enforcementCountry is missing/"NA" are excluded.
+        Each incident contributes one row per (IUUType, IUUSubType) it carries;
+        classifications with no IUUSubType are emitted with ``iuu_subtype="NA"``.
         """
         pipeline = [
             {
@@ -1109,12 +1111,16 @@ class IncidentService(Service):
                             "onNull": 0,
                         }
                     },
+                    "iuuClassifications": (
+                        "$incident_classification.iuuClassifications"
+                    ),
                 }
             },
             {"$match": {"year": {"$regex": r"^\d{4}$"}, "month": {"$gte": 1}}},
             {
                 "$project": {
                     "country": 1,
+                    "iuuClassifications": 1,
                     "quarter": {
                         "$concat": [
                             "$year",
@@ -1143,15 +1149,72 @@ class IncidentService(Service):
                 }
             },
             {
+                "$unwind": {
+                    "path": "$iuuClassifications",
+                    "preserveNullAndEmptyArrays": False,
+                }
+            },
+            {
+                "$match": {
+                    "iuuClassifications.IUUType": {"$nin": [None, "", "NA"]}
+                }
+            },
+            {
+                "$unwind": {
+                    "path": "$iuuClassifications.IUUSubType",
+                    "preserveNullAndEmptyArrays": True,
+                }
+            },
+            {
+                "$project": {
+                    "country": 1,
+                    "quarter": 1,
+                    "iuu_type": "$iuuClassifications.IUUType",
+                    "iuu_subtype": {
+                        "$let": {
+                            "vars": {
+                                "s": {
+                                    "$ifNull": [
+                                        "$iuuClassifications.IUUSubType",
+                                        "NA",
+                                    ]
+                                }
+                            },
+                            "in": {
+                                "$cond": [
+                                    {"$eq": ["$$s", ""]},
+                                    "NA",
+                                    "$$s",
+                                ]
+                            },
+                        }
+                    },
+                }
+            },
+            {
                 "$group": {
-                    "_id": {"country": "$country", "quarter": "$quarter"},
+                    "_id": {
+                        "iuu_type": "$iuu_type",
+                        "iuu_subtype": "$iuu_subtype",
+                        "country": "$country",
+                        "quarter": "$quarter",
+                    },
                     "count": {"$sum": 1},
                 }
             },
-            {"$sort": {"_id.quarter": 1, "_id.country": 1}},
+            {
+                "$sort": {
+                    "_id.quarter": 1,
+                    "_id.country": 1,
+                    "_id.iuu_type": 1,
+                    "_id.iuu_subtype": 1,
+                }
+            },
             {
                 "$project": {
                     "_id": 0,
+                    "iuu_type": "$_id.iuu_type",
+                    "iuu_subtype": "$_id.iuu_subtype",
                     "country_code": "$_id.country",
                     "quarter": "$_id.quarter",
                     "count": 1,
