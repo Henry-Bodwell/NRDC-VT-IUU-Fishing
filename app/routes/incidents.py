@@ -517,6 +517,26 @@ async def enforcement_country_counts():
     return {"counts": await IncidentService.enforcement_country_counts()}
 
 
+@router.get("/stats/enforcement-country-by-quarter")
+async def enforcement_country_by_quarter():
+    """Counts of incidents grouped by (enforcementCountry, YYYY-Q[1-4]).
+
+    Quarter is derived from ``eventData.eventDate``. Rows missing either
+    field (or with the ``NA`` sentinel) are excluded.
+    """
+    return {"counts": await IncidentService.enforcement_country_by_quarter()}
+
+
+@router.get("/stats/leaf-presence")
+async def leaf_presence_matrix():
+    """Per-incident 0/1 presence vector over ExtractedIncidentData leaves.
+
+    Returns a fixed ``leaf_paths`` list and one row per incident with an
+    index-aligned ``presence`` array, plus the incident's IUU types.
+    """
+    return await IncidentService.leaf_presence_matrix()
+
+
 @router.get("/stats/KDEDistribution")
 async def kde_distribution(iuu_type: IUUType | None = Query(default=None)):
     """Per-field non-null counts and rates across extracted_information.
@@ -571,13 +591,19 @@ async def avg_leaf_fields(
 
 
 @router.get("/stats/KDEFillRate")
-async def kde_fill_rate(exclude: List[str] = Query(default_factory=list)):
+async def kde_fill_rate(
+    exclude: List[str] = Query(default_factory=list),
+    iuu_type: IUUType | None = Query(default=None),
+):
     """Per-incident KDE fill rates (non-null fields / total fields).
 
     Pass ``?exclude=field1&exclude=field2`` to drop fields from both the
-    numerator and the denominator.
+    numerator and the denominator. Optionally filter to incidents tagged
+    with a specific IUU type.
     """
-    return await IncidentService.kde_fill_rate_per_incident(exclude=set(exclude))
+    return await IncidentService.kde_fill_rate_per_incident(
+        exclude=set(exclude), iuu_type=iuu_type
+    )
 
 
 @router.get("/{report_id}", response_model=IncidentReport)

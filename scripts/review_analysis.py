@@ -38,6 +38,11 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+EXCLUDED_LEAVES = {
+    "eventData.eventCountry",
+    "eventData.enforcementCountry",
+}
+
 
 def is_empty(value: Any) -> bool:
     return value is None or value == "" or value == [] or value == {}
@@ -188,7 +193,7 @@ def diff_source_scope(orig_state: dict | None, curr: dict | None, acc: dict) -> 
         scope = state.get("article_scope") or {}
         return scope.get("articleType") or "<none>"
 
-    acc["source_scope"][f"{scope_of(orig_state)} -> {scope_of(curr)}"] += 1
+    acc["source_scope"][(scope_of(orig_state), scope_of(curr))] += 1
 
 
 def diff_iuu_types(orig: dict, curr: dict, acc: dict) -> None:
@@ -215,9 +220,27 @@ def diff_iuu_subtypes(orig: dict, curr: dict, acc: dict) -> None:
         acc["iuu_subtype_removed"][removed] += 1
 
 
+def strip_excluded(ext: dict) -> dict:
+    """Return a copy of extracted_information with EXCLUDED_LEAVES removed."""
+    if not ext:
+        return {}
+    out: dict = {}
+    for top_key, top_val in ext.items():
+        if isinstance(top_val, dict):
+            filtered = {
+                k: v
+                for k, v in top_val.items()
+                if f"{top_key}.{k}" not in EXCLUDED_LEAVES
+            }
+            out[top_key] = filtered
+        else:
+            out[top_key] = top_val
+    return out
+
+
 def diff_kde_top_level(orig: dict, curr: dict, acc: dict) -> None:
-    orig_ext = orig.get("extracted_information") or {}
-    curr_ext = curr.get("extracted_information") or {}
+    orig_ext = strip_excluded(orig.get("extracted_information") or {})
+    curr_ext = strip_excluded(curr.get("extracted_information") or {})
     for key in set(orig_ext.keys()) | set(curr_ext.keys()):
         bucket = classify_change(orig_ext.get(key), curr_ext.get(key))
         acc["kde_top"][key][bucket] += 1
@@ -227,6 +250,8 @@ def diff_kde_leaf(orig: dict, curr: dict, acc: dict) -> None:
     orig_flat = dict(flatten(orig.get("extracted_information") or {}))
     curr_flat = dict(flatten(curr.get("extracted_information") or {}))
     for key in set(orig_flat.keys()) | set(curr_flat.keys()):
+        if key in EXCLUDED_LEAVES:
+            continue
         bucket = classify_change(orig_flat.get(key), curr_flat.get(key))
         acc["kde_leaf"][key][bucket] += 1
 
@@ -323,8 +348,8 @@ def print_summary(acc: dict) -> None:
     )
 
     print("\n=== A. Source scope transitions ===")
-    for transition, count in sorted(acc["source_scope"].items(), key=lambda x: -x[1]):
-        print(f"  {count:>4}  {transition}")
+    for (orig, curr), count in sorted(acc["source_scope"].items(), key=lambda x: -x[1]):
+        print(f"  {count:>4}  {orig} -> {curr}")
 
     print("\n=== B. IUU type ===")
     print(f"  unchanged: {acc['iuu_type_unchanged']}")
@@ -379,7 +404,12 @@ def print_summary(acc: dict) -> None:
 def write_json(acc: dict, path: Path) -> None:
     serializable = {
         "counts": acc["counts"],
-        "source_scope": dict(acc["source_scope"]),
+        "source_scope": [
+            {"original": orig, "current": curr, "count": count}
+            for (orig, curr), count in sorted(
+                acc["source_scope"].items(), key=lambda x: -x[1]
+            )
+        ],
         "iuu_type": {
             "unchanged": acc["iuu_type_unchanged"],
             "added": dict(acc["iuu_type_added"]),

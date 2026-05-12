@@ -761,6 +761,7 @@ class IncidentService(Service):
     @staticmethod
     async def kde_fill_rate_per_incident(
         exclude: set[str] | None = None,
+        iuu_type: str | None = None,
     ) -> dict:
         """Per-incident KDE fill rate over ExtractedIncidentData fields.
 
@@ -800,9 +801,20 @@ class IncidentService(Service):
                 }
             return {"$cond": [{"$gt": [path, None]}, 1, 0]}
 
-        pipeline = [
+        pipeline: list[dict] = []
+        if iuu_type and iuu_type != "all":
+            pipeline.append(
+                {
+                    "$match": {
+                        "incident_classification.iuuClassifications": {
+                            "$elemMatch": {"IUUType": iuu_type}
+                        }
+                    }
+                }
+            )
+        pipeline.append(
             {"$project": {"filled": {"$add": [_present_expr(f) for f in fields]}}}
-        ]
+        )
         rows = await IncidentReport.aggregate(pipeline).to_list()
         counts = [int(r.get("filled", 0)) for r in rows]
         rates = [round(c / total_fields, 4) if total_fields else 0.0 for c in counts]
@@ -955,3 +967,190 @@ class IncidentService(Service):
             "total_possible_leaves": total_possible,
             "counts": counts,
         }
+
+    @staticmethod
+    async def leaf_presence_matrix(
+        exclude_keys: set[str] | None = None,
+    ) -> dict:
+        """Per-incident 0/1 presence vector over ExtractedIncidentData leaves.
+
+        List-of-anything fields are treated as one leaf (presence = list
+        non-empty). Nested BaseModels expand to dotted paths. Verification
+        booleans are excluded by default. Intended for biclustering.
+
+        Returns:
+            ``{"leaf_paths": [...], "incidents": [
+                {"id": str, "iuu_types": [...], "presence": [0|1, ...]}
+            ]}``
+        """
+        exclude_keys = exclude_keys or {"verified", "validated"}
+
+        def _unwrap_optional(ann):
+            if ann is None:
+                return ann
+            args = [a for a in get_args(ann) if a is not type(None)]  # noqa: E721
+            if get_origin(ann) is not None and args and get_origin(ann) is not list:
+                return args[0] if len(args) == 1 else ann
+            return ann
+
+        def _is_basemodel(t) -> bool:
+            try:
+                from pydantic import BaseModel
+
+                return isinstance(t, type) and issubclass(t, BaseModel)
+            except Exception:
+                return False
+
+        def _is_populated_leaf(v) -> bool:
+            if v is None:
+                return False
+            if isinstance(v, str):
+                return v.strip() != ""
+            if isinstance(v, (list, dict)):
+                return len(v) > 0
+            return True
+
+        def _enumerate_paths(model_cls, prefix: str = "") -> list[str]:
+            paths: list[str] = []
+            for name, info in model_cls.model_fields.items():
+                if name in exclude_keys:
+                    continue
+                dotted = f"{prefix}.{name}" if prefix else name
+                inner = _unwrap_optional(info.annotation)
+                if _is_basemodel(inner):
+                    paths.extend(_enumerate_paths(inner, dotted))
+                else:
+                    paths.append(dotted)
+            return paths
+
+        def _presence_for(value, model_cls, prefix: str = "") -> dict[str, int]:
+            out: dict[str, int] = {}
+            if not isinstance(value, dict):
+                value = {}
+            for name, info in model_cls.model_fields.items():
+                if name in exclude_keys:
+                    continue
+                dotted = f"{prefix}.{name}" if prefix else name
+                inner = _unwrap_optional(info.annotation)
+                v = value.get(name)
+                if _is_basemodel(inner):
+                    out.update(_presence_for(v, inner, dotted))
+                else:
+                    out[dotted] = 1 if _is_populated_leaf(v) else 0
+            return out
+
+        leaf_paths = _enumerate_paths(ExtractedIncidentData)
+
+        pipeline = [
+            {
+                "$project": {
+                    "extracted_information": 1,
+                    "iuu_types": "$incident_classification.iuuClassifications.IUUType",
+                }
+            }
+        ]
+        rows = await IncidentReport.aggregate(pipeline).to_list()
+
+        incidents: list[dict] = []
+        for r in rows:
+            presence_map = _presence_for(
+                r.get("extracted_information"), ExtractedIncidentData
+            )
+            presence_vec = [presence_map.get(p, 0) for p in leaf_paths]
+            incidents.append(
+                {
+                    "id": str(r.get("_id")),
+                    "iuu_types": [t for t in (r.get("iuu_types") or []) if t],
+                    "presence": presence_vec,
+                }
+            )
+
+        return {"leaf_paths": leaf_paths, "incidents": incidents}
+
+    @staticmethod
+    async def enforcement_country_by_quarter() -> list[dict]:
+        """Counts of incidents grouped by (enforcementCountry, year-quarter).
+
+        Quarter derived from ``eventData.eventDate`` (YYYY-MM-DD). Rows where
+        either eventDate or enforcementCountry is missing/"NA" are excluded.
+        """
+        pipeline = [
+            {
+                "$match": {
+                    "extracted_information.eventData.eventDate": {
+                        "$nin": [None, "", "NA"]
+                    },
+                    "extracted_information.eventData.enforcementCountry": {
+                        "$nin": [None, "", "NA"]
+                    },
+                }
+            },
+            {
+                "$project": {
+                    "country": "$extracted_information.eventData.enforcementCountry",
+                    "year": {
+                        "$substr": [
+                            "$extracted_information.eventData.eventDate",
+                            0,
+                            4,
+                        ]
+                    },
+                    "month": {
+                        "$toInt": {
+                            "$substr": [
+                                "$extracted_information.eventData.eventDate",
+                                5,
+                                2,
+                            ]
+                        }
+                    },
+                }
+            },
+            {"$match": {"year": {"$regex": r"^\d{4}$"}}},
+            {
+                "$project": {
+                    "country": 1,
+                    "quarter": {
+                        "$concat": [
+                            "$year",
+                            "-Q",
+                            {
+                                "$switch": {
+                                    "branches": [
+                                        {
+                                            "case": {"$lte": ["$month", 3]},
+                                            "then": "1",
+                                        },
+                                        {
+                                            "case": {"$lte": ["$month", 6]},
+                                            "then": "2",
+                                        },
+                                        {
+                                            "case": {"$lte": ["$month", 9]},
+                                            "then": "3",
+                                        },
+                                    ],
+                                    "default": "4",
+                                }
+                            },
+                        ]
+                    },
+                }
+            },
+            {
+                "$group": {
+                    "_id": {"country": "$country", "quarter": "$quarter"},
+                    "count": {"$sum": 1},
+                }
+            },
+            {"$sort": {"_id.quarter": 1, "_id.country": 1}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "country_code": "$_id.country",
+                    "quarter": "$_id.quarter",
+                    "count": 1,
+                }
+            },
+        ]
+        return await IncidentReport.aggregate(pipeline).to_list()

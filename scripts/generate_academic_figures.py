@@ -6,8 +6,8 @@ Pulls aggregated counts from the running API and renders PNG figures:
   2. incidents_by_year.png           - bar chart by year
   3. incidents_by_iuu_type.png       - bar chart by IUU type
   4. iuu_subtypes_by_class.png       - per-class subtype bars (faceted)
-  5. kde_field_rates.png             - per-field non-null rate
-  6. kde_fill_rate_distribution.png  - per-incident fill rate histogram
+  5. kde_field_rates.png             - per-field non-null rate (+ per-IUU-type)
+  6. kde_fill_rate_distribution.png  - per-incident fill rate histogram (+ per-IUU-type)
   7. iuu_cooccurrence.png            - type co-occurrence heatmap
 
 Usage:
@@ -58,6 +58,9 @@ NATURAL_EARTH_ISO3_OVERRIDES = {
 
 async def fetch_all(base_url: str, auth_token: str | None) -> dict[str, Any]:
     headers = {"Authorization": f"Bearer {auth_token}"} if auth_token else {}
+    from urllib.parse import quote
+
+    fill_exclude_qs = "&".join(f"exclude={f}" for f in sorted(KDE_FIELD_EXCLUDE))
     endpoints = {
         "countries": "/api/incidents/stats/event-countries",
         "years": "/api/incidents/stats/years",
@@ -66,15 +69,20 @@ async def fetch_all(base_url: str, auth_token: str | None) -> dict[str, Any]:
         "cooccurrence": "/api/incidents/stats/iuu-cooccurrence",
         "subtype_cooccurrence": "/api/incidents/stats/iuu-subtype-cooccurrence",
         "kde_fields": "/api/incidents/stats/KDEDistribution",
-        "kde_fill": "/api/incidents/stats/KDEFillRate?"
-        + "&".join(f"exclude={f}" for f in sorted(KDE_FIELD_EXCLUDE)),
+        "kde_fill": f"/api/incidents/stats/KDEFillRate?{fill_exclude_qs}",
         "avg_leaves_all": "/api/incidents/stats/avg-leaf-fields",
     }
-    from urllib.parse import quote
 
     for t in IUU_TYPES_ORDER:
         endpoints[f"avg_leaves::{t}"] = (
             f"/api/incidents/stats/avg-leaf-fields?iuu_type={quote(t)}"
+        )
+        endpoints[f"kde_fields::{t}"] = (
+            f"/api/incidents/stats/KDEDistribution?iuu_type={quote(t)}"
+        )
+        endpoints[f"kde_fill::{t}"] = (
+            f"/api/incidents/stats/KDEFillRate?{fill_exclude_qs}"
+            f"&iuu_type={quote(t)}"
         )
     async with httpx.AsyncClient(
         base_url=base_url, timeout=60.0, headers=headers
@@ -215,10 +223,10 @@ def plot_subtypes_by_class(rows: list[dict], out_dir: Path) -> None:
     plt.close(fig)
 
 
-def plot_kde_field_rates(payload: dict, out: Path) -> None:
+def plot_kde_field_rates(payload: dict, out: Path, title_suffix: str = "") -> None:
     fields = payload.get("fields", {})
     if not fields:
-        logger.warning("No KDE field data to plot")
+        logger.warning("No KDE field data to plot (%s)", out.name)
         return
     fields = {k: v for k, v in fields.items() if k not in KDE_FIELD_EXCLUDE}
     items = sorted(fields.items(), key=lambda kv: kv[1]["non_null_rate"])
@@ -228,28 +236,42 @@ def plot_kde_field_rates(payload: dict, out: Path) -> None:
     ax.barh(labels, rates, color="steelblue")
     ax.set_xlabel("Non-null rate")
     ax.set_xlim(0, 1)
-    ax.set_title(f"KDE Field Non-Null Rates (n={payload.get('total', 0)} incidents)")
+    title = f"KDE Field Non-Null Rates (n={payload.get('total', 0)} incidents)"
+    if title_suffix:
+        title = f"{title_suffix}\n{title}"
+    ax.set_title(title)
     fig.tight_layout()
     fig.savefig(out, dpi=200)
     plt.close(fig)
 
 
-def plot_kde_fill_distribution(payload: dict, out: Path) -> None:
+def plot_kde_fill_distribution(
+    payload: dict, out: Path, title_suffix: str = ""
+) -> None:
     rates = payload.get("rates", [])
     total_fields = payload.get("total_fields", 0)
     if not rates:
-        logger.warning("No KDE fill-rate data to plot")
+        logger.warning("No KDE fill-rate data to plot (%s)", out.name)
         return
     arr = np.asarray(rates, dtype=float)
     fig, ax = plt.subplots(figsize=(9, 5))
-    ax.hist(arr, bins=20, range=(0, 1), color="steelblue", edgecolor="white")
+    if total_fields and total_fields > 0:
+        step = 1.0 / total_fields
+        bins = np.linspace(-step / 2, 1 + step / 2, total_fields + 2)
+    else:
+        bins = 20
+    ax.hist(arr, bins=bins, color="steelblue", edgecolor="white")
+    ax.set_xlim(-step / 2 if total_fields else 0, 1 + (step / 2 if total_fields else 0))
     mean = float(arr.mean())
     median = float(np.median(arr))
     ax.axvline(mean, color="darkred", linestyle="--", label=f"Mean = {mean:.2f}")
     ax.axvline(median, color="darkgreen", linestyle=":", label=f"Median = {median:.2f}")
     ax.set_xlabel(f"Per-incident KDE fill rate (of {total_fields} fields)")
     ax.set_ylabel("Number of incidents")
-    ax.set_title("Distribution of KDE Fill Rate per Incident")
+    title = "Distribution of KDE Fill Rate per Incident"
+    if title_suffix:
+        title = f"{title_suffix}\n{title} (n={len(rates)})"
+    ax.set_title(title)
     ax.legend()
     fig.tight_layout()
     fig.savefig(out, dpi=200)
@@ -469,6 +491,18 @@ async def main_async(args: argparse.Namespace) -> None:
     plot_kde_fill_distribution(
         data["kde_fill"], out_dir / "kde_fill_rate_distribution.png"
     )
+    for t in IUU_TYPES_ORDER:
+        slug = _slug(t)
+        plot_kde_field_rates(
+            data.get(f"kde_fields::{t}", {}),
+            out_dir / f"kde_field_rates_{slug}.png",
+            title_suffix=t,
+        )
+        plot_kde_fill_distribution(
+            data.get(f"kde_fill::{t}", {}),
+            out_dir / f"kde_fill_rate_distribution_{slug}.png",
+            title_suffix=t,
+        )
     plot_cooccurrence(data["cooccurrence"]["pairs"], out_dir / "iuu_cooccurrence.png")
     plot_subtype_cooccurrence_per_type(data["subtype_cooccurrence"]["by_type"], out_dir)
     plot_avg_leaf_fields_by_type(
