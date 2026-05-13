@@ -32,6 +32,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _review_lib import (  # noqa: E402
@@ -51,14 +54,20 @@ logger = logging.getLogger(__name__)
 
 # ── Metric helpers ─────────────────────────────────────────────────────────
 
+
 def _safe_div(num: float, den: float) -> float:
     return num / den if den else 0.0
 
 
-def prf(tp: int, fp: int, fn: int) -> dict:
+def _prf_raw(tp: int, fp: int, fn: int) -> tuple[float, float, float]:
     precision = _safe_div(tp, tp + fp)
     recall = _safe_div(tp, tp + fn)
     f1 = _safe_div(2 * precision * recall, precision + recall)
+    return precision, recall, f1
+
+
+def prf(tp: int, fp: int, fn: int) -> dict:
+    precision, recall, f1 = _prf_raw(tp, fp, fn)
     return {
         "tp": tp,
         "fp": fp,
@@ -69,10 +78,27 @@ def prf(tp: int, fp: int, fn: int) -> dict:
     }
 
 
+def _macro_avg(per_class_raw: dict[str, tuple[float, float, float, int]]) -> dict:
+    """Macro mean over classes with support > 0, computed from unrounded P/R/F1."""
+    supported = [v for v in per_class_raw.values() if v[3] > 0]
+    if not supported:
+        return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "n_classes": 0}
+    p = sum(v[0] for v in supported) / len(supported)
+    r = sum(v[1] for v in supported) / len(supported)
+    f = sum(v[2] for v in supported) / len(supported)
+    return {
+        "precision": round(p, 4),
+        "recall": round(r, 4),
+        "f1": round(f, 4),
+        "n_classes": len(supported),
+    }
+
+
 def multiclass_metrics(samples: list[tuple[str, str]]) -> dict:
     """Single-label multiclass: each sample is (predicted, truth).
 
-    Returns overall accuracy, per-class P/R/F1, macro avg, and confusion matrix.
+    Returns overall accuracy, per-class P/R/F1, macro avg (over support>0
+    classes, computed before rounding), and confusion matrix.
     """
     if not samples:
         return {"n": 0, "accuracy": 0.0, "per_class": {}, "macro": {}, "confusion": {}}
@@ -80,59 +106,70 @@ def multiclass_metrics(samples: list[tuple[str, str]]) -> dict:
     correct = sum(1 for pred, truth in samples if pred == truth)
     classes = sorted({c for pair in samples for c in pair if c})
 
-    per_class = {}
-    confusion: dict[str, dict[str, int]] = {
-        truth: defaultdict(int) for truth in classes
-    }
+    confusion: dict[str, dict[str, int]] = {}
     for pred, truth in samples:
         if truth and pred:
             confusion.setdefault(truth, defaultdict(int))[pred] += 1
 
+    per_class: dict[str, dict] = {}
+    per_class_raw: dict[str, tuple[float, float, float, int]] = {}
     for cls in classes:
         tp = sum(1 for pred, truth in samples if pred == cls and truth == cls)
         fp = sum(1 for pred, truth in samples if pred == cls and truth != cls)
         fn = sum(1 for pred, truth in samples if pred != cls and truth == cls)
         support = sum(1 for _, truth in samples if truth == cls)
-        per_class[cls] = {**prf(tp, fp, fn), "support": support}
-
-    macro_p = _safe_div(sum(c["precision"] for c in per_class.values()), len(per_class))
-    macro_r = _safe_div(sum(c["recall"] for c in per_class.values()), len(per_class))
-    macro_f = _safe_div(sum(c["f1"] for c in per_class.values()), len(per_class))
+        p, r, f = _prf_raw(tp, fp, fn)
+        per_class[cls] = {
+            "tp": tp,
+            "fp": fp,
+            "fn": fn,
+            "precision": round(p, 4),
+            "recall": round(r, 4),
+            "f1": round(f, 4),
+            "support": support,
+        }
+        per_class_raw[cls] = (p, r, f, support)
 
     return {
         "n": len(samples),
         "accuracy": round(_safe_div(correct, len(samples)), 4),
         "per_class": per_class,
-        "macro": {
-            "precision": round(macro_p, 4),
-            "recall": round(macro_r, 4),
-            "f1": round(macro_f, 4),
-        },
+        "macro": _macro_avg(per_class_raw),
         "confusion": {k: dict(v) for k, v in confusion.items()},
     }
 
 
 def multilabel_metrics(samples: list[tuple[set[str], set[str]]]) -> dict:
-    """Each sample is (predicted_labels, truth_labels). Computes micro/macro P/R/F1."""
+    """Each sample is (predicted_labels, truth_labels). Computes micro/macro P/R/F1.
+
+    Macro avg is over classes with support>0 and computed from unrounded P/R/F1.
+    """
     if not samples:
         return {"n": 0, "micro": {}, "macro": {}, "per_class": {}}
 
     classes = sorted({lbl for p, t in samples for lbl in p | t})
-    per_class = {}
+    per_class: dict[str, dict] = {}
+    per_class_raw: dict[str, tuple[float, float, float, int]] = {}
     micro_tp = micro_fp = micro_fn = 0
     for cls in classes:
         tp = sum(1 for p, t in samples if cls in p and cls in t)
         fp = sum(1 for p, t in samples if cls in p and cls not in t)
         fn = sum(1 for p, t in samples if cls not in p and cls in t)
         support = sum(1 for _, t in samples if cls in t)
-        per_class[cls] = {**prf(tp, fp, fn), "support": support}
+        p, r, f = _prf_raw(tp, fp, fn)
+        per_class[cls] = {
+            "tp": tp,
+            "fp": fp,
+            "fn": fn,
+            "precision": round(p, 4),
+            "recall": round(r, 4),
+            "f1": round(f, 4),
+            "support": support,
+        }
+        per_class_raw[cls] = (p, r, f, support)
         micro_tp += tp
         micro_fp += fp
         micro_fn += fn
-
-    macro_p = _safe_div(sum(c["precision"] for c in per_class.values()), len(per_class))
-    macro_r = _safe_div(sum(c["recall"] for c in per_class.values()), len(per_class))
-    macro_f = _safe_div(sum(c["f1"] for c in per_class.values()), len(per_class))
 
     exact_match = sum(1 for p, t in samples if p == t)
 
@@ -140,41 +177,46 @@ def multilabel_metrics(samples: list[tuple[set[str], set[str]]]) -> dict:
         "n": len(samples),
         "exact_match_rate": round(_safe_div(exact_match, len(samples)), 4),
         "micro": prf(micro_tp, micro_fp, micro_fn),
-        "macro": {
-            "precision": round(macro_p, 4),
-            "recall": round(macro_r, 4),
-            "f1": round(macro_f, 4),
-        },
+        "macro": _macro_avg(per_class_raw),
         "per_class": per_class,
     }
 
 
 def kde_rates(kde_bucket: dict) -> dict:
-    """Compute missed_rate / change_rate / removed_rate per field from raw counters."""
+    """Compute missed_rate / change_rate / removed_rate per field from raw counters.
+
+    Denominators:
+      - missed_rate:  total - removed (truth-empty cases are excluded;
+        missing-a-field is undefined when truth has nothing there)
+      - removed_rate: total - missed  (orig-empty cases are excluded by symmetry)
+      - change_rate:  total (any divergence between orig and truth)
+
+    Note: 'untouched' lumps empty-in-both with equal-nonempty-in-both
+    (see classify_change in _review_lib), so missed_rate/removed_rate are
+    upper-bound denominators rather than true populated-truth rates.
+    """
     out = {}
     for field, b in kde_bucket.items():
         untouched = b.get("untouched", 0)
         missed = b.get("missed", 0)
         changed = b.get("changed", 0)
         removed = b.get("removed", 0)
-        truth_populated = changed + removed + untouched  # populated_in_truth - missed
-        # populated_in_truth = (populated in both = changed + untouched) + (missed)
-        # actually:
-        # untouched = empty in both OR equal in both
-        # We don't separate "empty in both" from "equal", so this is an approximation.
         total = untouched + missed + changed + removed
         any_touch = missed + changed + removed
+        missed_denom = total - removed
+        removed_denom = total - missed
         out[field] = {
             **dict(b),
             "total": total,
-            "missed_rate": round(_safe_div(missed, total), 4),
+            "missed_rate": round(_safe_div(missed, missed_denom), 4),
             "change_rate": round(_safe_div(any_touch, total), 4),
-            "removed_rate": round(_safe_div(removed, total), 4),
+            "removed_rate": round(_safe_div(removed, removed_denom), 4),
         }
     return out
 
 
 # ── Industry Overview diffing ──────────────────────────────────────────────
+
 
 def _species_key(s: dict) -> str:
     sci = (s or {}).get("scientificName") or ""
@@ -189,17 +231,28 @@ def _incident_key(inc: dict) -> str:
     """
     if not isinstance(inc, dict):
         return json.dumps(inc, sort_keys=True, default=str)
-    vessel = ((inc.get("vesselInformation") or {}).get("vesselName") or "").strip().lower()
-    event = ((inc.get("eventData") or {}).get("eventDate") or "")
+    vessel = (
+        ((inc.get("vesselInformation") or {}).get("vesselName") or "").strip().lower()
+    )
+    event = (inc.get("eventData") or {}).get("eventDate") or ""
     if vessel or event:
         return f"{vessel}|{event}"
     return json.dumps(inc, sort_keys=True, default=str)
 
 
+def _str_key(c: Any) -> str:
+    """Lowercase-trim a list entry; fall back to canonical JSON for non-strings."""
+    if c is None:
+        return ""
+    if isinstance(c, str):
+        return c.strip().lower()
+    return json.dumps(c, sort_keys=True, default=str).strip().lower()
+
+
 _LIST_KEYS: dict[str, Any] = {
     "species": _species_key,
-    "countries": lambda c: (c or "").strip().lower(),
-    "companies": lambda c: (c or "").strip().lower(),
+    "countries": _str_key,
+    "companies": _str_key,
     "incidents": _incident_key,
 }
 
@@ -230,8 +283,11 @@ def diff_overview(v1: dict, curr: dict, acc: dict) -> None:
 
 
 def overview_summary(acc: dict) -> dict:
-    out = {"list_fields": {}, "summary": dict(acc["overview"]["summary"]),
-           "counts": dict(acc["overview"]["counts"])}
+    out = {
+        "list_fields": {},
+        "summary": dict(acc["overview"]["summary"]),
+        "counts": dict(acc["overview"]["counts"]),
+    }
     for field, block in acc["overview"]["list_fields"].items():
         out["list_fields"][field] = {
             **block,
@@ -242,13 +298,15 @@ def overview_summary(acc: dict) -> dict:
 
 # ── Accumulators ───────────────────────────────────────────────────────────
 
+
 def make_metric_accumulators() -> dict:
     """Extended accumulator: review_analysis buckets + per-sample lists for metrics."""
     acc = make_accumulators()
+    acc["counts"]["sources_v1_missing"] = 0
     acc["samples"] = {
-        "scope": [],          # list of (pred, truth)
-        "iuu_type": [],       # list of (set, set)
-        "iuu_subtype": [],    # list of (set, set)
+        "scope": [],  # list of (pred, truth)
+        "iuu_type": [],  # list of (set, set)
+        "iuu_subtype": [],  # list of (set, set)
     }
     acc["overview"] = {
         "list_fields": {
@@ -263,6 +321,7 @@ def make_metric_accumulators() -> dict:
 
 # ── Main runner ────────────────────────────────────────────────────────────
 
+
 def _scope_of(state: dict | None) -> str:
     if not state:
         return "<missing>"
@@ -271,7 +330,11 @@ def _scope_of(state: dict | None) -> str:
 
 
 async def run(
-    ids_file: Path, output: Path, base_url: str, auth_token: str | None
+    ids_file: Path,
+    output: Path,
+    base_url: str,
+    auth_token: str | None,
+    figures_dir: Path | None = None,
 ) -> None:
     ids = load_ids(ids_file)
     logger.info("Loaded %d source IDs", len(ids))
@@ -289,6 +352,12 @@ async def run(
                 continue
 
             v1_state = await api.get_v1_state(raw_id)
+            if not v1_state:
+                acc["counts"]["sources_v1_missing"] += 1
+                acc["skipped"].append({"id": raw_id, "reason": "source_no_v1_state"})
+                logger.warning("Source %s has no v1 state; skipping entirely", raw_id)
+                continue
+
             # Scope: predicted = v1, truth = current
             pred_scope = _scope_of(v1_state)
             truth_scope = _scope_of(source)
@@ -304,7 +373,8 @@ async def run(
                     seen_overviews.add(overview_id)
                     curr_ov = (
                         ov_link
-                        if isinstance(ov_link, dict) and "extracted_information" in ov_link
+                        if isinstance(ov_link, dict)
+                        and "extracted_information" in ov_link
                         else await api.get_overview(overview_id)
                     )
                     if not curr_ov:
@@ -389,15 +459,170 @@ async def run(
     write_json(acc, metrics, output)
     logger.info("Wrote detailed JSON to %s", output)
 
+    if figures_dir is not None:
+        write_figures(metrics, figures_dir)
+        logger.info("Wrote confusion-matrix figures to %s", figures_dir)
+
+
+# ── Figures ────────────────────────────────────────────────────────────────
+
+
+def _wrap(s: str, width: int = 22) -> str:
+    import textwrap
+
+    return "\n".join(textwrap.wrap(s, width=width)) or s
+
+
+def plot_scope_confusion(scope_metrics: dict, out: Path) -> None:
+    """Render the multiclass scope confusion matrix as a heatmap.
+
+    Rows are truth labels, columns are predicted labels. Cells annotated with
+    raw counts; an unnormalized colormap is used so empty cells stand out.
+    """
+    confusion = scope_metrics.get("confusion") or {}
+    if not confusion:
+        return
+
+    labels = sorted(
+        {k for k in confusion} | {p for row in confusion.values() for p in row}
+    )
+    n = len(labels)
+    idx = {lbl: i for i, lbl in enumerate(labels)}
+    mat = np.zeros((n, n), dtype=int)
+    for truth, preds in confusion.items():
+        for pred, count in preds.items():
+            mat[idx[truth]][idx[pred]] = count
+
+    wrapped = [_wrap(lbl) for lbl in labels]
+    side = max(5.0, 0.9 * n + 3.0)
+    fig, ax = plt.subplots(figsize=(side, side))
+    masked = np.ma.masked_where(mat == 0, mat)
+    cmap = plt.get_cmap("Blues").copy()
+    cmap.set_bad(color="whitesmoke")
+    im = ax.imshow(masked, cmap=cmap)
+    ax.set_xticks(range(n))
+    ax.set_yticks(range(n))
+    ax.set_xticklabels(wrapped, rotation=40, ha="right", fontsize=9)
+    ax.set_yticklabels(wrapped, fontsize=9)
+    ax.set_xlabel("Predicted (v1)")
+    ax.set_ylabel("Truth (current)")
+    vmax = int(mat.max()) if mat.max() > 0 else 1
+    threshold = vmax * 0.55
+    for i in range(n):
+        for j in range(n):
+            val = mat[i][j]
+            if val:
+                color = "white" if val > threshold else "black"
+                ax.text(
+                    j, i, str(val), ha="center", va="center", color=color, fontsize=9
+                )
+    ax.set_title(
+        f"Scope confusion matrix  (n={scope_metrics['n']}, "
+        f"accuracy={scope_metrics['accuracy']})"
+    )
+    fig.colorbar(im, ax=ax, shrink=0.7, label="count")
+    fig.tight_layout()
+    fig.savefig(out, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_multilabel_confusions(
+    name: str, ml_metrics: dict, out: Path, max_classes: int = 24
+) -> None:
+    """Render per-class 2x2 confusion matrices for a multilabel classifier.
+
+    Each panel: rows = truth (present/absent), cols = pred (present/absent).
+    TN = n_samples - TP - FP - FN. Classes are sorted by support, descending.
+    """
+    per_class = ml_metrics.get("per_class") or {}
+    if not per_class:
+        return
+    n_samples = ml_metrics.get("n", 0)
+
+    classes = sorted(per_class.items(), key=lambda kv: -kv[1].get("support", 0))[
+        :max_classes
+    ]
+    if not classes:
+        return
+
+    n = len(classes)
+    cols = min(4, n)
+    rows = (n + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(3.4 * cols, 3.2 * rows))
+    axes = np.array(axes).reshape(rows, cols)
+
+    cmap = plt.get_cmap("Blues")
+    for k, (cls, m) in enumerate(classes):
+        r, c = divmod(k, cols)
+        ax = axes[r][c]
+        tp, fp, fn = m["tp"], m["fp"], m["fn"]
+        tn = max(0, n_samples - tp - fp - fn)
+        mat = np.array([[tp, fn], [fp, tn]])
+        # Layout: row 0 = pred present, row 1 = pred absent
+        # actually rows = truth/present, columns = pred — invert for clarity
+        mat = np.array([[tp, fn], [fp, tn]])
+        ax.imshow(mat, cmap=cmap, vmin=0, vmax=max(mat.max(), 1))
+        ax.set_xticks([0, 1])
+        ax.set_yticks([0, 1])
+        ax.set_xticklabels(["pred +", "pred -"], fontsize=8)
+        ax.set_yticklabels(["truth +", "truth -"], fontsize=8)
+        threshold = mat.max() * 0.55 if mat.max() else 1
+        cell_labels = [["TP", "FN"], ["FP", "TN"]]
+        for i in range(2):
+            for j in range(2):
+                val = mat[i][j]
+                color = "white" if val > threshold else "black"
+                ax.text(
+                    j,
+                    i,
+                    f"{cell_labels[i][j]}\n{val}",
+                    ha="center",
+                    va="center",
+                    color=color,
+                    fontsize=9,
+                )
+        ax.set_title(
+            f"{_wrap(cls, width=28)}\nP={m['precision']} R={m['recall']} "
+            f"F1={m['f1']} (sup={m['support']})",
+            fontsize=8,
+        )
+    for k in range(n, rows * cols):
+        r, c = divmod(k, cols)
+        axes[r][c].axis("off")
+
+    fig.suptitle(
+        f"{name} per-class confusion (n_samples={n_samples}, "
+        f"top {len(classes)} by support)",
+        fontsize=11,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.savefig(out, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_figures(metrics: dict, figures_dir: Path) -> None:
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    plot_scope_confusion(metrics["scope"], figures_dir / "scope_confusion.png")
+    plot_multilabel_confusions(
+        "IUU type", metrics["iuu_type"], figures_dir / "iuu_type_confusion.png"
+    )
+    plot_multilabel_confusions(
+        "IUU subtype",
+        metrics["iuu_subtype"],
+        figures_dir / "iuu_subtype_confusion.png",
+    )
+
 
 # ── Reporting ──────────────────────────────────────────────────────────────
+
 
 def print_summary(acc: dict, metrics: dict) -> None:
     c = acc["counts"]
     print("\n=== Run summary ===")
     print(
         f"Sources processed: {c['sources_processed']}  "
-        f"missing: {c['sources_missing']}"
+        f"missing: {c['sources_missing']}  "
+        f"v1_missing: {c.get('sources_v1_missing', 0)}"
     )
     print(
         f"Incidents processed: {c['incidents_processed']}  "
@@ -412,33 +637,47 @@ def print_summary(acc: dict, metrics: dict) -> None:
     print("\n=== A. Scope classifier ===")
     sm = metrics["scope"]
     print(f"  n={sm['n']}  accuracy={sm['accuracy']}")
-    print(f"  macro: P={sm['macro'].get('precision', 0)} "
-          f"R={sm['macro'].get('recall', 0)} F1={sm['macro'].get('f1', 0)}")
+    print(
+        f"  macro: P={sm['macro'].get('precision', 0)} "
+        f"R={sm['macro'].get('recall', 0)} F1={sm['macro'].get('f1', 0)}"
+    )
     print(f"  {'class':<30} {'P':>6} {'R':>6} {'F1':>6} {'support':>8}")
     for cls, m in sm["per_class"].items():
-        print(f"  {cls:<30} {m['precision']:>6} {m['recall']:>6} "
-              f"{m['f1']:>6} {m['support']:>8}")
+        print(
+            f"  {cls:<30} {m['precision']:>6} {m['recall']:>6} "
+            f"{m['f1']:>6} {m['support']:>8}"
+        )
 
     print("\n=== B. IUU type (multilabel) ===")
     bm = metrics["iuu_type"]
     print(f"  n={bm['n']}  exact_match_rate={bm.get('exact_match_rate')}")
     if bm.get("micro"):
-        print(f"  micro: P={bm['micro']['precision']} R={bm['micro']['recall']} "
-              f"F1={bm['micro']['f1']}")
-        print(f"  macro: P={bm['macro']['precision']} R={bm['macro']['recall']} "
-              f"F1={bm['macro']['f1']}")
+        print(
+            f"  micro: P={bm['micro']['precision']} R={bm['micro']['recall']} "
+            f"F1={bm['micro']['f1']}"
+        )
+        print(
+            f"  macro: P={bm['macro']['precision']} R={bm['macro']['recall']} "
+            f"F1={bm['macro']['f1']}"
+        )
     for cls, m in bm.get("per_class", {}).items():
-        print(f"    {cls:<45} P={m['precision']:>6} R={m['recall']:>6} "
-              f"F1={m['f1']:>6} support={m['support']}")
+        print(
+            f"    {cls:<45} P={m['precision']:>6} R={m['recall']:>6} "
+            f"F1={m['f1']:>6} support={m['support']}"
+        )
 
     print("\n=== C. IUU subtype (multilabel) ===")
     cm = metrics["iuu_subtype"]
     print(f"  n={cm['n']}  exact_match_rate={cm.get('exact_match_rate')}")
     if cm.get("micro"):
-        print(f"  micro: P={cm['micro']['precision']} R={cm['micro']['recall']} "
-              f"F1={cm['micro']['f1']}")
-        print(f"  macro: P={cm['macro']['precision']} R={cm['macro']['recall']} "
-              f"F1={cm['macro']['f1']}")
+        print(
+            f"  micro: P={cm['micro']['precision']} R={cm['micro']['recall']} "
+            f"F1={cm['micro']['f1']}"
+        )
+        print(
+            f"  macro: P={cm['macro']['precision']} R={cm['macro']['recall']} "
+            f"F1={cm['macro']['f1']}"
+        )
 
     print("\n=== D. KDE top-level (top 10 by change_rate) ===")
     top = sorted(
@@ -446,14 +685,18 @@ def print_summary(acc: dict, metrics: dict) -> None:
     )[:10]
     print(f"  {'field':<32} {'changed%':>10} {'missed%':>10} {'removed%':>10}")
     for field, m in top:
-        print(f"  {field:<32} {m['change_rate']:>10} {m['missed_rate']:>10} "
-              f"{m['removed_rate']:>10}")
+        print(
+            f"  {field:<32} {m['change_rate']:>10} {m['missed_rate']:>10} "
+            f"{m['removed_rate']:>10}"
+        )
 
     print("\n=== E. Industry Overview ===")
     ov = metrics["overview"]
     for field, m in ov["list_fields"].items():
-        print(f"  {field:<12} P={m['precision']:>6} R={m['recall']:>6} "
-              f"F1={m['f1']:>6} (tp={m['tp']} fp={m['fp']} fn={m['fn']})")
+        print(
+            f"  {field:<12} P={m['precision']:>6} R={m['recall']:>6} "
+            f"F1={m['f1']:>6} (tp={m['tp']} fp={m['fp']} fn={m['fn']})"
+        )
     print(f"  summary buckets: {dict(ov['summary'])}")
 
 
@@ -503,8 +746,14 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("scripts/model_metrics.json"),
+        default=Path("scripts/data/model_metrics.json"),
         help="Path for detailed JSON output",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        type=Path,
+        default=Path("scripts/figures/model_metrics"),
+        help="Directory to write confusion-matrix PNGs (pass empty string to skip).",
     )
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
@@ -520,7 +769,16 @@ def main() -> None:
             "Pass --auth-token or set AUTH_TOKEN."
         )
 
-    asyncio.run(run(args.ids_file, args.output, args.base_url, args.auth_token))
+    figures_dir = args.figures_dir if str(args.figures_dir) else None
+    asyncio.run(
+        run(
+            args.ids_file,
+            args.output,
+            args.base_url,
+            args.auth_token,
+            figures_dir,
+        )
+    )
 
 
 if __name__ == "__main__":

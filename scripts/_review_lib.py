@@ -22,6 +22,8 @@ EXCLUDED_LEAVES = {
     "eventData.enforcementCountry",
 }
 
+EXCLUDED_LEAF_NAMES = {"verified", "description"}
+
 
 def is_empty(value: Any) -> bool:
     return value is None or value == "" or value == [] or value == {}
@@ -213,6 +215,7 @@ def strip_excluded(ext: dict) -> dict:
                 k: v
                 for k, v in top_val.items()
                 if f"{top_key}.{k}" not in EXCLUDED_LEAVES
+                and k not in EXCLUDED_LEAF_NAMES
             }
             out[top_key] = filtered
         else:
@@ -233,6 +236,8 @@ def diff_kde_leaf(orig: dict, curr: dict, acc: dict) -> None:
     curr_flat = dict(flatten(curr.get("extracted_information") or {}))
     for key in set(orig_flat.keys()) | set(curr_flat.keys()):
         if key in EXCLUDED_LEAVES:
+            continue
+        if key.rsplit(".", 1)[-1] in EXCLUDED_LEAF_NAMES:
             continue
         bucket = classify_change(orig_flat.get(key), curr_flat.get(key))
         acc["kde_leaf"][key][bucket] += 1
