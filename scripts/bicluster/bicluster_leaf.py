@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Maximal frequent itemset mining over leaf_presence.csv, two buckets.
 
-Input: scripts/data/leaf_presence.csv (or similar) with columns:
-    incident_id, iuu_types, iuu_subtypes, <leaf_path_1>, <leaf_path_2>, ...
+Input: scripts/data/leaf_presence.csv (or similar) with column:
+    iuu_classifications  -- "Type1::Subtype1;Type1::Subtype2;Type2::Subtype3"
+plus incident_id and the 0/1 leaf-path columns.
 
-Transactions: one per (row, subtype, type) triple. The transaction unit and
-label are still the row's subtype; the type determines which mining bucket
-it lands in. Rows whose ``iuu_subtypes`` is empty are skipped. Rows whose
-``iuu_types`` consists entirely of the excluded type (default: "Other") are
-skipped.
+Transactions: one per (row, classification) — i.e. one per ``Type::Subtype``
+pair the row carries. Type and subtype come from the same classification, so
+subtypes never leak across types. Rows with no classifications are skipped.
+Classifications whose type matches ``--exclude-type`` are dropped.
 
 Mining is performed in exactly two buckets:
-    1. ``--illegal-type`` (default: "Illegal Fishing") — its own bucket.
-    2. "Other IUU Types" — every other (non-excluded) type, pooled.
+    1. ``--illegal-type`` (default: "Illegal Fishing") -- its own bucket.
+    2. "Other IUU Types" -- every other (non-excluded) type, pooled.
 
 Each bucket has its own min-support flag (``--min-support-illegal`` and
 ``--min-support-other``) so the dominant Illegal Fishing patterns can be
@@ -38,10 +38,11 @@ import pandas as pd
 
 DEFAULT_INPUT = Path("scripts/data/leaf_presence.csv")
 DEFAULT_OUTPUT_DIR = Path("scripts/bicluster/leaf_out")
-DEFAULT_LABEL_COL = "iuu_subtypes"
-DEFAULT_TYPE_COL = "iuu_types"
+DEFAULT_CLASS_COL = "iuu_classifications"
 DEFAULT_EXCLUDE_TYPE = "Other"
-DEFAULT_SKIP_COLS = "incident_id,iuu_types,iuu_subtypes"
+DEFAULT_SKIP_COLS = (
+    "incident_id,iuu_types,iuu_subtypes,iuu_classifications"
+)
 DEFAULT_ILLEGAL_TYPE = "Illegal Fishing"
 DEFAULT_MIN_SUPPORT_ILLEGAL = 0.1
 DEFAULT_MIN_SUPPORT_OTHER = 0.1
@@ -49,12 +50,23 @@ DEFAULT_MIN_COUNT = 2
 DEFAULT_MIN_LENGTH = 1
 
 OTHER_BUCKET = "Other IUU Types"
+PAIR_SEPARATOR = "::"
 
 
-def parse_labels(raw: object) -> list[str]:
+def parse_classifications(raw: object) -> list[tuple[str, str]]:
     if raw is None or (isinstance(raw, float) and pd.isna(raw)):
         return []
-    return [s.strip() for s in str(raw).split(";") if s.strip()]
+    pairs: list[tuple[str, str]] = []
+    for entry in str(raw).split(";"):
+        entry = entry.strip()
+        if not entry or PAIR_SEPARATOR not in entry:
+            continue
+        t, _, s = entry.partition(PAIR_SEPARATOR)
+        t, s = t.strip(), s.strip()
+        if not t or not s:
+            continue
+        pairs.append((t, s))
+    return pairs
 
 
 def row_to_items(row: pd.Series, feature_cols: list[str]) -> list[str]:
@@ -71,38 +83,28 @@ def row_to_items(row: pd.Series, feature_cols: list[str]) -> list[str]:
 
 def build_transactions(
     df: pd.DataFrame,
-    label_col: str,
-    type_col: str,
+    class_col: str,
     exclude_type: str,
     feature_cols: list[str],
 ) -> tuple[list[dict], dict[str, int]]:
     transactions: list[dict] = []
-    skipped_no_label = 0
-    skipped_no_type = 0
-    skipped_type_excluded = 0
+    skipped_no_classifications = 0
+    skipped_all_excluded = 0
     for _, row in df.iterrows():
-        types = parse_labels(row.get(type_col))
-        if not types:
-            skipped_no_type += 1
+        pairs = parse_classifications(row.get(class_col))
+        if not pairs:
+            skipped_no_classifications += 1
             continue
-        if exclude_type and all(t == exclude_type for t in types):
-            skipped_type_excluded += 1
-            continue
-        kept_types = [t for t in types if t != exclude_type]
-        subtypes = parse_labels(row.get(label_col))
-        if not subtypes:
-            skipped_no_label += 1
+        kept = [(t, s) for (t, s) in pairs if t != exclude_type]
+        if not kept:
+            skipped_all_excluded += 1
             continue
         items = row_to_items(row, feature_cols)
-        for t in kept_types:
-            for subtype in subtypes:
-                transactions.append(
-                    {"type": t, "subtype": subtype, "items": items}
-                )
+        for t, subtype in kept:
+            transactions.append({"type": t, "subtype": subtype, "items": items})
     return transactions, {
-        "no_label": skipped_no_label,
-        "no_type": skipped_no_type,
-        "type_excluded": skipped_type_excluded,
+        "no_classifications": skipped_no_classifications,
+        "all_excluded": skipped_all_excluded,
     }
 
 
@@ -226,14 +228,20 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--label-col", default=DEFAULT_LABEL_COL)
-    parser.add_argument("--type-col", default=DEFAULT_TYPE_COL)
+    parser.add_argument(
+        "--class-col",
+        default=DEFAULT_CLASS_COL,
+        help=(
+            "Column carrying 'Type::Subtype;Type::Subtype' classification "
+            "pairs. Produced by export_leaf_presence_csv.py."
+        ),
+    )
     parser.add_argument(
         "--exclude-type",
         default=DEFAULT_EXCLUDE_TYPE,
         help=(
-            "Drop rows whose iuu_types is entirely this value, and never "
-            "form a mining group for it. Pass empty string to disable."
+            "Drop classifications whose type matches this value. Pass empty "
+            "string to disable."
         ),
     )
     parser.add_argument(
@@ -285,16 +293,16 @@ def main() -> None:
     skip_cols = {c.strip() for c in args.skip_cols.split(",") if c.strip()}
 
     df = pd.read_csv(args.input)
-    for col in (args.label_col, args.type_col):
-        if col not in df.columns:
-            raise SystemExit(
-                f"Column '{col}' not found in {args.input}. "
-                f"Available: {list(df.columns)[:10]}..."
-            )
+    if args.class_col not in df.columns:
+        raise SystemExit(
+            f"Column '{args.class_col}' not found in {args.input}. "
+            f"Re-run export_leaf_presence_csv.py to add it. "
+            f"Available: {list(df.columns)[:10]}..."
+        )
 
     feature_cols = [c for c in df.columns if c not in skip_cols]
     transactions, skipped = build_transactions(
-        df, args.label_col, args.type_col, args.exclude_type, feature_cols
+        df, args.class_col, args.exclude_type, feature_cols
     )
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -356,8 +364,7 @@ def main() -> None:
         "input": str(args.input),
         "input_rows": int(df.shape[0]),
         "feature_columns": len(feature_cols),
-        "label_column": args.label_col,
-        "type_column": args.type_col,
+        "class_column": args.class_col,
         "exclude_type": args.exclude_type,
         "transactions_emitted": len(transactions),
         "transactions_skipped": skipped,

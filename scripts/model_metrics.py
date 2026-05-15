@@ -38,11 +38,14 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _review_lib import (  # noqa: E402
+    EXCLUDED_LEAF_NAMES,
+    EXCLUDED_LEAVES,
     ApiClient,
     classify_change,
     diff_kde_leaf,
     diff_kde_top_level,
     extract_link_id,
+    flatten,
     get_iuu_subtypes,
     get_iuu_types,
     load_ids,
@@ -315,10 +318,36 @@ def overview_summary(acc: dict) -> dict:
 # ── Accumulators ───────────────────────────────────────────────────────────
 
 
+def _incident_leaf_accuracy(orig: dict, curr: dict) -> float | None:
+    """Strict per-incident accuracy across leaf KDE fields.
+
+    Returns (correct + correct_empty) / total_leaf_judgments, or None when the
+    incident contributes no judgments. Mirrors the field selection used by
+    diff_kde_leaf so the histogram lines up with the aggregate kde_leaf metrics.
+    """
+    orig_flat = dict(flatten(orig.get("extracted_information") or {}))
+    curr_flat = dict(flatten(curr.get("extracted_information") or {}))
+    correct = 0
+    total = 0
+    for key in set(orig_flat) | set(curr_flat):
+        if key in EXCLUDED_LEAVES:
+            continue
+        if key.rsplit(".", 1)[-1] in EXCLUDED_LEAF_NAMES:
+            continue
+        bucket = classify_change(orig_flat.get(key), curr_flat.get(key))
+        total += 1
+        if bucket in ("correct", "correct_empty"):
+            correct += 1
+    if total == 0:
+        return None
+    return correct / total
+
+
 def make_metric_accumulators() -> dict:
     """Extended accumulator: review_analysis buckets + per-sample lists for metrics."""
     acc = make_accumulators()
     acc["counts"]["sources_v1_missing"] = 0
+    acc["per_incident_accuracy"] = []
     acc["samples"] = {
         "scope": [],  # list of (pred, truth)
         "iuu_type": [],  # list of (set, set)
@@ -470,6 +499,9 @@ async def run(
 
                 diff_kde_top_level(inc_v1, curr, acc)
                 diff_kde_leaf(inc_v1, curr, acc)
+                inc_acc = _incident_leaf_accuracy(inc_v1, curr)
+                if inc_acc is not None:
+                    acc["per_incident_accuracy"].append(inc_acc)
                 acc["counts"]["incidents_processed"] += 1
     finally:
         await api.aclose()
@@ -488,7 +520,7 @@ async def run(
     logger.info("Wrote detailed JSON to %s", output)
 
     if figures_dir is not None:
-        write_figures(metrics, figures_dir)
+        write_figures(metrics, figures_dir, acc["per_incident_accuracy"])
         logger.info("Wrote confusion-matrix figures to %s", figures_dir)
 
 
@@ -626,7 +658,51 @@ def plot_multilabel_confusions(
     plt.close(fig)
 
 
-def write_figures(metrics: dict, figures_dir: Path) -> None:
+def plot_incident_accuracy_distribution(
+    accuracies: list[float], out: Path, bins: int = 20
+) -> None:
+    """Histogram of per-incident leaf-field accuracy."""
+    if not accuracies:
+        return
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.hist(
+        accuracies,
+        bins=bins,
+        range=(0.0, 1.0),
+        color="steelblue",
+        edgecolor="white",
+    )
+    median = float(np.median(accuracies))
+    mean = float(np.mean(accuracies))
+    ax.axvline(
+        median,
+        color="black",
+        linestyle="--",
+        linewidth=1,
+        label=f"median = {median:.3f}",
+    )
+    ax.axvline(
+        mean,
+        color="firebrick",
+        linestyle=":",
+        linewidth=1,
+        label=f"mean = {mean:.3f}",
+    )
+    ax.set_xlabel(
+        "Per-incident accuracy  (correct + correct_empty) / total leaf judgments"
+    )
+    ax.set_ylabel("Count of incidents")
+    ax.set_title(f"Distribution of extraction quality  (n = {len(accuracies)})")
+    ax.set_xlim(0.0, 1.0)
+    ax.legend(loc="upper left")
+    fig.tight_layout()
+    fig.savefig(out, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_figures(
+    metrics: dict, figures_dir: Path, per_incident_accuracy: list[float]
+) -> None:
     figures_dir.mkdir(parents=True, exist_ok=True)
     plot_scope_confusion(metrics["scope"], figures_dir / "scope_confusion.png")
     plot_multilabel_confusions(
@@ -636,6 +712,10 @@ def write_figures(metrics: dict, figures_dir: Path) -> None:
         "IUU subtype",
         metrics["iuu_subtype"],
         figures_dir / "iuu_subtype_confusion.png",
+    )
+    plot_incident_accuracy_distribution(
+        per_incident_accuracy,
+        figures_dir / "incident_accuracy_distribution.png",
     )
 
 
@@ -751,6 +831,7 @@ def write_json(acc: dict, metrics: dict, path: Path) -> None:
         },
         "kde_top": {k: dict(v) for k, v in acc["kde_top"].items()},
         "kde_leaf": {k: dict(v) for k, v in acc["kde_leaf"].items()},
+        "per_incident_accuracy": acc["per_incident_accuracy"],
         "skipped": acc["skipped"],
         "metrics": metrics,
     }

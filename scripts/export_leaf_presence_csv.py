@@ -4,9 +4,16 @@ Talks to the public stats endpoint:
     GET /api/incidents/stats/leaf-presence
 
 Output columns:
-    incident_id, iuu_types, iuu_subtypes, <leaf_path_1>, <leaf_path_2>, ...
+    incident_id, iuu_types, iuu_subtypes, iuu_classifications,
+    <leaf_path_1>, <leaf_path_2>, ...
 
 ``iuu_types`` is a semicolon-joined list of the incident's IUU classifications.
+``iuu_subtypes`` is a flat semicolon-joined list (alignment with types lost).
+``iuu_classifications`` preserves the (type, subtype) pairing as
+``Type1::Subtype1;Type1::Subtype2;Type2::Subtype3``. Classifications with no
+subtype are omitted from this column. Use this column for any analysis that
+needs to know which subtype belongs to which type.
+
 Leaf-path columns are 0/1; list-of-anything fields are treated as one leaf.
 
 Field-level exclusions are applied client-side. A leaf path is dropped when
@@ -66,21 +73,40 @@ def write_csv(payload: dict, out: Path, exclude: set[str]) -> tuple[int, int, in
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["incident_id", "iuu_types", "iuu_subtypes", *kept_paths])
+        writer.writerow(
+            [
+                "incident_id",
+                "iuu_types",
+                "iuu_subtypes",
+                "iuu_classifications",
+                *kept_paths,
+            ]
+        )
         for inc in incidents:
             presence = inc.get("presence", [])
             filtered = [v for v, keep in zip(presence, keep_mask) if keep]
+            types_raw = inc.get("iuu_types") or []
             subtypes_raw = inc.get("iuu_subtypes") or []
             subtypes_flat = [
                 s
                 for item in subtypes_raw
                 for s in (item if isinstance(item, list) else [item])
             ]
+            classification_pairs: list[str] = []
+            for t, subs in zip(types_raw, subtypes_raw):
+                if not t:
+                    continue
+                inner = subs if isinstance(subs, list) else [subs]
+                for s in inner:
+                    if not s:
+                        continue
+                    classification_pairs.append(f"{t}::{s}")
             writer.writerow(
                 [
                     inc.get("id", ""),
-                    ";".join(inc.get("iuu_types") or []),
+                    ";".join(types_raw),
                     ";".join(subtypes_flat),
+                    ";".join(classification_pairs),
                     *filtered,
                 ]
             )
