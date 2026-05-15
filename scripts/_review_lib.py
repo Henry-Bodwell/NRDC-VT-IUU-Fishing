@@ -30,17 +30,30 @@ def is_empty(value: Any) -> bool:
 
 
 def classify_change(orig: Any, curr: Any) -> str:
+    """Classify a (predicted, truth) slot judgment into one of five IE buckets.
+
+    Bucket semantics — `orig` is the model prediction, `curr` is gold truth:
+      - correct        : both populated, values equal           (TP)
+      - correct_empty  : both empty                             (TN; excluded
+                                                                 from rate
+                                                                 denominators)
+      - missing        : pred empty, truth populated            (FN)
+      - spurious       : pred populated, truth empty            (FP)
+      - mismatch       : both populated, values differ          (FP and FN
+                                                                 under strict
+                                                                 scoring)
+    """
     o_empty = is_empty(orig)
     c_empty = is_empty(curr)
     if o_empty and c_empty:
-        return "untouched"
+        return "correct_empty"
     if o_empty and not c_empty:
-        return "missed"
+        return "missing"
     if not o_empty and c_empty:
-        return "removed"
+        return "spurious"
     if orig == curr:
-        return "untouched"
-    return "changed"
+        return "correct"
+    return "mismatch"
 
 
 def flatten(obj: Any, prefix: str = "") -> Iterable[tuple[str, Any]]:

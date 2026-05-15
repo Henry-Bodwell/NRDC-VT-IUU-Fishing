@@ -9,7 +9,8 @@ Outputs aggregate stats on:
   A. Source scope classification transitions
   B. IUU type transitions (added / removed / unchanged)
   C. IUU subtype transitions
-  D. KDE field changes (top-level + leaf-level): untouched / missed / changed / removed
+  D. KDE field changes (top-level + leaf-level): correct / correct_empty /
+     missing / spurious / mismatch  (IE slot-filling buckets)
 
 Usage:
     python scripts/review_analysis.py \
@@ -143,35 +144,36 @@ def print_summary(acc: dict) -> None:
     for k, v in acc["iuu_subtype_removed"].most_common():
         print(f"    {v:>4}  {k}")
 
-    print("\n=== D1. KDE top-level (per-incident) ===")
-    print(
-        f"  {'field':<32} {'untouched':>10} {'missed':>8} "
-        f"{'changed':>8} {'removed':>8}"
+    header = (
+        f"  {'field':<32} {'correct':>8} {'tn':>6} "
+        f"{'missing':>8} {'spurious':>9} {'mismatch':>9}"
     )
-    for field in sorted(acc["kde_top"].keys()):
-        b = acc["kde_top"][field]
-        print(
-            f"  {field:<32} {b.get('untouched', 0):>10} "
-            f"{b.get('missed', 0):>8} {b.get('changed', 0):>8} "
-            f"{b.get('removed', 0):>8}"
+    leaf_header = (
+        f"  {'field':<60} {'correct':>8} {'tn':>6} "
+        f"{'missing':>8} {'spurious':>9} {'mismatch':>9}"
+    )
+
+    def _row(field: str, b: dict, width: int) -> str:
+        return (
+            f"  {field:<{width}} {b.get('correct', 0):>8} "
+            f"{b.get('correct_empty', 0):>6} {b.get('missing', 0):>8} "
+            f"{b.get('spurious', 0):>9} {b.get('mismatch', 0):>9}"
         )
 
-    print("\n=== D2. KDE leaf-level (top 30 by total non-untouched) ===")
+    print("\n=== D1. KDE top-level (per-incident) ===")
+    print(header)
+    for field in sorted(acc["kde_top"].keys()):
+        print(_row(field, acc["kde_top"][field], 32))
+
+    print("\n=== D2. KDE leaf-level (top 30 by error count) ===")
     leaf_items = []
     for field, b in acc["kde_leaf"].items():
-        touched = b.get("missed", 0) + b.get("changed", 0) + b.get("removed", 0)
-        leaf_items.append((touched, field, b))
+        errors = b.get("missing", 0) + b.get("spurious", 0) + b.get("mismatch", 0)
+        leaf_items.append((errors, field, b))
     leaf_items.sort(reverse=True)
-    print(
-        f"  {'field':<60} {'untouched':>10} {'missed':>8} "
-        f"{'changed':>8} {'removed':>8}"
-    )
+    print(leaf_header)
     for _, field, b in leaf_items[:30]:
-        print(
-            f"  {field:<60} {b.get('untouched', 0):>10} "
-            f"{b.get('missed', 0):>8} {b.get('changed', 0):>8} "
-            f"{b.get('removed', 0):>8}"
-        )
+        print(_row(field, b, 60))
     print(f"  (full per-leaf breakdown of {len(leaf_items)} fields in JSON output)")
 
 

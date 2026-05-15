@@ -183,34 +183,50 @@ def multilabel_metrics(samples: list[tuple[set[str], set[str]]]) -> dict:
 
 
 def kde_rates(kde_bucket: dict) -> dict:
-    """Compute missed_rate / change_rate / removed_rate per field from raw counters.
+    """Compute IE-standard precision / recall / F1 per field from raw buckets.
 
-    Denominators:
-      - missed_rate:  total - removed (truth-empty cases are excluded;
-        missing-a-field is undefined when truth has nothing there)
-      - removed_rate: total - missed  (orig-empty cases are excluded by symmetry)
-      - change_rate:  total (any divergence between orig and truth)
+    Treats each (incident, field) as a slot-filling judgment with five
+    outcomes (see classify_change in _review_lib): correct, correct_empty,
+    missing, spurious, mismatch. Mismatches are scored strictly — they count
+    as both FP and FN — and `correct_empty` (TN) is excluded from every rate
+    denominator.
 
-    Note: 'untouched' lumps empty-in-both with equal-nonempty-in-both
-    (see classify_change in _review_lib), so missed_rate/removed_rate are
-    upper-bound denominators rather than true populated-truth rates.
+    Reported rates per field:
+      - precision = correct / (correct + spurious + mismatch)
+      - recall    = correct / (correct + missing  + mismatch)
+      - f1        = harmonic mean of the above
+      - mismatch_rate  = mismatch / (correct + mismatch)
+        ("when both pred and gold said the slot was populated, how often did
+         the value disagree?")
+      - miss_rate      = missing  / (correct + missing  + mismatch)   # FN-rate
+      - spurious_rate  = spurious / (correct + spurious + mismatch)   # FP-rate
     """
     out = {}
     for field, b in kde_bucket.items():
-        untouched = b.get("untouched", 0)
-        missed = b.get("missed", 0)
-        changed = b.get("changed", 0)
-        removed = b.get("removed", 0)
-        total = untouched + missed + changed + removed
-        any_touch = missed + changed + removed
-        missed_denom = total - removed
-        removed_denom = total - missed
+        correct = b.get("correct", 0)
+        correct_empty = b.get("correct_empty", 0)
+        missing = b.get("missing", 0)
+        spurious = b.get("spurious", 0)
+        mismatch = b.get("mismatch", 0)
+
+        n_judgments = correct + correct_empty + missing + spurious + mismatch
+        n_scored = n_judgments - correct_empty
+        support = correct + missing + mismatch
+        n_predicted = correct + spurious + mismatch
+
+        p, r, f = _prf_raw(correct, spurious + mismatch, missing + mismatch)
         out[field] = {
             **dict(b),
-            "total": total,
-            "missed_rate": round(_safe_div(missed, missed_denom), 4),
-            "change_rate": round(_safe_div(any_touch, total), 4),
-            "removed_rate": round(_safe_div(removed, removed_denom), 4),
+            "n_judgments": n_judgments,
+            "n_scored": n_scored,
+            "support": support,
+            "n_predicted": n_predicted,
+            "precision": round(p, 4),
+            "recall": round(r, 4),
+            "f1": round(f, 4),
+            "mismatch_rate": round(_safe_div(mismatch, correct + mismatch), 4),
+            "miss_rate": round(_safe_div(missing, support), 4),
+            "spurious_rate": round(_safe_div(spurious, n_predicted), 4),
         }
     return out
 
@@ -679,15 +695,19 @@ def print_summary(acc: dict, metrics: dict) -> None:
             f"F1={cm['macro']['f1']}"
         )
 
-    print("\n=== D. KDE top-level (top 10 by change_rate) ===")
+    print("\n=== D. KDE top-level (worst 10 by F1, support>0 only) ===")
     top = sorted(
-        metrics["kde_top"].items(), key=lambda kv: -kv[1].get("change_rate", 0)
+        (kv for kv in metrics["kde_top"].items() if kv[1].get("support", 0) > 0),
+        key=lambda kv: kv[1].get("f1", 0),
     )[:10]
-    print(f"  {'field':<32} {'changed%':>10} {'missed%':>10} {'removed%':>10}")
+    print(
+        f"  {'field':<32} {'P':>6} {'R':>6} {'F1':>6} "
+        f"{'mismatch%':>10} {'support':>8}"
+    )
     for field, m in top:
         print(
-            f"  {field:<32} {m['change_rate']:>10} {m['missed_rate']:>10} "
-            f"{m['removed_rate']:>10}"
+            f"  {field:<32} {m['precision']:>6} {m['recall']:>6} "
+            f"{m['f1']:>6} {m['mismatch_rate']:>10} {m['support']:>8}"
         )
 
     print("\n=== E. Industry Overview ===")

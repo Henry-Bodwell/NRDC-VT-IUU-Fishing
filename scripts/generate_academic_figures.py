@@ -162,7 +162,9 @@ def _plot_country_bar(rows: list[dict], out: Path, top_n: int = 25) -> None:
     plt.close(fig)
 
 
-def plot_years(rows: list[dict], out: Path) -> None:
+def plot_years(rows: list[dict], out: Path, min_year: int | None) -> None:
+    if min_year is not None:
+        rows = [r for r in rows if int(r["year"]) >= min_year]
     rows = sorted(rows, key=lambda r: r["year"])
     years = [r["year"] for r in rows]
     counts = [r["count"] for r in rows]
@@ -484,7 +486,9 @@ async def main_async(args: argparse.Namespace) -> None:
     data = await fetch_all(args.base_url, args.auth_token)
 
     plot_country_map(data["countries"]["counts"], out_dir / "incidents_by_country.png")
-    plot_years(data["years"]["counts"], out_dir / "incidents_by_year.png")
+    plot_years(
+        data["years"]["counts"], out_dir / "incidents_by_year.png", min_year=2014
+    )
     plot_iuu_types(data["iuu_types"]["counts"], out_dir / "incidents_by_iuu_type.png")
     plot_subtypes_by_class(data["iuu_subtypes"]["counts"], out_dir)
     plot_kde_field_rates(data["kde_fields"], out_dir / "kde_field_rates.png")

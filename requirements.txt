@@ -38,3 +38,4 @@ pre-commit>=4.0.0
 matplotlib>=3.8
 geopandas>=0.14
 pyogrio>=0.7
+pyipf
