@@ -223,6 +223,8 @@ def strip_excluded(ext: dict) -> dict:
         return {}
     out: dict = {}
     for top_key, top_val in ext.items():
+        if top_key in EXCLUDED_LEAF_NAMES:
+            continue
         if isinstance(top_val, dict):
             filtered = {
                 k: v

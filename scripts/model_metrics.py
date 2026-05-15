@@ -103,7 +103,7 @@ def multiclass_metrics(samples: list[tuple[str, str]]) -> dict:
     if not samples:
         return {"n": 0, "accuracy": 0.0, "per_class": {}, "macro": {}, "confusion": {}}
 
-    correct = sum(1 for pred, truth in samples if pred == truth)
+    correct = sum(1 for pred, truth in samples if pred == truth and pred)
     classes = sorted({c for pair in samples for c in pair if c})
 
     confusion: dict[str, dict[str, int]] = {}
@@ -118,17 +118,17 @@ def multiclass_metrics(samples: list[tuple[str, str]]) -> dict:
         fp = sum(1 for pred, truth in samples if pred == cls and truth != cls)
         fn = sum(1 for pred, truth in samples if pred != cls and truth == cls)
         support = sum(1 for _, truth in samples if truth == cls)
-        p, r, f = _prf_raw(tp, fp, fn)
+        prec, rec, f1 = _prf_raw(tp, fp, fn)
         per_class[cls] = {
             "tp": tp,
             "fp": fp,
             "fn": fn,
-            "precision": round(p, 4),
-            "recall": round(r, 4),
-            "f1": round(f, 4),
+            "precision": round(prec, 4),
+            "recall": round(rec, 4),
+            "f1": round(f1, 4),
             "support": support,
         }
-        per_class_raw[cls] = (p, r, f, support)
+        per_class_raw[cls] = (prec, rec, f1, support)
 
     return {
         "n": len(samples),
@@ -156,17 +156,17 @@ def multilabel_metrics(samples: list[tuple[set[str], set[str]]]) -> dict:
         fp = sum(1 for p, t in samples if cls in p and cls not in t)
         fn = sum(1 for p, t in samples if cls not in p and cls in t)
         support = sum(1 for _, t in samples if cls in t)
-        p, r, f = _prf_raw(tp, fp, fn)
+        prec, rec, f1 = _prf_raw(tp, fp, fn)
         per_class[cls] = {
             "tp": tp,
             "fp": fp,
             "fn": fn,
-            "precision": round(p, 4),
-            "recall": round(r, 4),
-            "f1": round(f, 4),
+            "precision": round(prec, 4),
+            "recall": round(rec, 4),
+            "f1": round(f1, 4),
             "support": support,
         }
-        per_class_raw[cls] = (p, r, f, support)
+        per_class_raw[cls] = (prec, rec, f1, support)
         micro_tp += tp
         micro_fp += fp
         micro_fn += fn
@@ -183,23 +183,24 @@ def multilabel_metrics(samples: list[tuple[set[str], set[str]]]) -> dict:
 
 
 def kde_rates(kde_bucket: dict) -> dict:
-    """Compute IE-standard precision / recall / F1 per field from raw buckets.
+    """Compute precision / recall / F1 per field from raw slot-judgment buckets.
 
     Treats each (incident, field) as a slot-filling judgment with five
     outcomes (see classify_change in _review_lib): correct, correct_empty,
     missing, spurious, mismatch. Mismatches are scored strictly — they count
-    as both FP and FN — and `correct_empty` (TN) is excluded from every rate
-    denominator.
+    as both FP and FN. `correct_empty` (pred and truth both empty) is counted
+    as a successful prediction (TP) so fields the model correctly identifies
+    as empty don't drag scores to zero.
 
-    Reported rates per field:
-      - precision = correct / (correct + spurious + mismatch)
-      - recall    = correct / (correct + missing  + mismatch)
+    Reported rates per field (with tp_eff = correct + correct_empty):
+      - precision = tp_eff / (tp_eff + spurious + mismatch)
+      - recall    = tp_eff / (tp_eff + missing  + mismatch)
       - f1        = harmonic mean of the above
       - mismatch_rate  = mismatch / (correct + mismatch)
         ("when both pred and gold said the slot was populated, how often did
          the value disagree?")
-      - miss_rate      = missing  / (correct + missing  + mismatch)   # FN-rate
-      - spurious_rate  = spurious / (correct + spurious + mismatch)   # FP-rate
+      - miss_rate      = missing  / (tp_eff + missing  + mismatch)   # FN-rate
+      - spurious_rate  = spurious / (tp_eff + spurious + mismatch)   # FP-rate
     """
     out = {}
     for field, b in kde_bucket.items():
@@ -209,21 +210,20 @@ def kde_rates(kde_bucket: dict) -> dict:
         spurious = b.get("spurious", 0)
         mismatch = b.get("mismatch", 0)
 
+        tp_eff = correct + correct_empty
         n_judgments = correct + correct_empty + missing + spurious + mismatch
-        n_scored = n_judgments - correct_empty
-        support = correct + missing + mismatch
-        n_predicted = correct + spurious + mismatch
+        support = tp_eff + missing + mismatch
+        n_predicted = tp_eff + spurious + mismatch
 
-        p, r, f = _prf_raw(correct, spurious + mismatch, missing + mismatch)
+        prec, rec, f1 = _prf_raw(tp_eff, spurious + mismatch, missing + mismatch)
         out[field] = {
             **dict(b),
             "n_judgments": n_judgments,
-            "n_scored": n_scored,
             "support": support,
             "n_predicted": n_predicted,
-            "precision": round(p, 4),
-            "recall": round(r, 4),
-            "f1": round(f, 4),
+            "precision": round(prec, 4),
+            "recall": round(rec, 4),
+            "f1": round(f1, 4),
             "mismatch_rate": round(_safe_div(mismatch, correct + mismatch), 4),
             "miss_rate": round(_safe_div(missing, support), 4),
             "spurious_rate": round(_safe_div(spurious, n_predicted), 4),
@@ -338,11 +338,23 @@ def make_metric_accumulators() -> dict:
 # ── Main runner ────────────────────────────────────────────────────────────
 
 
+_SCOPE_REMAP = {
+    "Single Incident": "Incidents",
+    "Multiple Incidents": "Incidents",
+    "Industry Overview": "Related to IUU+, no incident",
+    "Unrelated": "Unrelated",
+}
+
+
+def _normalize_scope(label: str) -> str:
+    return _SCOPE_REMAP.get(label, label)
+
+
 def _scope_of(state: dict | None) -> str:
     if not state:
         return "<missing>"
     scope = state.get("article_scope") or {}
-    return scope.get("articleType") or "<none>"
+    return _normalize_scope(scope.get("articleType") or "<none>")
 
 
 async def run(
@@ -573,9 +585,7 @@ def plot_multilabel_confusions(
         ax = axes[r][c]
         tp, fp, fn = m["tp"], m["fp"], m["fn"]
         tn = max(0, n_samples - tp - fp - fn)
-        mat = np.array([[tp, fn], [fp, tn]])
-        # Layout: row 0 = pred present, row 1 = pred absent
-        # actually rows = truth/present, columns = pred — invert for clarity
+        # rows = truth (+/-), cols = pred (+/-)
         mat = np.array([[tp, fn], [fp, tn]])
         ax.imshow(mat, cmap=cmap, vmin=0, vmax=max(mat.max(), 1))
         ax.set_xticks([0, 1])
@@ -699,7 +709,7 @@ def print_summary(acc: dict, metrics: dict) -> None:
     top = sorted(
         (kv for kv in metrics["kde_top"].items() if kv[1].get("support", 0) > 0),
         key=lambda kv: kv[1].get("f1", 0),
-    )[:10]
+    )
     print(
         f"  {'field':<32} {'P':>6} {'R':>6} {'F1':>6} "
         f"{'mismatch%':>10} {'support':>8}"
@@ -717,7 +727,7 @@ def print_summary(acc: dict, metrics: dict) -> None:
             f"  {field:<12} P={m['precision']:>6} R={m['recall']:>6} "
             f"F1={m['f1']:>6} (tp={m['tp']} fp={m['fp']} fn={m['fn']})"
         )
-    print(f"  summary buckets: {dict(ov['summary'])}")
+    print(f"  summary buckets: {ov['summary']}")
 
 
 def write_json(acc: dict, metrics: dict, path: Path) -> None:
@@ -771,8 +781,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--figures-dir",
-        type=Path,
-        default=Path("scripts/figures/model_metrics"),
+        type=str,
+        default="scripts/figures/model_metrics",
         help="Directory to write confusion-matrix PNGs (pass empty string to skip).",
     )
     parser.add_argument("--log-level", default="INFO")
@@ -789,7 +799,7 @@ def main() -> None:
             "Pass --auth-token or set AUTH_TOKEN."
         )
 
-    figures_dir = args.figures_dir if str(args.figures_dir) else None
+    figures_dir = Path(args.figures_dir) if args.figures_dir else None
     asyncio.run(
         run(
             args.ids_file,
