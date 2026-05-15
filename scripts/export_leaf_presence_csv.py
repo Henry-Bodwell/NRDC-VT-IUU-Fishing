@@ -4,7 +4,7 @@ Talks to the public stats endpoint:
     GET /api/incidents/stats/leaf-presence
 
 Output columns:
-    incident_id, iuu_types, <leaf_path_1>, <leaf_path_2>, ...
+    incident_id, iuu_types, iuu_subtypes, <leaf_path_1>, <leaf_path_2>, ...
 
 ``iuu_types`` is a semicolon-joined list of the incident's IUU classifications.
 Leaf-path columns are 0/1; list-of-anything fields are treated as one leaf.
@@ -66,14 +66,21 @@ def write_csv(payload: dict, out: Path, exclude: set[str]) -> tuple[int, int, in
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["incident_id", "iuu_types", *kept_paths])
+        writer.writerow(["incident_id", "iuu_types", "iuu_subtypes", *kept_paths])
         for inc in incidents:
             presence = inc.get("presence", [])
             filtered = [v for v, keep in zip(presence, keep_mask) if keep]
+            subtypes_raw = inc.get("iuu_subtypes") or []
+            subtypes_flat = [
+                s
+                for item in subtypes_raw
+                for s in (item if isinstance(item, list) else [item])
+            ]
             writer.writerow(
                 [
                     inc.get("id", ""),
                     ";".join(inc.get("iuu_types") or []),
+                    ";".join(subtypes_flat),
                     *filtered,
                 ]
             )

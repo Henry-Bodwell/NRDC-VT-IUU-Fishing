@@ -1046,6 +1046,7 @@ class IncidentService(Service):
                 "$project": {
                     "extracted_information": 1,
                     "iuu_types": "$incident_classification.iuuClassifications.IUUType",
+                    "iuu_subtypes": "$incident_classification.iuuClassifications.IUUSubType",
                 }
             }
         ]
@@ -1061,6 +1062,10 @@ class IncidentService(Service):
                 {
                     "id": str(r.get("_id")),
                     "iuu_types": [t for t in (r.get("iuu_types") or []) if t],
+                    "iuu_subtypes": [
+                        [s for s in (item or []) if s]
+                        for item in (r.get("iuu_subtypes") or [])
+                    ],
                     "presence": presence_vec,
                 }
             )
@@ -1154,11 +1159,7 @@ class IncidentService(Service):
                     "preserveNullAndEmptyArrays": False,
                 }
             },
-            {
-                "$match": {
-                    "iuuClassifications.IUUType": {"$nin": [None, "", "NA"]}
-                }
-            },
+            {"$match": {"iuuClassifications.IUUType": {"$nin": [None, "", "NA"]}}},
             {
                 "$unwind": {
                     "path": "$iuuClassifications.IUUSubType",
