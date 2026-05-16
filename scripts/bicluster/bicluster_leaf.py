@@ -11,12 +11,12 @@ subtypes never leak across types. Rows with no classifications are skipped.
 Classifications whose type matches ``--exclude-type`` are dropped.
 
 Mining is performed in exactly two buckets:
-    1. ``--illegal-type`` (default: "Illegal Fishing") -- its own bucket.
-    2. "Other IUU Types" -- every other (non-excluded) type, pooled.
+    1. "All IUU Types" -- all non-excluded transactions pooled together.
+    2. "Other IUU Types" -- every type except ``--illegal-type``, pooled.
 
-Each bucket has its own min-support flag (``--min-support-illegal`` and
-``--min-support-other``) so the dominant Illegal Fishing patterns can be
-tuned independently from the long tail.
+Each bucket has its own min-support flag (``--min-support-all`` and
+``--min-support-other``) so the full-set patterns can be tuned independently
+from the non-illegal-fishing long tail.
 
 Outputs (in --output-dir):
     leaf_transactions.jsonl
@@ -44,11 +44,12 @@ DEFAULT_SKIP_COLS = (
     "incident_id,iuu_types,iuu_subtypes,iuu_classifications"
 )
 DEFAULT_ILLEGAL_TYPE = "Illegal Fishing"
-DEFAULT_MIN_SUPPORT_ILLEGAL = 0.1
+DEFAULT_MIN_SUPPORT_ALL = 0.1
 DEFAULT_MIN_SUPPORT_OTHER = 0.1
 DEFAULT_MIN_COUNT = 2
 DEFAULT_MIN_LENGTH = 1
 
+ALL_IUU_BUCKET = "All IUU Types"
 OTHER_BUCKET = "Other IUU Types"
 PAIR_SEPARATOR = "::"
 
@@ -130,10 +131,11 @@ def group_transactions_two_way(
     transactions: list[dict],
     illegal_type: str,
 ) -> dict[str, list[dict]]:
-    grouped: dict[str, list[dict]] = {illegal_type: [], OTHER_BUCKET: []}
+    grouped: dict[str, list[dict]] = {ALL_IUU_BUCKET: [], OTHER_BUCKET: []}
     for tx in transactions:
-        bucket = illegal_type if tx["type"] == illegal_type else OTHER_BUCKET
-        grouped[bucket].append(tx)
+        grouped[ALL_IUU_BUCKET].append(tx)
+        if tx["type"] != illegal_type:
+            grouped[OTHER_BUCKET].append(tx)
     return grouped
 
 
@@ -258,10 +260,10 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--min-support-illegal",
+        "--min-support-all",
         type=float,
-        default=DEFAULT_MIN_SUPPORT_ILLEGAL,
-        help="min_support for the Illegal Fishing bucket.",
+        default=DEFAULT_MIN_SUPPORT_ALL,
+        help="min_support for the All IUU Types bucket.",
     )
     parser.add_argument(
         "--min-support-other",
@@ -314,7 +316,7 @@ def main() -> None:
 
     grouped = group_transactions_two_way(transactions, args.illegal_type)
     min_support_by_bucket = {
-        args.illegal_type: args.min_support_illegal,
+        ALL_IUU_BUCKET: args.min_support_all,
         OTHER_BUCKET: args.min_support_other,
     }
     per_type = mine_buckets(
@@ -369,7 +371,7 @@ def main() -> None:
         "transactions_emitted": len(transactions),
         "transactions_skipped": skipped,
         "illegal_type": args.illegal_type,
-        "min_support_illegal": args.min_support_illegal,
+        "min_support_all": args.min_support_all,
         "min_support_other": args.min_support_other,
         "min_count": args.min_count,
         "min_length": args.min_length,
