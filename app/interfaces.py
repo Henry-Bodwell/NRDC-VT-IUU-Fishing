@@ -1,7 +1,17 @@
 from datetime import datetime
 from typing import List, Literal
+
 from pydantic import BaseModel, Field, model_validator
-from app.literals import ArticleScope, IUUType, IUUSubtype, SourceType, Status
+
+from app.literals import (
+    ArticleScope,
+    InputType,
+    IUUSubtype,
+    IUUType,
+    LocationCategory,
+    SourceType,
+    Status,
+)
 
 
 class GenRequest(BaseModel):
@@ -15,8 +25,8 @@ class GenRequest(BaseModel):
     source_type: SourceType = Field(
         default="not specified", description="Type of source organization"
     )
-    status: Literal["extracted", "from_api", "user_input", "modified"] = Field(
-        default="user_input",
+    status: Status = Field(
+        default="all",
         description="Status of the source (extracted, from_api, user_input, or modified)",
     )
     input_name: str | None = None
@@ -40,9 +50,7 @@ class Filter(BaseModel):
     )
 
     # Common filters
-    input_category: Literal["all", "url", "text_upload", "pdf", "existing_extract"] = (
-        Field(default="all")
-    )
+    input_category: InputType = Field(default="all")
     verified: Literal["all", "true", "false"] = Field(default="all")
 
     # Date range filters
@@ -99,9 +107,9 @@ class IncidentFilters(Filter):
     event_country: str | None = Field(
         default=None, description="Filter by event country, ISO Alpha 3"
     )
-    event_location_category: Literal[
-        "all", "EEZ", "High Seas", "Inland Water", "Land"
-    ] = Field(default="all", description="Filter by event location category")
+    event_location_category: LocationCategory = Field(
+        default="all", description="Filter by event location category"
+    )
     # Enforcement Location filters
     enforcement_location: str | None = Field(
         default=None, description="Filter by  location (partial match)"
@@ -109,9 +117,9 @@ class IncidentFilters(Filter):
     enforcement_country: str | None = Field(
         default=None, description="Filter by  country, ISO Alpha 3"
     )
-    enforcement_location_category: Literal[
-        "all", "EEZ", "High Seas", "Inland Water", "Land"
-    ] = Field(default="all", description="Filter by  location category")
+    enforcement_location_category: LocationCategory = Field(
+        default="all", description="Filter by  location category"
+    )
 
     # Vessel filters
     vessel_name: str | None = Field(

@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+scripts/data*
+scripts/baseline_runs*
 #Images
 *png
 # C extensions

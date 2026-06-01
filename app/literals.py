@@ -75,7 +75,12 @@ IUUSubtype = Literal[
     "Crimes related to fishing or associated trade but distinct from IUU+ typology (e.g., murder of journalists investigating IUU+ fishing)",
     "Other",
     # Catch All leave None
+    "None",
 ]
+
+
+LocationCategory = Literal["all", "EEZ", "High Seas", "Inland Water", "Land"]
+
 
 SourceType = Literal[
     "all",
@@ -88,3 +93,5 @@ SourceType = Literal[
 ]
 
 Status = Literal["all", "extracted", "from_api", "user_input", "modified"]
+
+InputType = Literal["all", "url", "text_upload", "pdf", "existing_extract"]

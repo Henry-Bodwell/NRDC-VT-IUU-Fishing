@@ -2,7 +2,6 @@ from typing import List, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-
 # Subtype definitions for each IUU type
 ILLEGAL_FISHING_SUBTYPES = Literal[
     "Exceeding catch quotas",
@@ -231,10 +230,10 @@ IUUClassification = (
 
 
 class IncidentClassification(BaseModel):
-    """Model to represent the classification of an IUU incident."""
+    """Model to represent the classification of an IUU+ incident."""
 
     iuuClassifications: List[IUUClassification] = Field(
         ...,
         min_length=1,
-        description="A list of all applicable IUU classifications for the incident.",
+        description="A list of all applicable IUU+ classifications for the incident.",
     )

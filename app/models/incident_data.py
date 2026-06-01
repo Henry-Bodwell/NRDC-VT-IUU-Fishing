@@ -61,7 +61,7 @@ class CrewMember(BaseModel):
 
 
 class EventData(BaseModel):
-    """Structured information about the primary event and enforcement act of an IUU incident. ie the event that triggered the article."""
+    """Structured information about the primary event and enforcement act of an IUU+ incident. ie the event that triggered the article."""
 
     verified: bool = Field(
         default=False,
@@ -205,7 +205,6 @@ class CrewData(BaseModel):
 
 
 class LaborStandards(BaseModel):
-
     validated: bool = Field(
         default=False,
         description="Whether the labor standards information has been verified by a human, leave false",
@@ -349,16 +348,15 @@ class ComplianceData(BaseModel):
 
     # Regulatory Status
     partyToUNFSA: bool | None = Field(
-        default=None,
         description="Whether the vessel is a party to the United Nations Fish Stocks Agreement (UNFSA), if available",
     )
-    partyToPMSA: bool | None = Field(
+    partyToPSMA: bool | None = Field(
         default=None,
         description="Whether the vessel is a party to the Port State Measures Agreement (PSMA), if available",
     )
     cardedUnderEUIUURegulation: bool | None = Field(
         default=None,
-        description="Whether the vessel is carded under the EU IUU Regulation, if available",
+        description="Whether the vessel is carded under the EU IUU+ Regulation, if available",
     )
     inNOAABinannualReport: bool | None = Field(
         default=None,
@@ -367,7 +365,7 @@ class ComplianceData(BaseModel):
 
 
 class AquacultureData(BaseModel):
-    """Model to represent aquaculture data in an IUU incident."""
+    """Model to represent aquaculture data in an IUU+ incident."""
 
     verified: bool = Field(
         default=False,
@@ -420,7 +418,7 @@ class AquacultureData(BaseModel):
 
 
 class TransshipmentData(BaseModel):
-    """Model to represent transshipment data in an IUU incident."""
+    """Model to represent transshipment data in an IUU+ incident."""
 
     verified: bool = Field(
         default=False,
@@ -461,7 +459,7 @@ class TransshipmentData(BaseModel):
 
 
 class AggregationData(BaseModel):
-    """Model to represent aquacultural aggregators in an IUU incident."""
+    """Model to represent aquacultural aggregators in an IUU+ incident."""
 
     verified: bool = Field(
         default=False,
@@ -483,7 +481,7 @@ class AggregationData(BaseModel):
 
 
 class LandingData(BaseModel):
-    """Model to represent landing data in an IUU incident."""
+    """Model to represent landing data in an IUU+ incident."""
 
     verified: bool = Field(
         default=False,
@@ -508,7 +506,7 @@ class LandingData(BaseModel):
 
 
 class ProductData(BaseModel):
-    """Model to represent products in an IUU incident."""
+    """Model to represent products in an IUU+ incident."""
 
     verified: bool = Field(
         default=False,
@@ -560,7 +558,7 @@ class ProductData(BaseModel):
 
 
 class TradeData(BaseModel):
-    """Model to represent trade data in an IUU incident."""
+    """Model to represent trade data in an IUU+ incident."""
 
     verified: bool = Field(
         default=False,
@@ -586,7 +584,7 @@ class TradeData(BaseModel):
 
 
 class DistributionData(BaseModel):
-    """Model to represent distribution data in an IUU incident."""
+    """Model to represent distribution data in an IUU+ incident."""
 
     verified: bool = Field(
         default=False,
@@ -613,7 +611,7 @@ class DistributionData(BaseModel):
 
 
 class ExtractedIncidentData(BaseModel):
-    """Model to represent the structured information extracted from an article about an IUU incident."""
+    """Model to represent the structured information extracted from an article about an IUU+ incident."""
 
     vesselInformation: VesselData | None = Field(
         default=None,
