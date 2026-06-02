@@ -1,24 +1,27 @@
 import json
 import logging
+from typing import Annotated, List
 
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
+    HTTPException,
     Query,
     Request,
     Response,
-    HTTPException,
-    UploadFile as FastAPIUploadFile,
     status,
 )
+from fastapi import (
+    UploadFile as FastAPIUploadFile,
+)
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from pymongo import ASCENDING, DESCENDING
 from starlette.datastructures import UploadFile
-from typing import Annotated, List
-from pydantic import ValidationError
 
-from app.auth import get_current_user, get_current_admin_user
+from app.audit.context import AuditContext
+from app.auth import get_current_admin_user, get_current_user
 from app.interfaces import (
     AddSourceRequest,
     GenRequest,
@@ -29,9 +32,8 @@ from app.models.incidents import IncidentReport
 from app.models.sources import Source
 from app.models.task import TaskStatus
 from app.models.users import User
-from app.audit.context import AuditContext
-from app.service.incident_service import IncidentService
 from app.routes.helpers import valid_object_id, valid_response
+from app.service.incident_service import IncidentService
 
 logger = logging.getLogger(__name__)
 
@@ -256,8 +258,9 @@ async def _handle_file_request(
             )
 
         # Check for duplicate PDF by extracting text and computing hash
-        from app.dspy_files.content_extraction import ContentExtractor
         import hashlib
+
+        from app.dspy_files.content_extraction import ContentExtractor
 
         try:
             temp_source = ContentExtractor.from_pdf(pdf_bytes)
@@ -363,6 +366,9 @@ async def list_incident_reports(filter_query: Annotated[IncidentFilters, Query()
         elem_match["IUUType"] = filter_query.IUU_type
     if filter_query.IUU_subtype:
         elem_match["IUUSubType"] = {"$in": list(filter_query.IUU_subtype)}
+    if filter_query.IUU_subtype and "None" in filter_query.IUU_subtype:
+        pass
+        # Need to handle "None" in IUU_subtype Probably select where null or length =0?
     if elem_match:
         query_filters["incident_classification.iuuClassifications"] = {
             "$elemMatch": elem_match

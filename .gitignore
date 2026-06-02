@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+scripts/data*
+scripts/baseline_runs*
 #Images
 *png
 # C extensions
@@ -205,5 +208,15 @@ data/scholar/**/*.json
 *.db
 *.pdf
 
+scraped_data/*
+db_restore/*
+core_academic/*.json
+scripts/*.json
+scripts/**/*.json
+scripts/**/*.jsonl
+scripts/**/*.txt
+
 # Development Docker overrides
 docker-compose.override.yml
+
+.vscode/*

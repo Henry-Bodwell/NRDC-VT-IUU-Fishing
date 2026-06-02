@@ -234,6 +234,9 @@ def plot_kde_field_rates(payload: dict, out: Path, title_suffix: str = "") -> No
     items = sorted(fields.items(), key=lambda kv: kv[1]["non_null_rate"])
     labels = [k for k, _ in items]
     rates = [v["non_null_rate"] for _, v in items]
+    print(f"[plot_kde_field_rates] {out.name} column values:")
+    for label, rate in zip(labels, rates):
+        print(f"  {label}: {rate}")
     fig, ax = plt.subplots(figsize=(9, max(4, len(labels) * 0.3)))
     ax.barh(labels, rates, color="steelblue")
     ax.set_xlabel("Non-null rate")

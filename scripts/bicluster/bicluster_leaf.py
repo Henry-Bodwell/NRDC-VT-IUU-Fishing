@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Maximal frequent itemset mining over leaf_presence.csv, two buckets.
 
 Input: scripts/data/leaf_presence.csv (or similar) with column:
@@ -35,14 +34,11 @@ from typing import Iterable
 
 import pandas as pd
 
-
 DEFAULT_INPUT = Path("scripts/data/leaf_presence.csv")
 DEFAULT_OUTPUT_DIR = Path("scripts/bicluster/leaf_out")
 DEFAULT_CLASS_COL = "iuu_classifications"
 DEFAULT_EXCLUDE_TYPE = "Other"
-DEFAULT_SKIP_COLS = (
-    "incident_id,iuu_types,iuu_subtypes,iuu_classifications"
-)
+DEFAULT_SKIP_COLS = "incident_id,iuu_types,iuu_subtypes,iuu_classifications"
 DEFAULT_ILLEGAL_TYPE = "Illegal Fishing"
 DEFAULT_MIN_SUPPORT_ALL = 0.1
 DEFAULT_MIN_SUPPORT_OTHER = 0.1
