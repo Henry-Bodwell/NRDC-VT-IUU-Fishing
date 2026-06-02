@@ -564,7 +564,7 @@ def plot_scope_confusion(scope_metrics: dict, out: Path) -> None:
     ax.set_yticks(range(n))
     ax.set_xticklabels(wrapped, rotation=40, ha="right", fontsize=9)
     ax.set_yticklabels(wrapped, fontsize=9)
-    ax.set_xlabel("Predicted (v1)")
+    ax.set_xlabel("Predicted (IUU+DB)")
     ax.set_ylabel("Truth (current)")
     vmax = int(mat.max()) if mat.max() > 0 else 1
     threshold = vmax * 0.55
