@@ -248,9 +248,9 @@ async def sample_incident(test_db, sample_source: Source) -> IncidentReport:
 async def sample_user(test_db) -> User:
     """Create and return a sample User for testing."""
     user = User(
-        id="test-user-id",
         email="test@example.com",
         name="Test User",
+        hashedPassword="not-a-real-hash",
         role="user",
         is_active=True,
     )
@@ -262,9 +262,9 @@ async def sample_user(test_db) -> User:
 async def admin_user(test_db) -> User:
     """Create and return an admin User for testing."""
     user = User(
-        id="admin-user-id",
         email="admin@example.com",
         name="Admin User",
+        hashedPassword="not-a-real-hash",
         role="admin",
         is_active=True,
     )

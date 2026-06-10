@@ -5,7 +5,24 @@ Integration tests for API endpoints.
 import pytest
 from httpx import AsyncClient
 
-from app.models.sources import Source
+from app.auth import get_optional_user
+from app.main import app
+from app.models.sources import IncidentPassage, Source
+from tests.conftest import make_source
+
+# Article text long enough to trigger the non-admin preview truncation
+LONG_ARTICLE_TEXT = "Illegal fishing vessel spotted near the coast. " * 25
+
+
+@pytest.fixture
+def override_optional_user():
+    """Override get_optional_user with a fixed user; cleans up after the test."""
+
+    def _override(user):
+        app.dependency_overrides[get_optional_user] = lambda: user
+
+    yield _override
+    app.dependency_overrides.pop(get_optional_user, None)
 
 
 class TestIncidentsAPI:
@@ -434,6 +451,97 @@ class TestSourcesAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["pagination"]["total"] >= 1
+
+    async def _insert_long_source(self) -> Source:
+        """Insert a source with full text in article_text and incident_passages."""
+        source = make_source(
+            article_text=LONG_ARTICLE_TEXT,
+            incident_passages=[
+                IncidentPassage(
+                    target_passage="Vessel A was seized for illegal fishing.",
+                    full_context=LONG_ARTICLE_TEXT,
+                )
+            ],
+        )
+        await source.insert()
+        return source
+
+    @pytest.mark.asyncio
+    async def test_get_source_anonymous_gets_truncated_text(
+        self, async_client: AsyncClient, test_db
+    ):
+        """Anonymous users only get a preview of article_text and no full_context."""
+        source = await self._insert_long_source()
+
+        response = await async_client.get(f"/api/sources/{source.id}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["article_text"].endswith("...")
+        assert len(data["article_text"]) <= 403
+        passage = data["incident_passages"][0]
+        assert passage["target_passage"] == "Vessel A was seized for illegal fishing."
+        assert passage["full_context"] == ""
+
+    @pytest.mark.asyncio
+    async def test_list_sources_anonymous_gets_truncated_text(
+        self, async_client: AsyncClient, test_db
+    ):
+        """Source list returns previews for anonymous users."""
+        await self._insert_long_source()
+
+        response = await async_client.get("/api/sources")
+
+        assert response.status_code == 200
+        listed = response.json()["sources"][0]
+        assert listed["article_text"].endswith("...")
+        assert len(listed["article_text"]) <= 403
+        assert listed["incident_passages"][0]["full_context"] == ""
+
+    @pytest.mark.asyncio
+    async def test_get_source_non_admin_user_gets_truncated_text(
+        self, async_client: AsyncClient, sample_user, override_optional_user
+    ):
+        """Logged-in non-admin users also only get the preview."""
+        source = await self._insert_long_source()
+        override_optional_user(sample_user)
+
+        response = await async_client.get(f"/api/sources/{source.id}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["article_text"].endswith("...")
+        assert len(data["article_text"]) <= 403
+
+    @pytest.mark.asyncio
+    async def test_get_source_admin_gets_full_text(
+        self, async_client: AsyncClient, admin_user, override_optional_user
+    ):
+        """Admin users receive the complete article text and full_context."""
+        source = await self._insert_long_source()
+        override_optional_user(admin_user)
+
+        response = await async_client.get(f"/api/sources/{source.id}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["article_text"] == LONG_ARTICLE_TEXT
+        assert data["incident_passages"][0]["full_context"] == LONG_ARTICLE_TEXT
+
+    @pytest.mark.asyncio
+    async def test_list_sources_admin_gets_full_text(
+        self, async_client: AsyncClient, admin_user, override_optional_user
+    ):
+        """Source list returns complete article text for admin users."""
+        await self._insert_long_source()
+        override_optional_user(admin_user)
+
+        response = await async_client.get("/api/sources")
+
+        assert response.status_code == 200
+        listed = response.json()["sources"][0]
+        assert listed["article_text"] == LONG_ARTICLE_TEXT
+        assert listed["incident_passages"][0]["full_context"] == LONG_ARTICLE_TEXT
 
 
 class TestOverviewsAPI:

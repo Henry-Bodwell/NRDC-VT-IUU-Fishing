@@ -10,7 +10,7 @@ from fastapi import (
 from pymongo import ASCENDING, DESCENDING
 from typing import Annotated
 
-from app.auth import get_current_user, get_current_admin_user
+from app.auth import get_current_user, get_current_admin_user, get_optional_user
 from app.interfaces import SourceFilters
 from app.models.sources import Source
 from app.models.users import User
@@ -22,9 +22,38 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 
+TEXT_PREVIEW_MIN_CHARS = 300
+TEXT_PREVIEW_MAX_CHARS = 400
+
+
+def _truncate_text(text: str) -> str:
+    """Cut text at a word boundary between MIN and MAX chars, appending '...'."""
+    if len(text) <= TEXT_PREVIEW_MAX_CHARS:
+        return text
+    cut = text.rfind(" ", TEXT_PREVIEW_MIN_CHARS, TEXT_PREVIEW_MAX_CHARS)
+    if cut == -1:
+        cut = TEXT_PREVIEW_MAX_CHARS
+    return text[:cut] + "..."
+
+
+def _redact_source(source: Source) -> Source:
+    """Reduce full-text fields to a preview for non-admin viewers."""
+    source.article_text = _truncate_text(source.article_text)
+    if source.incident_passages:
+        for passage in source.incident_passages:
+            passage.full_context = ""
+    return source
+
+
+def _is_admin(user: User | None) -> bool:
+    return user is not None and user.role == "admin"
+
 
 @router.get("")
-async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
+async def list_sources(
+    filter_query: Annotated[SourceFilters, Query()],
+    current_user: User | None = Depends(get_optional_user),
+):
     """
     Retrieves a list of sources with pagination and filtering.
     """
@@ -90,6 +119,9 @@ async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
 
     total_count = await Source.find(query_filters).count()
 
+    if not _is_admin(current_user):
+        sources = [_redact_source(s) for s in sources]
+
     return {
         "sources": sources,
         "pagination": {
@@ -102,10 +134,15 @@ async def list_sources(filter_query: Annotated[SourceFilters, Query()]):
 
 
 @router.get("/{source_id}", response_model=Source)
-async def get_source(source_id: str):
+async def get_source(
+    source_id: str,
+    current_user: User | None = Depends(get_optional_user),
+):
     valid_object_id(source_id)
     source = await Source.get(source_id)
     valid_response(source, Source)
+    if not _is_admin(current_user):
+        source = _redact_source(source)
     return source
 
 
