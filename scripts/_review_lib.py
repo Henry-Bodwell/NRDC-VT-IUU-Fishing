@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 EXCLUDED_LEAVES = {
     "eventData.eventCountry",
     "eventData.enforcementCountry",
+    "complianceInformation.partyToPMSA",
+    "complianceInformation.partyToPSMA",
 }
 
 EXCLUDED_LEAF_NAMES = {"verified", "description"}
