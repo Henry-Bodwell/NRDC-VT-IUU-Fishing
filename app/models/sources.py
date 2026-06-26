@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from datetime import datetime
 from typing import List, Literal
 from beanie import Insert, Link, Replace, before_event
@@ -8,7 +9,6 @@ from pymongo import ASCENDING, IndexModel, TEXT
 from app.audit.base import AuditedDocument
 from app.models.incidents import IndustryOverview
 from typing import TYPE_CHECKING
-
 
 if TYPE_CHECKING:
     from app.models.incidents import IncidentReport
@@ -134,6 +134,22 @@ class Source(AuditedDocument):
         description="Flags indicating which types of information are present in the article",
     )
 
+    # RAG/chunking bookkeeping. Chunk text + vectors live in the vector store
+    # (Qdrant); these fields only record that indexing happened and with which
+    # model, so a future re-index/backfill can skip already-indexed sources.
+    chunk_count: int | None = Field(
+        default=None,
+        description="Number of chunks indexed into the vector store for this source",
+    )
+    indexed_at: datetime | None = Field(
+        default=None,
+        description="When this source's chunks were last indexed into the vector store",
+    )
+    embedding_model: str | None = Field(
+        default=None,
+        description="Embedding model used when this source was indexed",
+    )
+
     author: str | None = Field(default=None, description="Author or organization")
     publisher: str | None = Field(
         default=None, description="Publisher of the article if available"
@@ -232,6 +248,22 @@ class Source(AuditedDocument):
             # Clear relationships before deleting
             self.incidents = []
             self.overview = None
+
+            # Remove this source's chunks from the vector store (best-effort).
+            # Only attempt when the source was actually indexed, so non-RAG
+            # sources never require a reachable Qdrant to be deleted.
+            if self.indexed_at or self.chunk_count:
+                try:
+                    from app.rag.vector_store import (
+                        get_vector_store,
+                        source_scope_key,
+                    )
+
+                    await get_vector_store().delete_source(source_scope_key(self))
+                except Exception as e:
+                    logging.getLogger(__name__).warning(
+                        f"Failed to delete vector-store chunks for source {self.id}: {e}"
+                    )
 
             # Call parent delete method
             await super().delete()

@@ -12,9 +12,11 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - FRONTEND_PORT=${FRONTEND_PORT}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - QDRANT_URL=http://qdrant:6333
     restart: unless-stopped
     depends_on:
       - mongo
+      - qdrant
 
   mongo:
     image: mongodb/mongodb-community-server:latest
@@ -26,8 +28,18 @@ services:
       - MONGODB_INITDB_ROOT_USERNAME=admin
       - MONGODB_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    networks:
+      - project
+    volumes:
+      - qdrant-data:/qdrant/storage
+    restart: unless-stopped
+
 volumes:
   mongo-data:
+  qdrant-data:
 
 networks:
   project:

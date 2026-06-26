@@ -8,7 +8,6 @@ Tests the AnalysisPipeline class which:
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-import dspy
 
 from app.models.sources import ArticleScopeClassification
 from app.dspy_files.analysis_pipeline import AnalysisPipeline
@@ -264,8 +263,10 @@ class TestAnalysisPipelineRunRouting:
         pipeline = AnalysisPipeline(api_key="test-key")
         result = await pipeline.run(source)
 
-        # Verify correct module was called
-        mock_incident_module.acall.assert_called_once_with(source=source)
+        # Verify correct module was called (with RAG threading defaults)
+        mock_incident_module.acall.assert_called_once_with(
+            source=source, store=None, use_rag=False
+        )
         mock_overview_module.acall.assert_not_called()
 
         # Verify prediction structure
@@ -299,8 +300,10 @@ class TestAnalysisPipelineRunRouting:
         pipeline = AnalysisPipeline(api_key="test-key")
         result = await pipeline.run(source)
 
-        # Verify correct module was called
-        mock_incident_module.acall.assert_called_once_with(source=source)
+        # Verify correct module was called (with RAG threading defaults)
+        mock_incident_module.acall.assert_called_once_with(
+            source=source, store=None, use_rag=False
+        )
         mock_overview_module.acall.assert_not_called()
 
         # Verify prediction structure

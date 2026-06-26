@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime
 from enum import Enum
 import traceback
 from typing import List, Optional, Callable, Awaitable
@@ -8,6 +9,7 @@ from pydantic import BaseModel, Field
 from app.dspy_files.content_extraction import ContentExtractor
 from app.dspy_files.analysis_pipeline import AnalysisPipeline
 from app.dspy_files.postprocessing import format_report
+from app.dspy_files.config import should_use_rag, EMBEDDING_MODEL
 from app.models.sources import Source
 from app.models.incidents import IncidentReport, IndustryOverview
 
@@ -103,10 +105,48 @@ class AnalysisOrchestrator:
                 await progress_callback("classification", 40)
         return source
 
+    async def index_source_for_rag(self, source: Source) -> tuple[object, bool]:
+        """Chunk and index a large source into the vector store.
+
+        Gated by document size: short documents skip indexing and keep the
+        full-text extraction path. If indexing fails (e.g. Qdrant unreachable),
+        we log and fall back to the full-text path rather than failing ingestion.
+
+        Returns a ``(store, use_rag)`` tuple where ``store`` is the VectorStore
+        (or None) and ``use_rag`` indicates the RAG extraction path should run.
+        """
+        if not should_use_rag(source.article_text):
+            return None, False
+
+        from app.rag.vector_store import get_vector_store
+        from app.rag.chunking import chunk_text
+
+        try:
+            store = get_vector_store()
+            chunks = chunk_text(source.article_text)
+            await store.index_source(source, chunks)
+            source.chunk_count = len(chunks)
+            source.indexed_at = datetime.utcnow()
+            source.embedding_model = EMBEDDING_MODEL
+            logger.info(
+                f"Indexed {len(chunks)} chunks for large source "
+                f"'{source.article_hash}' (RAG path enabled)"
+            )
+            return store, True
+        except Exception as e:
+            logger.warning(
+                f"RAG indexing failed for '{source.article_hash}'; "
+                f"falling back to full-text path: {e}"
+            )
+            return None, False
+
     async def analyze_source(
         self,
         source: Source,
         progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
+        *,
+        store: object = None,
+        use_rag: bool = False,
     ) -> dspy.Prediction:
         """
         Run DSPy analysis modules on a classified source.
@@ -123,7 +163,7 @@ class AnalysisOrchestrator:
         with dspy.context(lm=self.lm):
             if progress_callback:
                 await progress_callback("analysis", 50)
-            prediction = await self.pipeline.run(source)
+            prediction = await self.pipeline.run(source, store=store, use_rag=use_rag)
             if progress_callback:
                 await progress_callback("analysis", 60)
         return prediction
@@ -295,8 +335,13 @@ class AnalysisOrchestrator:
                 error_message=str(e),
             )
 
+        # Gated chunking/RAG indexing for large documents (no-op for short ones).
+        store, use_rag = await self.index_source_for_rag(source)
+
         try:
-            prediction = await self.analyze_source(source, progress_callback)
+            prediction = await self.analyze_source(
+                source, progress_callback, store=store, use_rag=use_rag
+            )
             if not prediction:
                 return PipelineOutput(
                     status=PipelineResult.FAILED_ANALYSIS,
