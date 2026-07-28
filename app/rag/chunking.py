@@ -23,6 +23,9 @@ class Chunk(BaseModel):
     chunk_index: int
     start_char: int = 0
     end_char: int = 0
+    # Similarity score, populated only on chunks returned by a retrieval query.
+    # Stored chunks leave this None: it is a property of the match, not the text.
+    score: float | None = None
 
 
 def _get_encoding(model: str):

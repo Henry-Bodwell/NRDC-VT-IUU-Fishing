@@ -1,23 +1,24 @@
 """
 Unit tests for the pure helpers in app/rag/vector_store.py.
 
-Tests ONLY the client-free, deterministic helpers:
+Tests the client-free, deterministic helpers:
 - point_id(): stable, deterministic point identifiers
 - chunk_to_payload() / payload_to_chunk(): payload round-tripping
+- VectorStore._embed_query(): the process-wide query-vector cache
 
-The VectorStore class (index_source/retrieve/delete_source) requires a live
-Qdrant instance and is covered in the integration suite -- NOT here.
-
-NOTE: app.rag.vector_store does not exist yet. These tests are written FIRST
-(red state) and will fail at import/collection until the implementation lands.
+The Qdrant-backed methods (index_source/retrieve/delete_source) require a live
+Qdrant instance and are covered in the integration suite -- NOT here.
 """
 
 import pytest
+from unittest.mock import MagicMock
 
 from app.rag.chunking import Chunk
 from app.rag.vector_store import (
     DEFAULT_COLLECTION,
     EMBEDDING_DIM,
+    VectorStore,
+    _QUERY_CACHE_MAX,
     chunk_to_payload,
     payload_to_chunk,
     point_id,
@@ -104,3 +105,68 @@ class TestPayloadRoundTrip:
         assert restored.end_char == 0
         assert restored.text == "no offsets provided"
         assert restored.chunk_index == 1
+
+    @pytest.mark.unit
+    def test_stored_chunks_have_no_score(self):
+        """A score is a property of a match, so stored payloads carry none."""
+        chunk = Chunk(text="stored", chunk_index=0, start_char=0, end_char=6)
+        payload = chunk_to_payload("source-id-4", "hash-4", chunk)
+
+        assert "score" not in payload
+        assert payload_to_chunk(payload).score is None
+
+    @pytest.mark.unit
+    def test_score_is_attached_when_supplied(self):
+        """payload_to_chunk records the similarity score for query results."""
+        chunk = Chunk(text="matched", chunk_index=0, start_char=0, end_char=7)
+        payload = chunk_to_payload("source-id-5", "hash-5", chunk)
+
+        assert payload_to_chunk(payload, 0.8125).score == pytest.approx(0.8125)
+
+
+class TestQueryVectorCache:
+    """Tests for VectorStore._embed_query() caching.
+
+    The 13 category queries are static and now run on every document, so each
+    must be embedded once per process rather than once per extraction.
+    """
+
+    @staticmethod
+    def _store() -> VectorStore:
+        """A store whose embedder returns a fixed vector and counts calls."""
+        embedder = MagicMock(side_effect=lambda texts: [[0.1, 0.2, 0.3]] * len(texts))
+        return VectorStore(client=MagicMock(), embedder=embedder)
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_repeated_query_embeds_once(self):
+        """The same query string is embedded only on first use."""
+        store = self._store()
+
+        first = await store._embed_query("vessel name and flag state")
+        second = await store._embed_query("vessel name and flag state")
+
+        assert first == second
+        assert store.embedder.call_count == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_distinct_queries_embed_separately(self):
+        """Different query strings each require their own embedding call."""
+        store = self._store()
+
+        await store._embed_query("vessel name and flag state")
+        await store._embed_query("crew nationality and recruitment")
+
+        assert store.embedder.call_count == 2
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_cache_is_bounded(self):
+        """Document-specific queries cannot grow the cache without limit."""
+        store = self._store()
+
+        for i in range(_QUERY_CACHE_MAX + 25):
+            await store._embed_query(f"incident number {i}")
+
+        assert len(store._query_vectors) == _QUERY_CACHE_MAX

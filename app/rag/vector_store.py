@@ -13,14 +13,21 @@ document never accumulates duplicate chunks.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import uuid
+from collections import OrderedDict
 from typing import Any
 
 from app.rag.chunking import Chunk
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_COLLECTION = "source_chunks"
 EMBEDDING_DIM = 1536
+
+# Upper bound on cached query vectors (see VectorStore._embed_query).
+_QUERY_CACHE_MAX = 128
 
 # Stable namespace so point ids are deterministic across processes/runs.
 _POINT_NAMESPACE = uuid.UUID("6f6b1b3e-2c2a-4f1a-9b9a-1d5c7e2a4f10")
@@ -55,13 +62,18 @@ def chunk_to_payload(source_id: Any, article_hash: str, chunk: Chunk) -> dict:
     }
 
 
-def payload_to_chunk(payload: dict) -> Chunk:
-    """Reconstruct a :class:`Chunk` from a stored Qdrant payload."""
+def payload_to_chunk(payload: dict, score: float | None = None) -> Chunk:
+    """Reconstruct a :class:`Chunk` from a stored Qdrant payload.
+
+    ``score`` is supplied by :meth:`VectorStore.retrieve` for query results and
+    left ``None`` everywhere else.
+    """
     return Chunk(
         text=payload.get("text", ""),
         chunk_index=payload.get("chunk_index", 0),
         start_char=payload.get("start_char", 0),
         end_char=payload.get("end_char", 0),
+        score=score,
     )
 
 
@@ -72,14 +84,33 @@ class VectorStore:
         self.client = client
         self.embedder = embedder
         self.collection = collection
+        # Query-vector cache. The 13 category queries are static and now run on
+        # every document, so embedding them once per process instead of once per
+        # extraction removes the bulk of the embedding calls. Bounded because
+        # multi-incident queries are document-specific and would otherwise grow
+        # without limit.
+        self._query_vectors: OrderedDict[str, list[float]] = OrderedDict()
 
     async def _embed(self, texts: list[str]) -> list[list[float]]:
         """Embed texts off the event loop (the DSPy embedder is synchronous)."""
         vectors = await asyncio.to_thread(self.embedder, texts)
         return [list(map(float, v)) for v in vectors]
 
+    async def _embed_query(self, query: str) -> list[float]:
+        """Embed a query string, reusing the cached vector when seen before."""
+        cached = self._query_vectors.get(query)
+        if cached is not None:
+            self._query_vectors.move_to_end(query)
+            return cached
+
+        vector = (await self._embed([query]))[0]
+        self._query_vectors[query] = vector
+        if len(self._query_vectors) > _QUERY_CACHE_MAX:
+            self._query_vectors.popitem(last=False)
+        return vector
+
     async def ensure_collection(self) -> None:
-        """Create the chunk collection if it does not already exist."""
+        """Create the chunk collection and its payload indexes if missing."""
         from qdrant_client import models
 
         if not await self.client.collection_exists(self.collection):
@@ -89,6 +120,20 @@ class VectorStore:
                     size=EMBEDDING_DIM, distance=models.Distance.COSINE
                 ),
             )
+
+        # Every scoped retrieval filters on source_id, and index/delete filter on
+        # article_hash; without payload indexes those are unindexed scans. Qdrant
+        # treats re-creating an existing index as a no-op, so this is safe to run
+        # on every startup.
+        for field in ("source_id", "article_hash"):
+            try:
+                await self.client.create_payload_index(
+                    collection_name=self.collection,
+                    field_name=field,
+                    field_schema=models.PayloadSchemaType.KEYWORD,
+                )
+            except Exception as e:
+                logger.debug(f"Payload index for '{field}' not created: {e}")
 
     async def index_source(self, source: Any, chunks: list[Chunk]) -> int:
         """Embed and upsert a source's chunks; returns the number indexed.
@@ -141,7 +186,7 @@ class VectorStore:
         """
         from qdrant_client import models
 
-        vector = (await self._embed([query]))[0]
+        vector = await self._embed_query(query)
 
         query_filter = None
         if source_id is not None:
@@ -161,7 +206,10 @@ class VectorStore:
             limit=k,
             with_payload=True,
         )
-        return [payload_to_chunk(point.payload) for point in response.points]
+        return [
+            payload_to_chunk(point.payload, getattr(point, "score", None))
+            for point in response.points
+        ]
 
     async def delete_source(self, source_id: Any) -> None:
         """Remove all chunks for a source (used on Source deletion)."""

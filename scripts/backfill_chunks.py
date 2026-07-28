@@ -39,18 +39,24 @@ logger = logging.getLogger(__name__)
 # text-embedding-3-small list price (USD per 1M tokens) -- for the cost estimate.
 _EMBED_PRICE_PER_1M = 0.02
 
+# Token count above which --large-only considers a source worth backfilling.
+# The pipeline itself no longer gates on size (every source is indexed); this is
+# purely a convenience filter for prioritising a large backlog.
+_LARGE_SOURCE_TOKENS = 6000
+
 
 async def _select_sources(large_only: bool):
     """Yield (source, token_count) pairs eligible for backfill."""
     from app.models.sources import Source
-    from app.dspy_files.config import count_tokens, should_use_rag
+    from app.dspy_files.config import count_tokens
 
     async for source in Source.find_all():
         if not source.article_text:
             continue
-        if large_only and not should_use_rag(source.article_text):
+        tokens = count_tokens(source.article_text)
+        if large_only and tokens < _LARGE_SOURCE_TOKENS:
             continue
-        yield source, count_tokens(source.article_text)
+        yield source, tokens
 
 
 async def _index_one(store, source, semaphore) -> int:
@@ -160,15 +166,18 @@ def main() -> None:
         "--all",
         dest="large_only",
         action="store_false",
-        help="Index every source (for corpus-wide cross-document search).",
+        help="Index every source, matching the pipeline's behaviour (default).",
     )
     scope.add_argument(
         "--large-only",
         dest="large_only",
         action="store_true",
-        help="Only index sources at/above the RAG token threshold (default).",
+        help=(
+            f"Only index sources of at least {_LARGE_SOURCE_TOKENS} tokens, "
+            f"for prioritising a large backlog."
+        ),
     )
-    parser.set_defaults(large_only=True)
+    parser.set_defaults(large_only=False)
     parser.add_argument(
         "--force",
         action="store_true",

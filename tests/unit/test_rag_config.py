@@ -1,14 +1,12 @@
 """
-Unit tests for new RAG helpers in app/dspy_files/config.py.
+Unit tests for the RAG helpers in app/dspy_files/config.py.
 
 Tests the token-counting and embedder helpers which:
-- Count tokens for routing decisions
-- Decide whether a source is large enough to warrant RAG
+- Count tokens (for reporting and backfill prioritisation)
 - Construct a dspy.Embedder for the configured embedding model
 
-NOTE: These config helpers (count_tokens, should_use_rag, make_embedder,
-EMBEDDING_MODEL, RAG_TOKEN_THRESHOLD) do not exist yet. These tests are
-written FIRST (red state) and will fail until the implementation lands.
+Note there is deliberately no size-based routing helper: every source is
+chunked, indexed and extracted via retrieval regardless of length.
 """
 
 import pytest
@@ -17,15 +15,13 @@ from unittest.mock import patch
 from app.dspy_files import config
 from app.dspy_files.config import (
     EMBEDDING_MODEL,
-    RAG_TOKEN_THRESHOLD,
     count_tokens,
     make_embedder,
-    should_use_rag,
 )
 
 
 class TestModuleConstants:
-    """Tests for the new module-level constants."""
+    """Tests for the module-level constants."""
 
     @pytest.mark.unit
     def test_embedding_model_value(self):
@@ -33,10 +29,10 @@ class TestModuleConstants:
         assert EMBEDDING_MODEL == "text-embedding-3-small"
 
     @pytest.mark.unit
-    def test_rag_token_threshold_is_int(self):
-        """RAG_TOKEN_THRESHOLD is an integer threshold."""
-        assert isinstance(RAG_TOKEN_THRESHOLD, int)
-        assert RAG_TOKEN_THRESHOLD > 0
+    def test_no_size_based_rag_gate_remains(self):
+        """The size gate is gone: retrieval is the uniform path for all sources."""
+        assert not hasattr(config, "should_use_rag")
+        assert not hasattr(config, "RAG_TOKEN_THRESHOLD")
 
 
 class TestCountTokens:
@@ -58,41 +54,6 @@ class TestCountTokens:
         short = count_tokens("hello world")
         longer = count_tokens("hello world " * 50)
         assert longer >= short
-
-
-class TestShouldUseRag:
-    """Tests for should_use_rag() routing decision."""
-
-    @pytest.mark.unit
-    def test_value_equal_to_threshold_is_true(self):
-        """Token count equal to the threshold triggers RAG (>=)."""
-        with patch.object(config, "count_tokens", return_value=100):
-            assert should_use_rag("ignored text", threshold=100) is True
-
-    @pytest.mark.unit
-    def test_value_below_threshold_is_false(self):
-        """Token count one below the threshold does not trigger RAG."""
-        with patch.object(config, "count_tokens", return_value=99):
-            assert should_use_rag("ignored text", threshold=100) is False
-
-    @pytest.mark.unit
-    def test_value_above_threshold_is_true(self):
-        """Token count above the threshold triggers RAG."""
-        with patch.object(config, "count_tokens", return_value=101):
-            assert should_use_rag("ignored text", threshold=100) is True
-
-    @pytest.mark.unit
-    def test_none_threshold_uses_module_default(self):
-        """When threshold is None, the module-level RAG_TOKEN_THRESHOLD is used."""
-        with patch.object(config, "RAG_TOKEN_THRESHOLD", 500), patch.object(
-            config, "count_tokens", return_value=500
-        ):
-            assert should_use_rag("ignored text") is True
-
-        with patch.object(config, "RAG_TOKEN_THRESHOLD", 500), patch.object(
-            config, "count_tokens", return_value=499
-        ):
-            assert should_use_rag("ignored text") is False
 
 
 class TestMakeEmbedder:

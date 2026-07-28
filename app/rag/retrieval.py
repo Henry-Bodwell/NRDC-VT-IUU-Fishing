@@ -5,10 +5,14 @@ retrieval query. Instead of feeding the whole document to every extractor, the
 pipeline retrieves the chunks most relevant to that extractor's category and
 passes only those. Keeping the queries here keeps ``modules.py`` readable and
 gives one place to tune retrieval per category.
+
+These queries are static, so their embeddings are cached process-wide by the
+vector store -- see ``VectorStore._embed_query``.
 """
 
 from __future__ import annotations
 
+from app.rag.chunking import Chunk
 from app.rag.vector_store import VectorStore
 
 # One retrieval query per extraction category. Keys mirror the conditional
@@ -74,13 +78,38 @@ def query_for_category(category: str) -> str:
     return CATEGORY_QUERIES[category]
 
 
-async def retrieve_context(
-    store: VectorStore, source_id: str, category: str, k: int = 5
-) -> str:
-    """Retrieve and concatenate the chunks most relevant to ``category``.
+def compose_query(category: str, extra_query: str | None = None) -> str:
+    """Build the retrieval query for ``category``, optionally narrowed.
 
-    Returns the joined chunk text (blank-line separated) suitable for passing as
-    the ``text`` input to a focused extractor. Empty when nothing is retrieved.
+    ``extra_query`` scopes the category query to a specific subject -- used by
+    the multi-incident path so each incident's extractors retrieve chunks about
+    *that* incident rather than the document as a whole.
     """
-    chunks = await store.retrieve(query_for_category(category), k, source_id=source_id)
+    base = query_for_category(category)
+    if not extra_query:
+        return base
+    return f"{extra_query}\n{base}"
+
+
+async def retrieve_chunks(
+    store: VectorStore,
+    source_id: str,
+    category: str,
+    k: int = 5,
+    *,
+    extra_query: str | None = None,
+) -> list[Chunk]:
+    """Retrieve the chunks most relevant to ``category`` for a source.
+
+    Returns the :class:`Chunk` objects themselves, each carrying its similarity
+    ``score``, so callers can log or gate on relevance. Use :func:`join_chunks`
+    to turn them into extractor input. Empty when nothing is retrieved.
+    """
+    return await store.retrieve(
+        compose_query(category, extra_query), k, source_id=source_id
+    )
+
+
+def join_chunks(chunks: list[Chunk]) -> str:
+    """Join retrieved chunks into a single extractor input string."""
     return "\n\n".join(chunk.text for chunk in chunks)

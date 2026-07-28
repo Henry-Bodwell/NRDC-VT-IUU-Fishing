@@ -369,6 +369,146 @@ class TestIncidentAnalysisModuleConditionalExtraction:
         assert result["description"] == "Custom summary text"
 
 
+class TestIncidentAnalysisModuleRetrieval:
+    """Tests for the retrieval path that replaces full-text extraction."""
+
+    @staticmethod
+    def _retrieved(text: str, score: float = 0.5):
+        """A retrieve_chunks() return value with one scored chunk."""
+        return [MagicMock(text=text, score=score)]
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_resolve_text_falls_back_to_default_without_store(self):
+        """Without a store the full-text fallback passes text through unchanged."""
+        with patch("dspy.ChainOfThought"):
+            module = IncidentAnalysisModule()
+            resolved = await module._resolve_text(
+                "vessel", "the whole article", None, None, 5
+            )
+
+        assert resolved == "the whole article"
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_resolve_text_returns_retrieved_chunks(self):
+        """With a store the retrieved chunk text replaces the default text."""
+        with patch("dspy.ChainOfThought"), patch(
+            "app.dspy_files.modules.retrieve_chunks",
+            AsyncMock(return_value=self._retrieved("vessel chunk")),
+        ):
+            module = IncidentAnalysisModule()
+            resolved = await module._resolve_text(
+                "vessel", "the whole article", MagicMock(), "src-1", 5
+            )
+
+        assert resolved == "vessel chunk"
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_each_category_retrieves_its_own_context(self):
+        """Every enabled extractor retrieves for its own category, not one shared blob."""
+        presence = create_mock_presence(
+            has_vessel_info=True, has_crew_info=True, has_species_info=True
+        )
+        retrieve = AsyncMock(return_value=self._retrieved("chunk"))
+
+        with patch("dspy.ChainOfThought") as mock_cot, patch(
+            "app.dspy_files.modules.retrieve_chunks", retrieve
+        ):
+            mock_instance = MagicMock()
+            mock_instance.acall = AsyncMock(return_value=MagicMock())
+            mock_cot.return_value = mock_instance
+
+            module = IncidentAnalysisModule()
+            await module._extract_conditionally(
+                "", presence, store=MagicMock(), source_id="src-1"
+            )
+
+        categories = [call.args[2] for call in retrieve.await_args_list]
+        assert {"vessel", "crew", "species"} <= set(categories)
+        # No category is retrieved twice: each extractor gets its own context.
+        assert len(categories) == len(set(categories))
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_incident_query_scopes_every_category(self):
+        """incident_query is forwarded to retrieval for every category."""
+        presence = create_mock_presence(has_vessel_info=True, has_crew_info=True)
+        retrieve = AsyncMock(return_value=self._retrieved("chunk"))
+
+        with patch("dspy.ChainOfThought") as mock_cot, patch(
+            "app.dspy_files.modules.retrieve_chunks", retrieve
+        ):
+            mock_instance = MagicMock()
+            mock_instance.acall = AsyncMock(return_value=MagicMock())
+            mock_cot.return_value = mock_instance
+
+            module = IncidentAnalysisModule()
+            await module._extract_conditionally(
+                "",
+                presence,
+                store=MagicMock(),
+                source_id="src-1",
+                incident_query="the seizure of the Ocean Star",
+            )
+
+        assert retrieve.await_count > 1
+        for call in retrieve.await_args_list:
+            assert call.kwargs["extra_query"] == "the seizure of the Ocean Star"
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_multi_incident_rag_retrieves_per_category_per_incident(self):
+        """Each incident's extractors retrieve their own category-scoped chunks.
+
+        Regression test for the defect where _aforward_rag retrieved 8 chunks
+        once per incident and passed that single blob to all 13 extractors as
+        plain text, bypassing per-category retrieval entirely. Asserted at the
+        _aforward_rag level because the bug lived in the call site, not in
+        _extract_conditionally.
+        """
+        source = create_mock_source(
+            article_scope=MagicMock(articleType="Multiple Incidents")
+        )
+        descriptors = [
+            MagicMock(description="Incident A", retrieval_query="the Ocean Star"),
+            MagicMock(description="Incident B", retrieval_query="the Blue Marlin"),
+        ]
+        store = MagicMock()
+        store.retrieve = AsyncMock(return_value=self._retrieved("blob"))
+        retrieve = AsyncMock(return_value=self._retrieved("chunk"))
+
+        with patch("dspy.ChainOfThought") as mock_cot, patch(
+            "app.dspy_files.modules.retrieve_chunks", retrieve
+        ), patch(
+            "app.dspy_files.modules.segment_incidents",
+            AsyncMock(return_value=descriptors),
+        ), patch(
+            "app.dspy_files.modules.chunk_text", return_value=[]
+        ):
+            mock_instance = MagicMock()
+            mock_instance.acall = AsyncMock(return_value=MagicMock())
+            mock_cot.return_value = mock_instance
+
+            module = IncidentAnalysisModule()
+            await module._aforward_rag(source, store)
+
+        # The old implementation retrieved via store.retrieve once per incident
+        # and never reached the per-category helper at all.
+        store.retrieve.assert_not_awaited()
+        assert retrieve.await_count > len(descriptors)
+
+        # Every incident's query is used, and each is paired with many categories.
+        by_incident = {}
+        for call in retrieve.await_args_list:
+            by_incident.setdefault(call.kwargs["extra_query"], set()).add(call.args[2])
+
+        assert set(by_incident) == {"the Ocean Star", "the Blue Marlin"}
+        for categories in by_incident.values():
+            assert {"vessel", "crew", "species"} <= categories
+
+
 class TestIncidentAnalysisModuleMultipleIncidents:
     """Tests for multiple incident extraction."""
 
