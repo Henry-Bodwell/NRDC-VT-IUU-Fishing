@@ -17,6 +17,7 @@ async def init_db():
     from app.models.sources import Source
     from app.models.incidents import IncidentReport
     from app.models.users import User
+    from app.models.validation import ValidationSession
 
     if not MONGO_URI:
         raise ValueError("MONGO_URI environment variable is not set")
@@ -31,6 +32,7 @@ async def init_db():
             AuditLog,
             TaskStatus,
             User,
+            ValidationSession,
         ],  # Pass all Beanie Documents here
     )
     print("Database initialized successfully.")
