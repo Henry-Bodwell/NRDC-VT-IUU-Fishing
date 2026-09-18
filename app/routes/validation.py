@@ -269,6 +269,7 @@ async def update_validation_section(
             body.expected_version,
             body.value,
             body.reviewed,
+            value_provided="value" in body.model_fields_set,
         )
 
 

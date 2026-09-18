@@ -6,9 +6,9 @@ from pymongo import ASCENDING, IndexModel
 
 from app.audit.base import AuditedDocument
 
-
 ValidationSessionStatus = Literal[
     "IN_PROGRESS",
+    "SCOPE_CHANGED",
     "FLAGGED",
     "REPROCESSING_REQUIRED",
     "READY_FOR_REVALIDATION",
@@ -16,10 +16,24 @@ ValidationSessionStatus = Literal[
     "RELEASED",
 ]
 
+# Statuses that occupy the one-session-per-source slot. A source with a session
+# in any of these cannot be leased by a second validator.
 ACTIVE_VALIDATION_STATUSES = [
     "IN_PROGRESS",
+    "SCOPE_CHANGED",
     "FLAGGED",
     "REPROCESSING_REQUIRED",
+    "READY_FOR_REVALIDATION",
+]
+
+# Statuses the lease sweep may reclaim. Deliberately narrower than the set
+# above: FLAGGED waits on an administrator and REPROCESSING_REQUIRED is held by
+# a running background job, so neither represents an idle validator. Expiring
+# them loses the flag or lets a second validator lease a source that
+# reprocessing is about to write to.
+EXPIRABLE_VALIDATION_STATUSES = [
+    "IN_PROGRESS",
+    "SCOPE_CHANGED",
     "READY_FOR_REVALIDATION",
 ]
 
@@ -53,8 +67,6 @@ class ValidationSession(AuditedDocument):
                 [("source_id", ASCENDING)],
                 unique=True,
                 name="one_active_validation_session_per_source",
-                partialFilterExpression={
-                    "status": {"$in": ACTIVE_VALIDATION_STATUSES}
-                },
+                partialFilterExpression={"status": {"$in": ACTIVE_VALIDATION_STATUSES}},
             ),
         ]

@@ -42,6 +42,10 @@ class ClassificationUpdateRequest(VersionedRequest):
 
 
 class SectionUpdateRequest(VersionedRequest):
+    # `value` is optional so a client can tick the review box without
+    # resending the section. Omitting it leaves the stored data alone;
+    # sending an explicit null is what clears a section. The service
+    # distinguishes the two via model_fields_set -- see update_section.
     value: Any = None
     reviewed: bool = True
 

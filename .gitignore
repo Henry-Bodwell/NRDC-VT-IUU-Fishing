@@ -220,3 +220,6 @@ scripts/**/*.txt
 docker-compose.override.yml
 
 .vscode/*
+
+
+.devenv*

@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, get_args, get_origin
@@ -18,8 +19,11 @@ from app.models.task import TaskStatus
 from app.models.users import User
 from app.models.validation import (
     ACTIVE_VALIDATION_STATUSES,
+    EXPIRABLE_VALIDATION_STATUSES,
     ValidationSession,
 )
+
+logger = logging.getLogger(__name__)
 
 LOCK_MINUTES = 15
 INCIDENT_SCOPES = {"Single Incident", "Multiple Incidents"}
@@ -61,7 +65,7 @@ class ValidationService:
     async def _expire_stale_sessions() -> None:
         sessions = await ValidationSession.find(
             {
-                "status": {"$in": ACTIVE_VALIDATION_STATUSES},
+                "status": {"$in": EXPIRABLE_VALIDATION_STATUSES},
                 "lock_expires_at": {"$lte": _now()},
             }
         ).to_list()
@@ -150,6 +154,9 @@ class ValidationService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Reprocessing is still in progress",
             )
+        # SCOPE_CHANGED is deliberately editable: the validator has to be able
+        # to reach Tier A to correct a scope they picked by mistake, otherwise
+        # their only escape is a reprocess that deletes every linked incident.
         return session
 
     @staticmethod
@@ -669,7 +676,10 @@ class ValidationService:
             next_overview.source = source
             await next_overview.save()
         if scope_changed:
-            session.status = "REPROCESSING_REQUIRED"
+            # No background job is started here -- the session is parked until
+            # the validator either reprocesses or corrects the scope, so it must
+            # stay editable. REPROCESSING_REQUIRED means "a task holds this".
+            session.status = "SCOPE_CHANGED"
             session.task_id = None
         ValidationService._touch(session)
         await session.save()
@@ -927,18 +937,28 @@ class ValidationService:
                 await refreshed.save()
             await task.update_progress("refreshing_validation", 90)
             incidents = await ValidationService._source_incidents(refreshed)
-            session.reviewed_sections = {}
-            session.current_incident_id = str(incidents[0].id) if incidents else None
-            validator = await User.get(session.validator_id)
-            if validator and validator.can_validate:
-                session.status = "READY_FOR_REVALIDATION"
-            else:
-                session.status = "RELEASED"
-                session.lock_expires_at = _now()
-            session.flag_reason = None
-            ValidationService._touch(session)
-            with AuditContext.with_user(user_id):
-                await session.save()
+
+            # Re-read before writing. The re-analysis above runs an LLM
+            # pipeline and can take minutes; saving the snapshot taken before
+            # it would clobber heartbeats, an explicit release, and any
+            # concurrent section review, and could resurrect a lease the
+            # validator gave up.
+            session = await ValidationSession.get(session_id)
+            if session and session.status == "REPROCESSING_REQUIRED":
+                session.reviewed_sections = {}
+                session.current_incident_id = (
+                    str(incidents[0].id) if incidents else None
+                )
+                validator = await User.get(session.validator_id)
+                if validator and validator.can_validate:
+                    session.status = "READY_FOR_REVALIDATION"
+                else:
+                    session.status = "RELEASED"
+                    session.lock_expires_at = _now()
+                session.flag_reason = None
+                ValidationService._touch(session)
+                with AuditContext.with_user(user_id):
+                    await session.save()
             await task.mark_completed(
                 {
                     "source_id": source_id,
@@ -946,13 +966,29 @@ class ValidationService:
                 }
             )
         except Exception as exc:
+            logger.exception(
+                f"Reprocessing failed for session {session_id} "
+                f"(source {source_id}, task {task_id})"
+            )
+            # Each recovery write is isolated: this handler runs inside a bare
+            # BackgroundTask, so a second exception here would escape entirely
+            # and leave the session wedged in REPROCESSING_REQUIRED forever.
             if task:
-                await task.mark_failed(str(exc))
-            if session:
-                session.status = "FLAGGED"
-                session.flag_reason = f"Reprocessing failed: {exc}"
-                with AuditContext.with_user(user_id):
-                    await session.save()
+                try:
+                    await task.mark_failed(str(exc))
+                except Exception:
+                    logger.exception(f"Could not mark task {task_id} failed")
+            try:
+                current = await ValidationSession.get(session_id)
+                if current and current.status == "REPROCESSING_REQUIRED":
+                    current.status = "FLAGGED"
+                    current.flag_reason = f"Reprocessing failed: {exc}"
+                    with AuditContext.with_user(user_id):
+                        await current.save()
+            except Exception:
+                logger.exception(
+                    f"Could not flag session {session_id} after a failed reprocess"
+                )
 
     @staticmethod
     async def _incident_session(
@@ -981,6 +1017,14 @@ class ValidationService:
             raise HTTPException(status_code=423, detail="Active source lease required")
         if session.status in {"FLAGGED", "REPROCESSING_REQUIRED"}:
             raise HTTPException(status_code=409, detail="Session is not editable")
+        if session.status == "SCOPE_CHANGED":
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Resolve the changed article scope in Tier A before "
+                    "editing incidents"
+                ),
+            )
         return session.source_id, session
 
     @staticmethod
@@ -1039,22 +1083,32 @@ class ValidationService:
         expected_version: int,
         value: Any,
         reviewed: bool,
+        value_provided: bool = True,
     ) -> dict:
         if section_name not in ExtractedIncidentData.model_fields:
             raise HTTPException(status_code=404, detail="Unknown KDE section")
         incident = await ValidationService._incident(incident_id)
         _, session = await ValidationService._incident_session(incident, user)
         ValidationService._assert_version(incident, expected_version)
-        annotation = ExtractedIncidentData.model_fields[section_name].annotation
-        try:
-            parsed = TypeAdapter(annotation).validate_python(value)
-        except ValidationError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=exc.errors(),
+        if value_provided:
+            annotation = ExtractedIncidentData.model_fields[section_name].annotation
+            parsed: Any
+            try:
+                parsed = TypeAdapter(annotation).validate_python(value)
+            except ValidationError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=exc.errors(),
+                )
+            ValidationService._set_verified(parsed, reviewed)
+            setattr(incident.extracted_information, section_name, parsed)
+        else:
+            # Review-only update. Most KDE sections are optional, so validating
+            # an absent body field would coerce to None and silently erase the
+            # extracted data while reporting success.
+            ValidationService._set_verified(
+                getattr(incident.extracted_information, section_name), reviewed
             )
-        ValidationService._set_verified(parsed, reviewed)
-        setattr(incident.extracted_information, section_name, parsed)
         incident.verified = False
 
         reviewed_sections = set(session.reviewed_sections.get(str(incident.id), []))
@@ -1387,6 +1441,7 @@ class ValidationService:
                 {
                     "status": {
                         "$in": [
+                            "SCOPE_CHANGED",
                             "REPROCESSING_REQUIRED",
                             "READY_FOR_REVALIDATION",
                         ]
