@@ -27,6 +27,48 @@ EXCLUDED_LEAVES = {
 EXCLUDED_LEAF_NAMES = {"verified", "description"}
 
 
+# ── Metric primitives ──────────────────────────────────────────────────────
+
+
+def _safe_div(num: float, den: float) -> float:
+    return num / den if den else 0.0
+
+
+def _prf_raw(tp: int, fp: int, fn: int) -> tuple[float, float, float]:
+    precision = _safe_div(tp, tp + fp)
+    recall = _safe_div(tp, tp + fn)
+    f1 = _safe_div(2 * precision * recall, precision + recall)
+    return precision, recall, f1
+
+
+def prf(tp: int, fp: int, fn: int) -> dict:
+    precision, recall, f1 = _prf_raw(tp, fp, fn)
+    return {
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "precision": round(precision, 4),
+        "recall": round(recall, 4),
+        "f1": round(f1, 4),
+    }
+
+
+def _macro_avg(per_class_raw: dict[str, tuple[float, float, float, int]]) -> dict:
+    """Macro mean over classes with support > 0, computed from unrounded P/R/F1."""
+    supported = [v for v in per_class_raw.values() if v[3] > 0]
+    if not supported:
+        return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "n_classes": 0}
+    p = sum(v[0] for v in supported) / len(supported)
+    r = sum(v[1] for v in supported) / len(supported)
+    f = sum(v[2] for v in supported) / len(supported)
+    return {
+        "precision": round(p, 4),
+        "recall": round(r, 4),
+        "f1": round(f, 4),
+        "n_classes": len(supported),
+    }
+
+
 def is_empty(value: Any) -> bool:
     return value is None or value == "" or value == [] or value == {}
 
