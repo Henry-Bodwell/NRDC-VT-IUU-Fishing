@@ -18,14 +18,17 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
 # Get MongoDB password from environment
 MONGO_ROOT_PASSWORD = os.getenv("MONGO_ROOT_PASSWORD", "devpassword123")
-# Use port 27018 for local testing (mapped from docker-compose.override.yml)
-TEST_MONGO_URI = f"mongodb://admin:{MONGO_ROOT_PASSWORD}@localhost:27018/iuuIncidents_test?authSource=admin"
+# Support host and containerized MongoDB test runs.
+TEST_MONGO_URI = os.getenv(
+    "TEST_MONGO_URI",
+    f"mongodb://admin:{MONGO_ROOT_PASSWORD}@localhost:27018/iuuIncidents_test?authSource=admin",
+)
 os.environ["MONGO_URI"] = TEST_MONGO_URI
 
 from httpx import AsyncClient, ASGITransport
 from fastapi.testclient import TestClient
 from beanie import init_beanie
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 from app.main import app
 from app.models.sources import Source
@@ -42,6 +45,7 @@ from app.models.incidents import (
 )
 from app.models.users import User
 from app.models.task import TaskStatus
+from app.models.validation import ValidationSession
 from app.audit.models import AuditLog
 from app.dspy_files.news_analysis import PipelineOutput, PipelineResult
 
@@ -158,7 +162,7 @@ async def test_db() -> AsyncGenerator[None, None]:
     3. Yields control to the test
     4. Drops all collections and closes client after the test
     """
-    client = AsyncIOMotorClient(TEST_MONGO_URI)
+    client = AsyncMongoClient(TEST_MONGO_URI)
     db = client[TEST_DB_NAME]
 
     # Initialize Beanie with all document models
@@ -171,6 +175,7 @@ async def test_db() -> AsyncGenerator[None, None]:
             User,
             TaskStatus,
             AuditLog,
+            ValidationSession,
         ],
     )
 
@@ -180,7 +185,7 @@ async def test_db() -> AsyncGenerator[None, None]:
     for collection_name in await db.list_collection_names():
         await db.drop_collection(collection_name)
 
-    client.close()
+    await client.close()
 
 
 @pytest.fixture
@@ -266,6 +271,21 @@ async def admin_user(test_db) -> User:
         name="Admin User",
         hashedPassword="not-a-real-hash",
         role="admin",
+        is_active=True,
+    )
+    await user.insert()
+    return user
+
+
+@pytest.fixture
+async def validator_user(test_db) -> User:
+    """Create a validation-enabled user."""
+    user = User(
+        email="validator@example.com",
+        name="Validator User",
+        hashedPassword="not-a-real-hash",
+        role="validator",
+        can_validate=True,
         is_active=True,
     )
     await user.insert()

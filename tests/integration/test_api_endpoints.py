@@ -5,7 +5,7 @@ Integration tests for API endpoints.
 import pytest
 from httpx import AsyncClient
 
-from app.auth import get_optional_user
+from app.auth import get_current_user, get_optional_user
 from app.main import app
 from app.models.sources import IncidentPassage, Source
 from tests.conftest import make_source
@@ -692,9 +692,24 @@ class TestTasksAPI:
     """Tests for /api/tasks endpoints."""
 
     @pytest.mark.asyncio
-    async def test_get_task_not_found(self, async_client: AsyncClient, test_db):
-        """Test getting a non-existent task."""
+    async def test_get_task_requires_authentication(
+        self, async_client: AsyncClient, test_db
+    ):
+        """Task payloads carry source and incident IDs, so reads are gated."""
         response = await async_client.get("/api/tasks/nonexistent-task-id")
+
+        assert response.status_code in (401, 403)
+
+    @pytest.mark.asyncio
+    async def test_get_task_not_found(
+        self, async_client: AsyncClient, test_db, validator_user
+    ):
+        """An authenticated caller still gets 404 for an unknown task."""
+        app.dependency_overrides[get_current_user] = lambda: validator_user
+        try:
+            response = await async_client.get("/api/tasks/nonexistent-task-id")
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
 
         assert response.status_code == 404
 

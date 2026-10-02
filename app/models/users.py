@@ -13,6 +13,10 @@ class User(Document):
         ..., description="Bcrypt hashed password"
     )  # NextAuth uses camelCase
     role: str = Field(default="user")  # NextAuth uses 'role' instead of is_admin
+    can_validate: bool = Field(
+        default=False,
+        description="Grants access to the protected validation workspace",
+    )
     username: Optional[str] = Field(
         None, unique=True, index=True
     )  # Optional for NextAuth compatibility
@@ -30,6 +34,7 @@ class User(Document):
                 "username": "johndoe",
                 "name": "John Doe",
                 "role": "user",
+                "can_validate": False,
                 "is_active": True,
             }
         }

@@ -3,6 +3,7 @@ from typing import Optional
 
 from fastapi import (
     APIRouter,
+    Depends,
     Query,
     HTTPException,
     status,
@@ -10,6 +11,8 @@ from fastapi import (
 from pymongo import DESCENDING
 
 from app.models.task import TaskStatus
+from app.models.users import User
+from app.auth import get_current_admin_user, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +25,7 @@ async def list_tasks(
     status_filter: Optional[str] = Query(None, alias="status"),
     limit: int = 25,
     skip: int = 0,
+    current_user: User = Depends(get_current_admin_user),
 ):
     """
     List all tasks with optional filtering by user_id and status.
@@ -66,7 +70,10 @@ async def list_tasks(
 
 
 @router.get("/{task_id}")
-async def get_task_status(task_id: str):
+async def get_task_status(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+):
     """
     Get the status of a background task by its ID.
     """
@@ -75,6 +82,12 @@ async def get_task_status(task_id: str):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found",
+        )
+
+    if current_user.role != "admin" and task.user_id != str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this task",
         )
 
     return {

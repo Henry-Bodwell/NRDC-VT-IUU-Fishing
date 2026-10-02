@@ -144,6 +144,28 @@ async def get_current_admin_user(
     return current_user
 
 
+async def get_current_validator_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Require validation access."""
+    if not current_user.can_validate:
+        logger.warning(
+            f"User without validation access attempted validator access: {current_user.id}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Validation access required",
+        )
+    return current_user
+
+
+async def get_current_validation_admin(
+    current_user: User = Depends(get_current_admin_user),
+) -> User:
+    """Require administrator access for validation management."""
+    return current_user
+
+
 async def get_optional_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(
         HTTPBearer(auto_error=False)
