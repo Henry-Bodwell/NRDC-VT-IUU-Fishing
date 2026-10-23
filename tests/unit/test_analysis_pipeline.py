@@ -265,7 +265,7 @@ class TestAnalysisPipelineRunRouting:
 
         # Verify correct module was called (with RAG threading defaults)
         mock_incident_module.acall.assert_called_once_with(
-            source=source, store=None, use_rag=False
+            source=source, store=None, use_rag=False, chunks=None
         )
         mock_overview_module.acall.assert_not_called()
 
@@ -302,7 +302,7 @@ class TestAnalysisPipelineRunRouting:
 
         # Verify correct module was called (with RAG threading defaults)
         mock_incident_module.acall.assert_called_once_with(
-            source=source, store=None, use_rag=False
+            source=source, store=None, use_rag=False, chunks=None
         )
         mock_overview_module.acall.assert_not_called()
 

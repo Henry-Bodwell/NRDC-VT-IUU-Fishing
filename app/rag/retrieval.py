@@ -93,7 +93,7 @@ def compose_query(category: str, extra_query: str | None = None) -> str:
 
 async def retrieve_chunks(
     store: VectorStore,
-    source_id: str,
+    article_hash: str,
     category: str,
     k: int = 5,
     *,
@@ -106,7 +106,7 @@ async def retrieve_chunks(
     to turn them into extractor input. Empty when nothing is retrieved.
     """
     return await store.retrieve(
-        compose_query(category, extra_query), k, source_id=source_id
+        compose_query(category, extra_query), k, article_hash=article_hash
     )
 
 

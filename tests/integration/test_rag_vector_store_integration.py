@@ -62,7 +62,7 @@ def _build_chunks() -> list[Chunk]:
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_vector_store_roundtrip(qdrant_store):
-    """Indexed chunks are retrievable, and filtering by source_id is honored."""
+    """Indexed chunks are retrievable, and filtering by article_hash is honored."""
     source = make_source(article_text="Roundtrip article body for indexing.")
     chunks = _build_chunks()
 
@@ -72,17 +72,17 @@ async def test_vector_store_roundtrip(qdrant_store):
     results = await qdrant_store.retrieve(
         "vessel fishing without a license",
         k=2,
-        source_id=str(source.id),
+        article_hash=source.article_hash,
     )
     assert len(results) >= 1
     retrieved_texts = {c.text for c in results}
     assert retrieved_texts.issubset({c.text for c in chunks})
 
-    # Filtering by an unrelated source_id returns nothing.
+    # Filtering by an unrelated article_hash returns nothing.
     other = await qdrant_store.retrieve(
         "vessel fishing without a license",
         k=2,
-        source_id="some-other-source-id",
+        article_hash="some-other-hash",
     )
     assert other == []
 
@@ -103,7 +103,7 @@ async def test_index_source_idempotent(qdrant_store):
     results = await qdrant_store.retrieve(
         "undeclared mislabeled tuna export",
         k=10,
-        source_id=str(source.id),
+        article_hash=source.article_hash,
     )
     # No duplication: distinct points never exceed the number of chunks.
     assert len(results) <= len(chunks)

@@ -127,10 +127,10 @@ class TestRetrieveChunks:
             return_value=[Chunk(text="a", chunk_index=0, start_char=0, end_char=1)]
         )
 
-        await retrieve_chunks(store, source_id="src-1", category="vessel", k=3)
+        await retrieve_chunks(store, article_hash="src-1", category="vessel", k=3)
 
         store.retrieve.assert_awaited_once_with(
-            query_for_category("vessel"), 3, source_id="src-1"
+            query_for_category("vessel"), 3, article_hash="src-1"
         )
 
     @pytest.mark.asyncio
@@ -147,7 +147,9 @@ class TestRetrieveChunks:
             ]
         )
 
-        result = await retrieve_chunks(store, source_id="src-2", category="event", k=5)
+        result = await retrieve_chunks(
+            store, article_hash="src-2", category="event", k=5
+        )
 
         assert [c.text for c in result] == ["first", "second"]
         assert [c.score for c in result] == [0.9, 0.4]
@@ -161,14 +163,14 @@ class TestRetrieveChunks:
 
         await retrieve_chunks(
             store,
-            source_id="src-5",
+            article_hash="src-5",
             category="crew",
             k=4,
             extra_query="the Ocean Star boarding",
         )
 
         store.retrieve.assert_awaited_once_with(
-            compose_query("crew", "the Ocean Star boarding"), 4, source_id="src-5"
+            compose_query("crew", "the Ocean Star boarding"), 4, article_hash="src-5"
         )
 
     @pytest.mark.asyncio
@@ -178,10 +180,10 @@ class TestRetrieveChunks:
         store = AsyncMock()
         store.retrieve = AsyncMock(return_value=[])
 
-        await retrieve_chunks(store, source_id="src-3", category="species")
+        await retrieve_chunks(store, article_hash="src-3", category="species")
 
         store.retrieve.assert_awaited_once_with(
-            query_for_category("species"), 5, source_id="src-3"
+            query_for_category("species"), 5, article_hash="src-3"
         )
 
     @pytest.mark.asyncio
@@ -192,7 +194,7 @@ class TestRetrieveChunks:
         store.retrieve = AsyncMock(return_value=[])
 
         result = await retrieve_chunks(
-            store, source_id="src-4", category="summary", k=2
+            store, article_hash="src-4", category="summary", k=2
         )
 
         assert result == []

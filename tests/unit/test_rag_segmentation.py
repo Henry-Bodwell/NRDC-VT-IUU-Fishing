@@ -129,3 +129,54 @@ class TestSegmentIncidents:
         assert result == []
         mapper.acall.assert_not_awaited()
         reducer.acall.assert_not_awaited()
+
+
+class TestConcurrentMapping:
+    """Tests for the bounded, order-preserving concurrent map step."""
+
+    @staticmethod
+    def _staggered_mapper(delays: dict[str, float], in_flight: list[int]):
+        """Mapper that sleeps per chunk text and records peak concurrency."""
+        import asyncio
+
+        state = {"current": 0}
+
+        async def acall(text):
+            state["current"] += 1
+            in_flight.append(state["current"])
+            await asyncio.sleep(delays[text])
+            state["current"] -= 1
+            return MagicMock(anchors=[f"anchor:{text}"])
+
+        mapper = MagicMock()
+        mapper.acall = AsyncMock(side_effect=acall)
+        return mapper
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_anchors_keep_chunk_order_when_calls_finish_out_of_order(self):
+        """Later chunks finishing first do not reorder the reducer input."""
+        chunks = make_chunks("a", "b", "c")
+        mapper = self._staggered_mapper({"a": 0.03, "b": 0.0, "c": 0.01}, [])
+        reducer = make_reducer([])
+
+        await segment_incidents(chunks, mapper=mapper, reducer=reducer)
+
+        reducer.acall.assert_awaited_once_with(
+            anchors=["anchor:a", "anchor:b", "anchor:c"]
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_concurrency_is_bounded(self):
+        """No more than ``concurrency`` mapper calls are in flight at once."""
+        texts = [f"chunk{i}" for i in range(8)]
+        in_flight: list[int] = []
+        mapper = self._staggered_mapper({t: 0.01 for t in texts}, in_flight)
+
+        await segment_incidents(
+            make_chunks(*texts), mapper=mapper, reducer=make_reducer([]), concurrency=3
+        )
+
+        assert max(in_flight) == 3
+        assert mapper.acall.await_count == len(texts)

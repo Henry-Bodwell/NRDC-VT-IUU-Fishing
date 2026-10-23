@@ -35,8 +35,8 @@ async def init_db():
     print("Database initialized successfully.")
 
     # Ensure the vector-store collection exists for the chunking/RAG path.
-    # Non-fatal: large-document ingestion falls back to the full-text path if
-    # the vector store is unavailable, and short documents never need it.
+    # Non-fatal: ingestion falls back to the full-text path if the vector store
+    # is unavailable, and VectorStore also ensures the collection lazily.
     try:
         from app.rag.vector_store import get_vector_store
 

@@ -254,12 +254,9 @@ class Source(AuditedDocument):
             # sources never require a reachable Qdrant to be deleted.
             if self.indexed_at or self.chunk_count:
                 try:
-                    from app.rag.vector_store import (
-                        get_vector_store,
-                        source_scope_key,
-                    )
+                    from app.rag.vector_store import get_vector_store
 
-                    await get_vector_store().delete_source(source_scope_key(self))
+                    await get_vector_store().delete_source(self.article_hash)
                 except Exception as e:
                     logging.getLogger(__name__).warning(
                         f"Failed to delete vector-store chunks for source {self.id}: {e}"

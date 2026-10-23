@@ -16,6 +16,8 @@ document.
 
 from __future__ import annotations
 
+import asyncio
+
 from pydantic import BaseModel, Field
 
 from app.rag.chunking import Chunk
@@ -53,7 +55,7 @@ def _default_reducer():
 
 
 async def segment_incidents(
-    chunks: list[Chunk], *, mapper=None, reducer=None
+    chunks: list[Chunk], *, mapper=None, reducer=None, concurrency: int = 5
 ) -> list[IncidentDescriptor]:
     """Discover distinct incidents across a document's chunks.
 
@@ -63,6 +65,9 @@ async def segment_incidents(
             chunk. Defaults to a ``IdentifyIncidentAnchors`` ChainOfThought.
         reducer: DSPy module whose ``acall(anchors=...)`` yields ``.incidents``.
             Defaults to a ``ConsolidateIncidents`` ChainOfThought.
+        concurrency: Maximum number of mapper calls in flight at once. Anchors
+            are aggregated in chunk order regardless of completion order, so the
+            reducer input is deterministic.
 
     Returns:
         The consolidated list of :class:`IncidentDescriptor`. Empty input yields
@@ -76,11 +81,15 @@ async def segment_incidents(
     if reducer is None:
         reducer = _default_reducer()
 
-    aggregated_anchors: list[str] = []
-    for chunk in chunks:
-        result = await mapper.acall(text=chunk.text)
-        anchors = getattr(result, "anchors", None) or []
-        aggregated_anchors.extend(anchors)
+    sem = asyncio.Semaphore(max(1, concurrency))
+
+    async def map_chunk(chunk: Chunk) -> list[str]:
+        async with sem:
+            result = await mapper.acall(text=chunk.text)
+        return getattr(result, "anchors", None) or []
+
+    per_chunk = await asyncio.gather(*(map_chunk(chunk) for chunk in chunks))
+    aggregated_anchors = [anchor for anchors in per_chunk for anchor in anchors]
 
     reduced = await reducer.acall(anchors=aggregated_anchors)
     return list(getattr(reduced, "incidents", []) or [])

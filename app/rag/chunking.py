@@ -2,8 +2,10 @@
 
 Splits a document's text into overlapping, token-bounded chunks using the same
 tiktoken encodings the LLM uses, so chunk sizes line up with model token
-budgets. Character offsets are tracked best-effort (exact for ASCII text,
-clamped to the text length otherwise) for future evidence highlighting.
+budgets. Character offsets into the original text are tracked for future
+evidence highlighting; they are exact except where a token boundary falls
+inside a multi-byte character, in which case the offset rounds down to the
+start of that character.
 
 This is a token-window splitter; it can later be upgraded to a structure-aware
 (paragraph/sentence) splitter without changing the public interface.
@@ -64,14 +66,18 @@ def chunk_text(
     if len(tokens) <= max_tokens:
         return [Chunk(text=text, chunk_index=0, start_char=0, end_char=len(text))]
 
-    # Cumulative character offset at each token boundary. Byte lengths equal
-    # character counts for ASCII; for multi-byte text the offsets are clamped to
-    # the text length so they remain within bounds (best-effort).
+    # Tokens map to UTF-8 bytes, not characters, so track cumulative byte
+    # offsets at each token boundary and convert a boundary to a character
+    # offset only when a chunk needs it. Decoding with errors="ignore" drops a
+    # character split by the boundary, rounding the offset down to its start.
     token_byte_lens = [len(b) for b in encoding.decode_tokens_bytes(tokens)]
-    cum_chars = [0]
+    cum_bytes = [0]
     for blen in token_byte_lens:
-        cum_chars.append(cum_chars[-1] + blen)
-    text_len = len(text)
+        cum_bytes.append(cum_bytes[-1] + blen)
+    text_bytes = text.encode("utf-8")
+
+    def char_offset(byte_offset: int) -> int:
+        return len(text_bytes[:byte_offset].decode("utf-8", errors="ignore"))
 
     step = max(1, max_tokens - overlap)
     chunks: list[Chunk] = []
@@ -81,8 +87,8 @@ def chunk_text(
         if not window:
             break
         chunk_str = encoding.decode(window)
-        start_char = min(cum_chars[start], text_len)
-        end_char = min(cum_chars[start + len(window)], text_len)
+        start_char = char_offset(cum_bytes[start])
+        end_char = char_offset(cum_bytes[start + len(window)])
         chunks.append(
             Chunk(
                 text=chunk_str,

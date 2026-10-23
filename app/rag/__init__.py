@@ -1,4 +1,4 @@
-"""Retrieval-augmented generation (RAG) support for large-document ingestion.
+"""Retrieval-augmented generation (RAG) support for source ingestion.
 
 This package adds token-aware chunking, a persistent vector store (Qdrant),
 category-scoped retrieval, and map/reduce incident segmentation so that

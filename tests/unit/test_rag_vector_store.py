@@ -6,12 +6,15 @@ Tests the client-free, deterministic helpers:
 - chunk_to_payload() / payload_to_chunk(): payload round-tripping
 - VectorStore._embed_query(): the process-wide query-vector cache
 
-The Qdrant-backed methods (index_source/retrieve/delete_source) require a live
-Qdrant instance and are covered in the integration suite -- NOT here.
+- index_source()/delete_source() call shapes against a mocked Qdrant client:
+  article_hash keying, upsert-before-tail-delete, lazy collection creation
+
+End-to-end behavior against a live Qdrant instance is covered in the
+integration suite.
 """
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from app.rag.chunking import Chunk
 from app.rag.vector_store import (
@@ -22,6 +25,7 @@ from app.rag.vector_store import (
     chunk_to_payload,
     payload_to_chunk,
     point_id,
+    source_scope_key,
 )
 
 
@@ -170,3 +174,115 @@ class TestQueryVectorCache:
             await store._embed_query(f"incident number {i}")
 
         assert len(store._query_vectors) == _QUERY_CACHE_MAX
+
+
+class TestArticleHashKeying:
+    """Chunks are scoped and deleted by article_hash, never the Mongo id.
+
+    Sources are indexed during ingestion before insert, when ``id`` is None, so
+    any id-based key would orphan their chunks once the source is saved.
+    """
+
+    @staticmethod
+    def _store() -> VectorStore:
+        client = MagicMock()
+        for method in (
+            "collection_exists",
+            "create_collection",
+            "create_payload_index",
+            "upsert",
+            "delete",
+        ):
+            setattr(client, method, AsyncMock())
+        client.collection_exists.return_value = True
+        embedder = MagicMock(side_effect=lambda texts: [[0.0] * 3] * len(texts))
+        return VectorStore(client=client, embedder=embedder)
+
+    @staticmethod
+    def _filter_values(delete_call) -> dict:
+        """Map field name -> match value or range for a delete() call's filter."""
+        must = delete_call.kwargs["points_selector"].filter.must
+        return {
+            cond.key: (cond.match.value if cond.match is not None else cond.range)
+            for cond in must
+        }
+
+    @pytest.mark.unit
+    def test_scope_key_is_article_hash_before_and_after_insert(self):
+        unsaved = MagicMock(id=None, article_hash="hash-1")
+        saved = MagicMock(id="65f0c0ffee", article_hash="hash-1")
+        assert source_scope_key(unsaved) == source_scope_key(saved) == "hash-1"
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_unsaved_source_chunks_are_deletable_by_hash(self):
+        """Chunks indexed with id=None are matched by delete_source(article_hash)."""
+        store = self._store()
+        source = MagicMock(id=None, article_hash="hash-1")
+        chunks = [Chunk(text="a", chunk_index=0), Chunk(text="b", chunk_index=1)]
+
+        await store.index_source(source, chunks)
+        points = store.client.upsert.await_args.kwargs["points"]
+        assert {pt.payload["article_hash"] for pt in points} == {"hash-1"}
+
+        store.client.delete.reset_mock()
+        await store.delete_source("hash-1")
+        assert self._filter_values(store.client.delete.await_args) == {
+            "article_hash": "hash-1"
+        }
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_reindex_upserts_before_deleting_only_the_stale_tail(self):
+        """A failed upsert can never leave the source with no chunks."""
+        store = self._store()
+        calls: list[str] = []
+        store.client.upsert.side_effect = lambda **kw: calls.append("upsert")
+        store.client.delete.side_effect = lambda **kw: calls.append("delete")
+        chunks = [Chunk(text="a", chunk_index=0), Chunk(text="b", chunk_index=1)]
+
+        await store.index_source(MagicMock(id=None, article_hash="h"), chunks)
+
+        assert calls == ["upsert", "delete"]
+        values = self._filter_values(store.client.delete.await_args)
+        assert values["article_hash"] == "h"
+        assert values["chunk_index"].gte == len(chunks)
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_failed_upsert_deletes_nothing(self):
+        store = self._store()
+        store.client.upsert.side_effect = RuntimeError("qdrant down")
+
+        with pytest.raises(RuntimeError):
+            await store.index_source(
+                MagicMock(id=None, article_hash="h"), [Chunk(text="a", chunk_index=0)]
+            )
+
+        store.client.delete.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_collection_is_created_lazily_after_startup_failure(self):
+        """If startup could not reach Qdrant, the first index creates the collection."""
+        store = self._store()
+        store.client.collection_exists.side_effect = [
+            ConnectionError("not ready"),
+            False,
+        ]
+
+        with pytest.raises(ConnectionError):
+            await store.ensure_collection()
+
+        await store.index_source(
+            MagicMock(id=None, article_hash="h"), [Chunk(text="a", chunk_index=0)]
+        )
+
+        store.client.create_collection.assert_awaited_once()
+        store.client.upsert.assert_awaited_once()
+
+        # Once ready, later indexing does not re-check the collection.
+        await store.index_source(
+            MagicMock(id=None, article_hash="h"), [Chunk(text="a", chunk_index=0)]
+        )
+        assert store.client.collection_exists.await_count == 2

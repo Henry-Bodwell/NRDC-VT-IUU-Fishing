@@ -5,9 +5,11 @@ the rest of the pipeline never touches Qdrant types directly. The store is the
 source of truth for chunk text + vectors; MongoDB only keeps lightweight
 bookkeeping (chunk_count / indexed_at) on the Source.
 
-Indexing is idempotent per article_hash: re-ingesting a document deletes its
-existing points before upserting, and point ids are deterministic, so the same
-document never accumulates duplicate chunks.
+Chunks are keyed on ``article_hash``, not the Mongo ``_id``: sources are
+indexed during ingestion before they are inserted, and the hash is the one key
+that is stable from then on. Indexing is idempotent per article_hash: point ids
+are deterministic, so re-ingesting a document overwrites its existing points and
+only the stale tail (if it now has fewer chunks) is removed.
 """
 
 from __future__ import annotations
@@ -39,19 +41,20 @@ def point_id(article_hash: str, chunk_index: int) -> str:
 
 
 def source_scope_key(source: Any) -> str:
-    """Stable retrieval-scoping key for a source.
+    """Stable retrieval-scoping key for a source: its ``article_hash``.
 
-    Uses the persisted document id when available, falling back to the
-    article_hash for not-yet-saved sources so scoping is never ``None``.
+    The hash exists before the source is inserted and never changes after, so
+    chunks indexed during ingestion stay reachable for retrieval and deletion.
     """
-    source_id = getattr(source, "id", None)
-    if source_id:
-        return str(source_id)
     return getattr(source, "article_hash", "")
 
 
 def chunk_to_payload(source_id: Any, article_hash: str, chunk: Chunk) -> dict:
-    """Build the Qdrant payload stored alongside a chunk's vector."""
+    """Build the Qdrant payload stored alongside a chunk's vector.
+
+    ``source_id`` is informational only (it is ``None`` for sources indexed
+    before insert); scoping and deletion filter on ``article_hash``.
+    """
     return {
         "source_id": str(source_id) if source_id is not None else None,
         "article_hash": article_hash,
@@ -90,6 +93,9 @@ class VectorStore:
         # multi-incident queries are document-specific and would otherwise grow
         # without limit.
         self._query_vectors: OrderedDict[str, list[float]] = OrderedDict()
+        # Set once ensure_collection() succeeds. Startup may run before Qdrant
+        # is reachable, so indexing retries until the collection is confirmed.
+        self._collection_ready = False
 
     async def _embed(self, texts: list[str]) -> list[list[float]]:
         """Embed texts off the event loop (the DSPy embedder is synchronous)."""
@@ -121,11 +127,11 @@ class VectorStore:
                 ),
             )
 
-        # Every scoped retrieval filters on source_id, and index/delete filter on
-        # article_hash; without payload indexes those are unindexed scans. Qdrant
-        # treats re-creating an existing index as a no-op, so this is safe to run
-        # on every startup.
-        for field in ("source_id", "article_hash"):
+        # Scoped retrieval, re-indexing and deletion all filter on article_hash;
+        # without a payload index those are unindexed scans. Qdrant treats
+        # re-creating an existing index as a no-op, so this is safe to run on
+        # every startup.
+        for field in ("article_hash",):
             try:
                 await self.client.create_payload_index(
                     collection_name=self.collection,
@@ -135,21 +141,42 @@ class VectorStore:
             except Exception as e:
                 logger.debug(f"Payload index for '{field}' not created: {e}")
 
+        self._collection_ready = True
+
+    async def _ensure_ready(self) -> None:
+        """Create the collection on first use if startup could not."""
+        if not self._collection_ready:
+            await self.ensure_collection()
+
     async def index_source(self, source: Any, chunks: list[Chunk]) -> int:
         """Embed and upsert a source's chunks; returns the number indexed.
 
-        Idempotent: existing points for the source's article_hash are removed
-        before upserting, and point ids are deterministic.
+        Idempotent: point ids are deterministic, so the upsert overwrites any
+        existing points for the source's article_hash. Only the stale tail
+        (chunk indices past the new count) is deleted, and only after the upsert
+        succeeds, so a failed re-index never leaves the source with no chunks.
         """
         if not chunks:
             return 0
 
         from qdrant_client import models
 
+        await self._ensure_ready()
+
         article_hash = source.article_hash
-        scope_key = source_scope_key(source)
+        source_id = getattr(source, "id", None)
 
         vectors = await self._embed([c.text for c in chunks])
+
+        points = [
+            models.PointStruct(
+                id=point_id(article_hash, chunk.chunk_index),
+                vector=vectors[i],
+                payload=chunk_to_payload(source_id, article_hash, chunk),
+            )
+            for i, chunk in enumerate(chunks)
+        ]
+        await self.client.upsert(collection_name=self.collection, points=points)
 
         await self.client.delete(
             collection_name=self.collection,
@@ -159,29 +186,23 @@ class VectorStore:
                         models.FieldCondition(
                             key="article_hash",
                             match=models.MatchValue(value=article_hash),
-                        )
+                        ),
+                        models.FieldCondition(
+                            key="chunk_index",
+                            range=models.Range(gte=len(chunks)),
+                        ),
                     ]
                 )
             ),
         )
-
-        points = [
-            models.PointStruct(
-                id=point_id(article_hash, chunk.chunk_index),
-                vector=vectors[i],
-                payload=chunk_to_payload(scope_key, article_hash, chunk),
-            )
-            for i, chunk in enumerate(chunks)
-        ]
-        await self.client.upsert(collection_name=self.collection, points=points)
         return len(chunks)
 
     async def retrieve(
-        self, query: str, k: int = 5, *, source_id: str | None = None
+        self, query: str, k: int = 5, *, article_hash: str | None = None
     ) -> list[Chunk]:
         """Return the top-``k`` chunks for ``query``.
 
-        When ``source_id`` is provided the search is scoped to that document;
+        When ``article_hash`` is provided the search is scoped to that document;
         omit it for corpus-wide (cross-document) retrieval.
         """
         from qdrant_client import models
@@ -189,12 +210,12 @@ class VectorStore:
         vector = await self._embed_query(query)
 
         query_filter = None
-        if source_id is not None:
+        if article_hash is not None:
             query_filter = models.Filter(
                 must=[
                     models.FieldCondition(
-                        key="source_id",
-                        match=models.MatchValue(value=str(source_id)),
+                        key="article_hash",
+                        match=models.MatchValue(value=article_hash),
                     )
                 ]
             )
@@ -211,7 +232,7 @@ class VectorStore:
             for point in response.points
         ]
 
-    async def delete_source(self, source_id: Any) -> None:
+    async def delete_source(self, article_hash: str) -> None:
         """Remove all chunks for a source (used on Source deletion)."""
         from qdrant_client import models
 
@@ -221,8 +242,8 @@ class VectorStore:
                 filter=models.Filter(
                     must=[
                         models.FieldCondition(
-                            key="source_id",
-                            match=models.MatchValue(value=str(source_id)),
+                            key="article_hash",
+                            match=models.MatchValue(value=article_hash),
                         )
                     ]
                 )

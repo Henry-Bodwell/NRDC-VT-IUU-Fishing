@@ -422,7 +422,7 @@ class TestIncidentAnalysisModuleRetrieval:
 
             module = IncidentAnalysisModule()
             await module._extract_conditionally(
-                "", presence, store=MagicMock(), source_id="src-1"
+                "", presence, store=MagicMock(), article_hash="src-1"
             )
 
         categories = [call.args[2] for call in retrieve.await_args_list]
@@ -449,7 +449,7 @@ class TestIncidentAnalysisModuleRetrieval:
                 "",
                 presence,
                 store=MagicMock(),
-                source_id="src-1",
+                article_hash="src-1",
                 incident_query="the seizure of the Ocean Star",
             )
 
@@ -494,9 +494,9 @@ class TestIncidentAnalysisModuleRetrieval:
             module = IncidentAnalysisModule()
             await module._aforward_rag(source, store)
 
-        # The old implementation retrieved via store.retrieve once per incident
-        # and never reached the per-category helper at all.
-        store.retrieve.assert_not_awaited()
+        # store.retrieve is used only to build each incident's passage, once per
+        # incident; extraction itself goes through the per-category helper.
+        assert store.retrieve.await_count == len(descriptors)
         assert retrieve.await_count > len(descriptors)
 
         # Every incident's query is used, and each is paired with many categories.
@@ -507,6 +507,66 @@ class TestIncidentAnalysisModuleRetrieval:
         assert set(by_incident) == {"the Ocean Star", "the Blue Marlin"}
         for categories in by_incident.values():
             assert {"vessel", "crew", "species"} <= categories
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_multi_incident_rag_sets_incident_passages(self):
+        """The RAG path records one retrieved passage per incident, in order."""
+        source = create_mock_source(
+            article_scope=MagicMock(articleType="Multiple Incidents")
+        )
+        descriptors = [
+            MagicMock(description="Incident A", retrieval_query="the Ocean Star"),
+            MagicMock(description="Incident B", retrieval_query="the Blue Marlin"),
+        ]
+
+        async def retrieve_passage(query, k, article_hash):
+            return self._retrieved(f"passage for {query}")
+
+        store = MagicMock()
+        store.retrieve = AsyncMock(side_effect=retrieve_passage)
+
+        with patch("dspy.ChainOfThought") as mock_cot, patch(
+            "app.dspy_files.modules.retrieve_chunks",
+            AsyncMock(return_value=self._retrieved("chunk")),
+        ), patch(
+            "app.dspy_files.modules.segment_incidents",
+            AsyncMock(return_value=descriptors),
+        ), patch(
+            "app.dspy_files.modules.chunk_text", return_value=[]
+        ):
+            mock_instance = MagicMock()
+            mock_instance.acall = AsyncMock(return_value=MagicMock())
+            mock_cot.return_value = mock_instance
+
+            module = IncidentAnalysisModule()
+            result = await module._aforward_rag(source, store)
+
+        assert len(result["incidents"]) == 2
+        assert [p.target_passage for p in source.incident_passages] == [
+            "passage for the Ocean Star",
+            "passage for the Blue Marlin",
+        ]
+        assert all(p.full_context == "" for p in source.incident_passages)
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_multi_incident_rag_reuses_indexed_chunks(self):
+        """Chunks passed in from indexing are segmented without re-chunking."""
+        source = create_mock_source(
+            article_scope=MagicMock(articleType="Multiple Incidents")
+        )
+        indexed_chunks = [MagicMock(text="indexed chunk")]
+        segment = AsyncMock(return_value=[])
+
+        with patch("dspy.ChainOfThought"), patch(
+            "app.dspy_files.modules.segment_incidents", segment
+        ), patch("app.dspy_files.modules.chunk_text") as chunk_text:
+            module = IncidentAnalysisModule()
+            await module._aforward_rag(source, MagicMock(), chunks=indexed_chunks)
+
+        chunk_text.assert_not_called()
+        assert segment.await_args.args[0] is indexed_chunks
 
 
 class TestIncidentAnalysisModuleMultipleIncidents:

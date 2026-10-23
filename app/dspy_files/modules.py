@@ -1,4 +1,5 @@
 import dspy
+import asyncio
 import logging
 from app.dspy_files.signatures import (
     MultipleIncidentSignature,
@@ -23,11 +24,10 @@ from app.dspy_files.signatures import (
     ExtractIUUClassification,
     SummarizeIncident,
 )
-from app.models.sources import Source
-from app.rag.chunking import chunk_text
+from app.models.sources import IncidentPassage, Source
+from app.rag.chunking import Chunk, chunk_text
 from app.rag.retrieval import join_chunks, retrieve_chunks
-from app.rag.incident_segmentation import segment_incidents
-from app.rag.vector_store import source_scope_key
+from app.rag.incident_segmentation import IncidentDescriptor, segment_incidents
 
 logger = logging.getLogger(__name__)
 
@@ -68,20 +68,26 @@ class IncidentAnalysisModule(dspy.Module):
         self.summarize_incident = dspy.ChainOfThought(SummarizeIncident)
 
     async def aforward(
-        self, source: Source, *, store=None, use_rag: bool = False
+        self,
+        source: Source,
+        *,
+        store=None,
+        use_rag: bool = False,
+        chunks: list[Chunk] | None = None,
     ) -> dict:
         """
         Extract structured information from the article text and classify the incident.
         Uses two-stage approach: detect presence, then conditionally extract.
 
-        When ``use_rag`` is set and a ``store`` (VectorStore) is supplied, the
-        document is treated as large: extractors receive retrieved chunks instead
+        When ``use_rag`` is set and a ``store`` (VectorStore) is supplied,
+        extraction uses retrieval: extractors receive retrieved chunks instead
         of the full article, and multiple incidents are discovered via map/reduce
-        segmentation rather than full-article regurgitation.
+        segmentation rather than full-article regurgitation. ``chunks`` are the
+        chunks already produced at indexing time, reused to avoid re-chunking.
         """
         try:
             if use_rag and store is not None:
-                return await self._aforward_rag(source, store)
+                return await self._aforward_rag(source, store, chunks=chunks)
 
             # Step 1: Detect information presence
             logger.info(
@@ -179,22 +185,30 @@ class IncidentAnalysisModule(dspy.Module):
             has_iuu_classification=True,
         )
 
-    async def _aforward_rag(self, source: Source, store) -> dict:
+    async def _aforward_rag(
+        self,
+        source: Source,
+        store,
+        *,
+        chunks: list[Chunk] | None = None,
+        concurrency: int = 3,
+    ) -> dict:
         """Retrieval extraction path, used for every source that indexed.
 
         Single Incident: each extractor pulls its own category-scoped chunks.
         Multiple Incidents: discover distinct incidents by map/reduce over chunks,
         then extract each incident from its own retrieved context -- never the
-        whole article.
+        whole article. Incidents are extracted concurrently (at most
+        ``concurrency`` at a time) and returned in segmentation order.
         """
-        scope_key = source_scope_key(source)
+        article_hash = source.article_hash
         presence = self._all_present()
         source.information_presence = {"rag_mode": True}
 
         if source.article_scope.articleType == "Single Incident":
-            logger.info(f"RAG single-incident extraction for '{source.article_hash}'")
+            logger.info(f"RAG single-incident extraction for '{article_hash}'")
             extracted_data = await self._extract_conditionally(
-                "", presence, store=store, source_id=scope_key
+                "", presence, store=store, article_hash=article_hash
             )
             return {
                 "sources": [source],
@@ -204,34 +218,53 @@ class IncidentAnalysisModule(dspy.Module):
             }
 
         # Multiple Incidents
-        logger.info(f"RAG multi-incident segmentation for '{source.article_hash}'")
-        chunks = chunk_text(source.article_text)
+        logger.info(f"RAG multi-incident segmentation for '{article_hash}'")
+        if not chunks:
+            chunks = chunk_text(source.article_text)
         descriptors = await segment_incidents(
             chunks, mapper=self.anchor_mapper, reducer=self.incident_reducer
         )
         logger.info(f"Segmented {len(descriptors)} incident(s)")
 
-        return_object = []
-        for descriptor in descriptors:
-            # Each extractor retrieves its own category-scoped chunks, narrowed
-            # to this incident by the descriptor's query. Retrieving once per
-            # incident and reusing that context for all categories would hand
-            # every extractor the same chunks and defeat per-category retrieval.
-            extracted_data = await self._extract_conditionally(
-                "",
-                presence,
-                summary_text=descriptor.description,
-                store=store,
-                source_id=scope_key,
-                incident_query=descriptor.retrieval_query,
-            )
-            return_object.append(
+        sem = asyncio.Semaphore(max(1, concurrency))
+
+        async def extract_incident(
+            descriptor: IncidentDescriptor,
+        ) -> tuple[dict, IncidentPassage]:
+            async with sem:
+                # Each extractor retrieves its own category-scoped chunks,
+                # narrowed to this incident by the descriptor's query. Retrieving
+                # once per incident and reusing that context for all categories
+                # would hand every extractor the same chunks and defeat
+                # per-category retrieval.
+                extracted_data = await self._extract_conditionally(
+                    "",
+                    presence,
+                    summary_text=descriptor.description,
+                    store=store,
+                    article_hash=article_hash,
+                    incident_query=descriptor.retrieval_query,
+                )
+                # The passage is the incident's own retrieved context; full_context
+                # stays empty so no incident carries a copy of the whole article.
+                passage_chunks = await store.retrieve(
+                    descriptor.retrieval_query, k=3, article_hash=article_hash
+                )
+                passage = IncidentPassage(
+                    target_passage=join_chunks(passage_chunks), full_context=""
+                )
+            return (
                 {
                     "sources": [source],
                     "parsed_data": extracted_data,
                     "classification": extracted_data.get("classification"),
-                }
+                },
+                passage,
             )
+
+        results = await asyncio.gather(*(extract_incident(d) for d in descriptors))
+        source.incident_passages = [passage for _, passage in results]
+        return_object = [incident for incident, _ in results]
 
         return {"incidents": return_object, "presence": presence}
 
@@ -264,24 +297,24 @@ class IncidentAnalysisModule(dspy.Module):
         category: str,
         default_text: str,
         store,
-        source_id,
+        article_hash,
         k: int,
         incident_query: str | None = None,
     ) -> str:
         """Return the text fed to an extractor for ``category``.
 
-        In RAG mode (store + source_id supplied) this is the retrieved,
+        In RAG mode (store + article_hash supplied) this is the retrieved,
         category-scoped context; otherwise it is ``default_text`` unchanged so
         the full-text fallback path behaves exactly as before.
 
         ``incident_query`` narrows retrieval to a single incident within a
         multi-incident document.
         """
-        if store is None or source_id is None:
+        if store is None or article_hash is None:
             return default_text
 
         chunks = await retrieve_chunks(
-            store, source_id, category, k, extra_query=incident_query
+            store, article_hash, category, k, extra_query=incident_query
         )
         # Scores are logged, not gated on: cosine similarity from
         # text-embedding-3-small is not absolutely calibrated, so a fixed floor
@@ -302,7 +335,7 @@ class IncidentAnalysisModule(dspy.Module):
         summary_text: str = None,
         *,
         store=None,
-        source_id=None,
+        article_hash=None,
         k: int = 5,
         incident_query: str | None = None,
     ) -> dict:
@@ -312,12 +345,12 @@ class IncidentAnalysisModule(dspy.Module):
 
         Args:
             text: The full text to extract from (may include extraction instructions).
-                  Ignored per-category when ``store``/``source_id`` are supplied.
+                  Ignored per-category when ``store``/``article_hash`` are supplied.
             presence: Information presence flags
             summary_text: Optional separate text to use for the description/summary field.
                          If not provided, uses the first 200 chars of text.
             store: Optional VectorStore for category-scoped retrieval (RAG mode).
-            source_id: Retrieval-scoping key for the source (RAG mode).
+            article_hash: Retrieval-scoping key for the source (RAG mode).
             k: Number of chunks to retrieve per category (RAG mode).
             incident_query: Narrows retrieval to one incident within a
                             multi-incident document (RAG mode).
@@ -327,7 +360,7 @@ class IncidentAnalysisModule(dspy.Module):
         async def resolve(category: str) -> str:
             """Text for ``category``: retrieved in RAG mode, ``text`` otherwise."""
             return await self._resolve_text(
-                category, text, store, source_id, k, incident_query
+                category, text, store, article_hash, k, incident_query
             )
 
         # Extract vessel info (if present)

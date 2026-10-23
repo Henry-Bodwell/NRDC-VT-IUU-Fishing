@@ -131,3 +131,22 @@ def test_custom_encoding_model_is_accepted():
 
     assert len(chunks) == 1
     assert chunks[0].chunk_index == 0
+
+
+@pytest.mark.unit
+def test_offsets_are_exact_for_multibyte_text():
+    """Offsets index characters, not UTF-8 bytes, so they do not drift."""
+    text = " ".join(
+        f"El buque pesquero número {i} fue incautado en Peñíscola; 渔船{i}被扣押。"
+        for i in range(60)
+    )
+    chunks = chunk_text(text, max_tokens=50, overlap=10)
+
+    assert len(chunks) > 2
+    for chunk in chunks:
+        span = text[chunk.start_char : chunk.end_char]
+        # A boundary inside a multi-byte character rounds down, so the span may
+        # carry at most one extra leading character beyond the decoded chunk.
+        assert chunk.text.strip("�").strip() in span
+        assert chunk.end_char <= len(text)
+    assert chunks[-1].end_char == len(text)
