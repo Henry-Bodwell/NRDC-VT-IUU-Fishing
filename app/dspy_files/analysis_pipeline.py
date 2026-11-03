@@ -2,6 +2,7 @@ import dspy
 from app.dspy_files.config import setup_dspy
 from app.dspy_files.source_scope import SourceScope
 from app.models.sources import Source
+from app.rag.chunking import Chunk
 from app.dspy_files.modules import IncidentAnalysisModule, IndustryOverviewModule
 import logging
 
@@ -20,9 +21,20 @@ class AnalysisPipeline:
         self.industry_overview_tool = IndustryOverviewModule()
         # self.optimized_analysisTool = None # Can be added later
 
-    async def run(self, source: Source) -> dspy.Prediction:
+    async def run(
+        self,
+        source: Source,
+        *,
+        store=None,
+        use_rag: bool = False,
+        chunks: list[Chunk] | None = None,
+    ) -> dspy.Prediction:
         """
         Classifies the article and runs the appropriate analysis module.
+
+        When ``use_rag`` is set and a ``store`` is provided, incident extraction
+        runs the retrieval-augmented path for indexed sources, reusing ``chunks``
+        from indexing when given.
         """
         try:
             if not source.article_scope:
@@ -51,7 +63,9 @@ class AnalysisPipeline:
                 logger.info(
                     f"Article '{source.article_hash}' contains multiple incidents."
                 )
-                module_output = await self.incident_analysis_tool.acall(source=source)
+                module_output = await self.incident_analysis_tool.acall(
+                    source=source, store=store, use_rag=use_rag, chunks=chunks
+                )
                 return dspy.Prediction(
                     sources=[source],
                     incidents=module_output.get("incidents"),
@@ -60,7 +74,9 @@ class AnalysisPipeline:
                 logger.info(
                     f"Article '{source.article_hash}' contains a single incident."
                 )
-                module_output = await self.incident_analysis_tool.acall(source=source)
+                module_output = await self.incident_analysis_tool.acall(
+                    source=source, store=store, use_rag=use_rag, chunks=chunks
+                )
                 return dspy.Prediction(
                     sources=[source],
                     incident_classification=module_output.get("classification"),

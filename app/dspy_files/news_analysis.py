@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime
 from enum import Enum
 import traceback
 from typing import List, Optional, Callable, Awaitable
@@ -8,12 +9,17 @@ from pydantic import BaseModel, Field
 from app.dspy_files.content_extraction import ContentExtractor
 from app.dspy_files.analysis_pipeline import AnalysisPipeline
 from app.dspy_files.postprocessing import format_report
+from app.dspy_files.config import EMBEDDING_MODEL
 from app.models.sources import Source
 from app.models.incidents import IncidentReport, IndustryOverview
+from app.rag.chunking import Chunk
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Scopes whose extraction retrieves from the vector store.
+RAG_SCOPES = {"Single Incident", "Multiple Incidents"}
 
 
 class PipelineResult(Enum):
@@ -103,10 +109,74 @@ class AnalysisOrchestrator:
                 await progress_callback("classification", 40)
         return source
 
+    async def index_source_for_rag(
+        self, source: Source
+    ) -> tuple[object, bool, list[Chunk] | None]:
+        """Chunk and index a source into the vector store.
+
+        Every incident source is indexed regardless of size, so extraction takes
+        one uniform retrieval path. If indexing fails (e.g. Qdrant unreachable),
+        we log and fall back to the full-text path rather than failing ingestion.
+
+        Returns a ``(store, use_rag, chunks)`` tuple where ``store`` is the
+        VectorStore (or None), ``use_rag`` indicates the RAG extraction path
+        should run, and ``chunks`` are the indexed chunks (reused downstream so
+        the text is not chunked twice).
+        """
+        from app.rag.vector_store import get_vector_store
+        from app.rag.chunking import chunk_text
+
+        try:
+            store = get_vector_store()
+            chunks = chunk_text(source.article_text)
+            if not chunks:
+                logger.warning(
+                    f"Source '{source.article_hash}' produced no chunks; "
+                    f"using full-text path"
+                )
+                return None, False, None
+
+            await store.index_source(source, chunks)
+            source.chunk_count = len(chunks)
+            source.indexed_at = datetime.utcnow()
+            source.embedding_model = EMBEDDING_MODEL
+            logger.info(
+                f"Indexed {len(chunks)} chunks for source "
+                f"'{source.article_hash}' (RAG path enabled)"
+            )
+            return store, True, chunks
+        except Exception as e:
+            logger.warning(
+                f"RAG indexing failed for '{source.article_hash}'; "
+                f"falling back to full-text path: {e}"
+            )
+            return None, False, None
+
+    @staticmethod
+    async def _discard_unsaved_chunks(store, source: Source) -> None:
+        """Best-effort removal of chunks indexed for a source that won't be saved.
+
+        Only applies to sources that were never inserted; an existing source
+        being reanalyzed keeps its chunks.
+        """
+        if store is None or source.id is not None:
+            return
+        try:
+            await store.delete_source(source.article_hash)
+        except Exception as e:
+            logger.warning(
+                f"Failed to discard chunks for unsaved source "
+                f"'{source.article_hash}': {e}"
+            )
+
     async def analyze_source(
         self,
         source: Source,
         progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
+        *,
+        store: object = None,
+        use_rag: bool = False,
+        chunks: list[Chunk] | None = None,
     ) -> dspy.Prediction:
         """
         Run DSPy analysis modules on a classified source.
@@ -123,7 +193,9 @@ class AnalysisOrchestrator:
         with dspy.context(lm=self.lm):
             if progress_callback:
                 await progress_callback("analysis", 50)
-            prediction = await self.pipeline.run(source)
+            prediction = await self.pipeline.run(
+                source, store=store, use_rag=use_rag, chunks=chunks
+            )
             if progress_callback:
                 await progress_callback("analysis", 60)
         return prediction
@@ -295,9 +367,18 @@ class AnalysisOrchestrator:
                 error_message=str(e),
             )
 
+        # Index incident sources for retrieval-based extraction; falls back to
+        # full text on failure. Overviews and unrelated sources never retrieve.
+        store, use_rag, chunks = None, False, None
+        if source.article_scope and source.article_scope.articleType in RAG_SCOPES:
+            store, use_rag, chunks = await self.index_source_for_rag(source)
+
         try:
-            prediction = await self.analyze_source(source, progress_callback)
+            prediction = await self.analyze_source(
+                source, progress_callback, store=store, use_rag=use_rag, chunks=chunks
+            )
             if not prediction:
+                await self._discard_unsaved_chunks(store, source)
                 return PipelineOutput(
                     status=PipelineResult.FAILED_ANALYSIS,
                     source=source,
@@ -305,6 +386,7 @@ class AnalysisOrchestrator:
                 )
         except Exception as e:
             logging.error(f"Analysis failed for {source.id}: {e}")
+            await self._discard_unsaved_chunks(store, source)
             return PipelineOutput(
                 status=PipelineResult.FAILED_ANALYSIS,
                 source=source,
@@ -320,6 +402,7 @@ class AnalysisOrchestrator:
                 "traceback": traceback.format_exc(),
             }
             logger.error(f"Error processing prediction: {error_details}")
+            await self._discard_unsaved_chunks(store, source)
             return PipelineOutput(
                 status=PipelineResult.FAILED_FORMATTING,
                 source=source,

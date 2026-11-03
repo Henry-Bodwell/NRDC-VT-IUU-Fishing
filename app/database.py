@@ -6,7 +6,6 @@ from app.audit.models import AuditLog
 from app.models.incidents import IndustryOverview
 from app.models.task import TaskStatus
 
-
 MONGO_URI = os.getenv("MONGO_URI")
 
 
@@ -36,3 +35,14 @@ async def init_db():
         ],  # Pass all Beanie Documents here
     )
     print("Database initialized successfully.")
+
+    # Ensure the vector-store collection exists for the chunking/RAG path.
+    # Non-fatal: ingestion falls back to the full-text path if the vector store
+    # is unavailable, and VectorStore also ensures the collection lazily.
+    try:
+        from app.rag.vector_store import get_vector_store
+
+        await get_vector_store().ensure_collection()
+        print("Vector store (Qdrant) collection ensured.")
+    except Exception as e:
+        print(f"Warning: could not ensure vector store collection: {e}")

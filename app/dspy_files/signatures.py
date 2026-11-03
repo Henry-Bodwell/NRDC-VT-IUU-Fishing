@@ -26,6 +26,7 @@ from app.models.sources import (
     SourceExtraction,
     IncidentPassage,
 )
+from app.rag.incident_segmentation import IncidentDescriptor
 
 
 class TextToStructuredData(dspy.Signature):
@@ -54,6 +55,42 @@ class MultipleIncidentSignature(dspy.Signature):
     text: str = dspy.InputField(desc="Article text containing multiple IUU incidents")
     incident_passages: List[IncidentPassage] = dspy.OutputField(
         desc="List of incident passages, one for each unique incident. Each contains the target passage for that incident plus the full article context. If article has 2 incidents, return 2 IncidentPassage objects."
+    )
+
+
+class IdentifyIncidentAnchors(dspy.Signature):
+    """Identify short distinguishing anchors for IUU incidents in a text chunk.
+
+    Map step of multi-incident segmentation: emit only compact identifiers, never
+    the chunk text itself.
+    """
+
+    text: str = dspy.InputField(desc="A chunk of article text to scan for incidents")
+    anchors: List[str] = dspy.OutputField(
+        desc=(
+            "Short distinguishing identifiers (e.g. vessel name, named actor, "
+            "date, location, event type) for each distinct IUU incident mentioned "
+            "in this chunk. Return an empty list if the chunk describes no incident."
+        )
+    )
+
+
+class ConsolidateIncidents(dspy.Signature):
+    """Consolidate per-chunk anchors into a deduplicated list of distinct incidents.
+
+    Reduce step of multi-incident segmentation: merge anchors that refer to the
+    same incident; each output incident is a short descriptor, not article text.
+    """
+
+    anchors: List[str] = dspy.InputField(
+        desc="Aggregated incident anchors collected across all chunks of the article"
+    )
+    incidents: List[IncidentDescriptor] = dspy.OutputField(
+        desc=(
+            "Distinct incidents after merging anchors that refer to the same "
+            "incident. Each has a short description, its supporting anchors, and a "
+            "retrieval_query used to fetch the chunks that describe it."
+        )
     )
 
 

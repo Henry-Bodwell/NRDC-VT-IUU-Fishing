@@ -1,4 +1,5 @@
 import dspy
+import asyncio
 import logging
 from app.dspy_files.signatures import (
     MultipleIncidentSignature,
@@ -6,6 +7,9 @@ from app.dspy_files.signatures import (
     TextToStructuredData,
     IndustryOverviewSignature,
     InformationPresenceSignature,
+    InformationPresence,
+    IdentifyIncidentAnchors,
+    ConsolidateIncidents,
     ExtractVesselData,
     ExtractCrewData,
     ExtractLaborStandards,
@@ -20,7 +24,10 @@ from app.dspy_files.signatures import (
     ExtractIUUClassification,
     SummarizeIncident,
 )
-from app.models.sources import Source
+from app.models.sources import IncidentPassage, Source
+from app.rag.chunking import Chunk, chunk_text
+from app.rag.retrieval import join_chunks, retrieve_chunks
+from app.rag.incident_segmentation import IncidentDescriptor, segment_incidents
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +46,10 @@ class IncidentAnalysisModule(dspy.Module):
         self.multiIncidentText = dspy.ChainOfThought(MultipleIncidentSignature)
         self.multiIncidentClass = dspy.ChainOfThought(MultipleIncidentToStructured)
 
+        # RAG multi-incident segmentation (map/reduce over chunks)
+        self.anchor_mapper = dspy.ChainOfThought(IdentifyIncidentAnchors)
+        self.incident_reducer = dspy.ChainOfThought(ConsolidateIncidents)
+
         # Focused extractors (conditional based on presence)
         self.extract_vessel = dspy.ChainOfThought(ExtractVesselData)
         self.extract_crew = dspy.ChainOfThought(ExtractCrewData)
@@ -56,12 +67,28 @@ class IncidentAnalysisModule(dspy.Module):
         self.extract_classification = dspy.ChainOfThought(ExtractIUUClassification)
         self.summarize_incident = dspy.ChainOfThought(SummarizeIncident)
 
-    async def aforward(self, source: Source) -> dict:
+    async def aforward(
+        self,
+        source: Source,
+        *,
+        store=None,
+        use_rag: bool = False,
+        chunks: list[Chunk] | None = None,
+    ) -> dict:
         """
         Extract structured information from the article text and classify the incident.
         Uses two-stage approach: detect presence, then conditionally extract.
+
+        When ``use_rag`` is set and a ``store`` (VectorStore) is supplied,
+        extraction uses retrieval: extractors receive retrieved chunks instead
+        of the full article, and multiple incidents are discovered via map/reduce
+        segmentation rather than full-article regurgitation. ``chunks`` are the
+        chunks already produced at indexing time, reused to avoid re-chunking.
         """
         try:
+            if use_rag and store is not None:
+                return await self._aforward_rag(source, store, chunks=chunks)
+
             # Step 1: Detect information presence
             logger.info(
                 f"Detecting information presence in article '{source.article_hash}'"
@@ -131,6 +158,116 @@ class IncidentAnalysisModule(dspy.Module):
         except Exception as e:
             raise Exception(f"Error during extraction and classification: {str(e)}")
 
+    @staticmethod
+    def _all_present() -> InformationPresence:
+        """Presence flags with everything enabled.
+
+        In RAG mode we run every extractor and skip the separate
+        presence-detection LLM call.
+
+        Note this is not a true gate: top-k retrieval always returns k chunks
+        when the document has them, however irrelevant, so an extractor whose
+        category is absent still receives text and may confabulate rather than
+        return empty. Retrieval scores are logged (see ``_resolve_text``) to
+        establish whether a relevance floor can serve as the real gate.
+        """
+        return InformationPresence(
+            has_vessel_info=True,
+            has_crew_info=True,
+            has_labor_standards=True,
+            has_catch_info=True,
+            has_compliance_info=True,
+            has_species_info=True,
+            has_event_details=True,
+            has_transshipment=True,
+            has_aquaculture=True,
+            has_trade_distribution=True,
+            has_iuu_classification=True,
+        )
+
+    async def _aforward_rag(
+        self,
+        source: Source,
+        store,
+        *,
+        chunks: list[Chunk] | None = None,
+        concurrency: int = 3,
+    ) -> dict:
+        """Retrieval extraction path, used for every source that indexed.
+
+        Single Incident: each extractor pulls its own category-scoped chunks.
+        Multiple Incidents: discover distinct incidents by map/reduce over chunks,
+        then extract each incident from its own retrieved context -- never the
+        whole article. Incidents are extracted concurrently (at most
+        ``concurrency`` at a time) and returned in segmentation order.
+        """
+        article_hash = source.article_hash
+        presence = self._all_present()
+        source.information_presence = {"rag_mode": True}
+
+        if source.article_scope.articleType == "Single Incident":
+            logger.info(f"RAG single-incident extraction for '{article_hash}'")
+            extracted_data = await self._extract_conditionally(
+                "", presence, store=store, article_hash=article_hash
+            )
+            return {
+                "sources": [source],
+                "parsed_data": extracted_data,
+                "classification": extracted_data.get("classification"),
+                "presence": presence,
+            }
+
+        # Multiple Incidents
+        logger.info(f"RAG multi-incident segmentation for '{article_hash}'")
+        if not chunks:
+            chunks = chunk_text(source.article_text)
+        descriptors = await segment_incidents(
+            chunks, mapper=self.anchor_mapper, reducer=self.incident_reducer
+        )
+        logger.info(f"Segmented {len(descriptors)} incident(s)")
+
+        sem = asyncio.Semaphore(max(1, concurrency))
+
+        async def extract_incident(
+            descriptor: IncidentDescriptor,
+        ) -> tuple[dict, IncidentPassage]:
+            async with sem:
+                # Each extractor retrieves its own category-scoped chunks,
+                # narrowed to this incident by the descriptor's query. Retrieving
+                # once per incident and reusing that context for all categories
+                # would hand every extractor the same chunks and defeat
+                # per-category retrieval.
+                extracted_data = await self._extract_conditionally(
+                    "",
+                    presence,
+                    summary_text=descriptor.description,
+                    store=store,
+                    article_hash=article_hash,
+                    incident_query=descriptor.retrieval_query,
+                )
+                # The passage is the incident's own retrieved context; full_context
+                # stays empty so no incident carries a copy of the whole article.
+                passage_chunks = await store.retrieve(
+                    descriptor.retrieval_query, k=3, article_hash=article_hash
+                )
+                passage = IncidentPassage(
+                    target_passage=join_chunks(passage_chunks), full_context=""
+                )
+            return (
+                {
+                    "sources": [source],
+                    "parsed_data": extracted_data,
+                    "classification": extracted_data.get("classification"),
+                },
+                passage,
+            )
+
+        results = await asyncio.gather(*(extract_incident(d) for d in descriptors))
+        source.incident_passages = [passage for _, passage in results]
+        return_object = [incident for incident, _ in results]
+
+        return {"incidents": return_object, "presence": presence}
+
     def _create_multi_incident_extraction_text(
         self, target_passage: str, full_context: str
     ) -> str:
@@ -155,25 +292,82 @@ class IncidentAnalysisModule(dspy.Module):
         {full_context}
         """
 
+    async def _resolve_text(
+        self,
+        category: str,
+        default_text: str,
+        store,
+        article_hash,
+        k: int,
+        incident_query: str | None = None,
+    ) -> str:
+        """Return the text fed to an extractor for ``category``.
+
+        In RAG mode (store + article_hash supplied) this is the retrieved,
+        category-scoped context; otherwise it is ``default_text`` unchanged so
+        the full-text fallback path behaves exactly as before.
+
+        ``incident_query`` narrows retrieval to a single incident within a
+        multi-incident document.
+        """
+        if store is None or article_hash is None:
+            return default_text
+
+        chunks = await retrieve_chunks(
+            store, article_hash, category, k, extra_query=incident_query
+        )
+        # Scores are logged, not gated on: cosine similarity from
+        # text-embedding-3-small is not absolutely calibrated, so a fixed floor
+        # would silently suppress valid extractions. Collect data first, then
+        # decide whether a relevance floor can replace presence detection.
+        scores = [c.score for c in chunks if c.score is not None]
+        best = f"{max(scores):.4f}" if scores else "n/a"
+        logger.info(
+            f"Retrieved {len(chunks)} chunk(s) for category '{category}' "
+            f"(best score: {best})"
+        )
+        return join_chunks(chunks)
+
     async def _extract_conditionally(
-        self, text: str, presence, summary_text: str = None
+        self,
+        text: str,
+        presence,
+        summary_text: str = None,
+        *,
+        store=None,
+        article_hash=None,
+        k: int = 5,
+        incident_query: str | None = None,
     ) -> dict:
         """
         Extract information conditionally based on presence flags.
         Only runs extractors for categories that are detected as present.
 
         Args:
-            text: The full text to extract from (may include extraction instructions)
+            text: The full text to extract from (may include extraction instructions).
+                  Ignored per-category when ``store``/``article_hash`` are supplied.
             presence: Information presence flags
             summary_text: Optional separate text to use for the description/summary field.
                          If not provided, uses the first 200 chars of text.
+            store: Optional VectorStore for category-scoped retrieval (RAG mode).
+            article_hash: Retrieval-scoping key for the source (RAG mode).
+            k: Number of chunks to retrieve per category (RAG mode).
+            incident_query: Narrows retrieval to one incident within a
+                            multi-incident document (RAG mode).
         """
         extracted = {}
+
+        async def resolve(category: str) -> str:
+            """Text for ``category``: retrieved in RAG mode, ``text`` otherwise."""
+            return await self._resolve_text(
+                category, text, store, article_hash, k, incident_query
+            )
 
         # Extract vessel info (if present)
         if presence.has_vessel_info:
             logger.info("Extracting vessel information...")
-            vessel_output = await self.extract_vessel.acall(text=text)
+            vessel_text = await resolve("vessel")
+            vessel_output = await self.extract_vessel.acall(text=vessel_text)
             extracted["vesselInformation"] = vessel_output.vessel_data
         else:
             logger.info("Skipping vessel extraction (not present)")
@@ -182,7 +376,8 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract crew info (if present)
         if presence.has_crew_info:
             logger.info("Extracting crew information...")
-            crew_output = await self.extract_crew.acall(text=text)
+            crew_text = await resolve("crew")
+            crew_output = await self.extract_crew.acall(text=crew_text)
             extracted["crewInformation"] = crew_output.crew_data
         else:
             logger.info("Skipping crew extraction (not present)")
@@ -191,7 +386,8 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract labor standards (if present)
         if presence.has_labor_standards:
             logger.info("Extracting labor standards information...")
-            labor_output = await self.extract_labor_standards.acall(text=text)
+            labor_text = await resolve("labor")
+            labor_output = await self.extract_labor_standards.acall(text=labor_text)
             extracted["laborStandards"] = labor_output.labor_standards
         else:
             logger.info("Skipping labor standards extraction (not present)")
@@ -200,7 +396,8 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract catch info (if present)
         if presence.has_catch_info:
             logger.info("Extracting catch information...")
-            catch_output = await self.extract_catch.acall(text=text)
+            catch_text = await resolve("catch")
+            catch_output = await self.extract_catch.acall(text=catch_text)
             extracted["catchInformation"] = catch_output.catch_data
         else:
             logger.info("Skipping catch extraction (not present)")
@@ -209,7 +406,10 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract compliance info (if present)
         if presence.has_compliance_info:
             logger.info("Extracting compliance information...")
-            compliance_output = await self.extract_compliance.acall(text=text)
+            compliance_text = await resolve("compliance")
+            compliance_output = await self.extract_compliance.acall(
+                text=compliance_text
+            )
             extracted["complianceInformation"] = compliance_output.compliance_data
         else:
             logger.info("Skipping compliance extraction (not present)")
@@ -218,7 +418,8 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract species info (if present)
         if presence.has_species_info:
             logger.info("Extracting species information...")
-            species_output = await self.extract_species.acall(text=text)
+            species_text = await resolve("species")
+            species_output = await self.extract_species.acall(text=species_text)
             extracted["speciesInvolved"] = species_output.species_list
         else:
             logger.info("Skipping species extraction (not present)")
@@ -227,7 +428,8 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract event info (if present)
         if presence.has_event_details:
             logger.info("Extracting event information...")
-            event_output = await self.extract_event.acall(text=text)
+            event_text = await resolve("event")
+            event_output = await self.extract_event.acall(text=event_text)
             extracted["eventData"] = event_output.event_data
         else:
             logger.info("Skipping event extraction (not present)")
@@ -236,7 +438,10 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract transshipment info (if present)
         if presence.has_transshipment:
             logger.info("Extracting transshipment information...")
-            transship_output = await self.extract_transshipment.acall(text=text)
+            transship_text = await resolve("transshipment")
+            transship_output = await self.extract_transshipment.acall(
+                text=transship_text
+            )
             extracted["transshipmentInformation"] = transship_output.transshipment_data
         else:
             logger.info("Skipping transshipment extraction (not present)")
@@ -245,7 +450,8 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract aquaculture info (if present)
         if presence.has_aquaculture:
             logger.info("Extracting aquaculture information...")
-            aqua_output = await self.extract_aquaculture.acall(text=text)
+            aqua_text = await resolve("aquaculture")
+            aqua_output = await self.extract_aquaculture.acall(text=aqua_text)
             extracted["aquacultureInformation"] = aqua_output.aquaculture_data
         else:
             logger.info("Skipping aquaculture extraction (not present)")
@@ -254,7 +460,8 @@ class IncidentAnalysisModule(dspy.Module):
         # Extract trade/distribution info (if present)
         if presence.has_trade_distribution:
             logger.info("Extracting trade/distribution information...")
-            trade_output = await self.extract_trade_distribution.acall(text=text)
+            trade_text = await resolve("trade_distribution")
+            trade_output = await self.extract_trade_distribution.acall(text=trade_text)
             extracted["tradeInformation"] = trade_output.trade_data
             extracted["distributionInformation"] = trade_output.distribution_data
             extracted["aggregationInformation"] = trade_output.aggregation_data
@@ -268,12 +475,16 @@ class IncidentAnalysisModule(dspy.Module):
 
         # Extract product info (always try, but may return empty list)
         logger.info("Extracting product information...")
-        products_output = await self.extract_products.acall(text=text)
+        products_text = await resolve("products")
+        products_output = await self.extract_products.acall(text=products_text)
         extracted["productsInvolved"] = products_output.products
 
         # Always classify IUU type (this is analytical, not extraction)
         logger.info("Classifying IUU type...")
-        classification_output = await self.extract_classification.acall(text=text)
+        classification_text = await resolve("classification")
+        classification_output = await self.extract_classification.acall(
+            text=classification_text
+        )
         extracted["classification"] = classification_output.classification
 
         # Add other fields with defaults
@@ -281,10 +492,11 @@ class IncidentAnalysisModule(dspy.Module):
         extracted["sanitaryLicenseID"] = None
 
         # Generate a proper summary using DSPy
-        # Use summary_text if provided (for multi-incident), otherwise use the full text
+        # Use summary_text if provided (for multi-incident), otherwise summarize text
         logger.info("Generating incident summary...")
         if not summary_text:
-            summary_output = await self.summarize_incident.acall(text=text)
+            summary_input = await resolve("summary")
+            summary_output = await self.summarize_incident.acall(text=summary_input)
             extracted["description"] = summary_output.summary
         else:
             extracted["description"] = summary_text[:400] + (

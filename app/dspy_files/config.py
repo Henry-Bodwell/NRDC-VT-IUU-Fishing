@@ -3,6 +3,50 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ── RAG / chunking configuration ────────────────────────────────────────────
+# Embedding model used to vectorize document chunks for retrieval.
+EMBEDDING_MODEL: str = "text-embedding-3-small"
+
+# Every source is chunked, indexed and extracted via retrieval regardless of
+# size -- there is no longer a token threshold routing small documents down a
+# separate full-text path. The full-text path survives only as the fallback for
+# when indexing fails (see AnalysisOrchestrator.index_source_for_rag).
+
+# Encoding used for token counting.
+_TOKEN_COUNT_MODEL: str = "gpt-4o-mini"
+
+
+def count_tokens(text: str, model: str = _TOKEN_COUNT_MODEL) -> int:
+    """Count the number of tokens in ``text`` for the given model's encoding.
+
+    Falls back to the ``cl100k_base`` encoding for unknown models. Returns 0 for
+    empty input.
+    """
+    if not text:
+        return 0
+
+    import tiktoken
+
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        encoding = tiktoken.get_encoding("cl100k_base")
+    return len(encoding.encode(text))
+
+
+def make_embedder(
+    model: str = EMBEDDING_MODEL, api_key: str | None = None
+) -> dspy.Embedder:
+    """Construct a DSPy embedder for the configured embedding model.
+
+    Mirrors :func:`setup_dspy`: returns the embedder without mutating global
+    DSPy settings so it can be used inside ``dspy.context`` scopes.
+    """
+    kwargs: dict = {}
+    if api_key is not None:
+        kwargs["api_key"] = api_key
+    return dspy.Embedder(model, **kwargs)
+
 
 def inspect_dspy_history(n: int = 3):
     """
