@@ -348,3 +348,33 @@ class SummarizeIncident(dspy.Signature):
     summary: str = dspy.OutputField(
         desc="A concise 2-3 sentence summary capturing the key facts of the incident: who was involved, what violation occurred, when and where it happened, and what enforcement action was taken"
     )
+
+
+class ClusterSummary(dspy.Signature):
+    """Name and summarise a cluster of related IUU fishing incidents and reports.
+
+    The members were grouped automatically by semantic similarity, so first work
+    out what genuinely ties them together (a species, a fishery, a region, a
+    vessel or company, an ongoing dispute, a type of violation). Base the title
+    and summary only on what the members support; do not speculate beyond them.
+    """
+
+    member_descriptions: List[str] = dspy.InputField(
+        desc="Short descriptions of the cluster's most central members, each "
+        "prefixed with [Incident] or [Overview]"
+    )
+    aggregates: str = dspy.InputField(
+        desc="Counts of species, countries, flag states and IUU types across "
+        "all members, plus the date range"
+    )
+    title: str = dspy.OutputField(
+        desc="Specific title of at most 8 words naming the common thread, e.g. "
+        "'Indian trawler incursions in the Palk Strait'"
+    )
+    summary: str = dspy.OutputField(
+        desc="3-5 sentence neutral summary of what is happening across the "
+        "cluster: who, where, when, what kind of IUU activity, and any trend"
+    )
+    keywords: List[str] = dspy.OutputField(
+        desc="3-8 short keywords (species, places, actors, activity types)"
+    )

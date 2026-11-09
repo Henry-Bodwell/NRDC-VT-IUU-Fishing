@@ -19,14 +19,21 @@ import logging
 import os
 import uuid
 from collections import OrderedDict
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Iterable, Sequence
 
 from app.rag.chunking import Chunk
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_COLLECTION = "source_chunks"
+DOCUMENT_COLLECTION = "document_vectors"
 EMBEDDING_DIM = 1536
+
+# Document types stored in the document-level collection.
+DOC_TYPE_INCIDENT = "incident"
+DOC_TYPE_OVERVIEW = "overview"
+DOC_TYPE_CLUSTER = "cluster"  # cluster centroids
 
 # Upper bound on cached query vectors (see VectorStore._embed_query).
 _QUERY_CACHE_MAX = 128
@@ -38,6 +45,31 @@ _POINT_NAMESPACE = uuid.UUID("6f6b1b3e-2c2a-4f1a-9b9a-1d5c7e2a4f10")
 def point_id(article_hash: str, chunk_index: int) -> str:
     """Deterministic Qdrant point id for a chunk of a given document."""
     return str(uuid.uuid5(_POINT_NAMESPACE, f"{article_hash}:{chunk_index}"))
+
+
+def document_point_id(doc_type: str, doc_id: str) -> str:
+    """Deterministic Qdrant point id for a document-level vector."""
+    return str(uuid.uuid5(_POINT_NAMESPACE, f"doc:{doc_type}:{doc_id}"))
+
+
+@dataclass
+class DocumentHit:
+    """A document-level search result."""
+
+    doc_type: str
+    doc_id: str
+    score: float
+    payload: dict = field(default_factory=dict)
+
+
+@dataclass
+class DocumentVector:
+    """A stored document-level vector (used by batch jobs such as clustering)."""
+
+    doc_type: str
+    doc_id: str
+    vector: list[float]
+    payload: dict = field(default_factory=dict)
 
 
 def source_scope_key(source: Any) -> str:
@@ -83,10 +115,17 @@ def payload_to_chunk(payload: dict, score: float | None = None) -> Chunk:
 class VectorStore:
     """Thin async wrapper around Qdrant + a DSPy embedder."""
 
-    def __init__(self, client, embedder, collection: str = DEFAULT_COLLECTION):
+    def __init__(
+        self,
+        client,
+        embedder,
+        collection: str = DEFAULT_COLLECTION,
+        index_fields: Sequence[str] = ("article_hash",),
+    ):
         self.client = client
         self.embedder = embedder
         self.collection = collection
+        self.index_fields = tuple(index_fields)
         # Query-vector cache. The 13 category queries are static and now run on
         # every document, so embedding them once per process instead of once per
         # extraction removes the bulk of the embedding calls. Bounded because
@@ -116,7 +155,7 @@ class VectorStore:
         return vector
 
     async def ensure_collection(self) -> None:
-        """Create the chunk collection and its payload indexes if missing."""
+        """Create the collection and its keyword payload indexes if missing."""
         from qdrant_client import models
 
         if not await self.client.collection_exists(self.collection):
@@ -127,19 +166,19 @@ class VectorStore:
                 ),
             )
 
-        # Scoped retrieval, re-indexing and deletion all filter on article_hash;
-        # without a payload index those are unindexed scans. Qdrant treats
-        # re-creating an existing index as a no-op, so this is safe to run on
-        # every startup.
-        for field in ("article_hash",):
+        # Scoped retrieval, re-indexing and deletion all filter on these fields
+        # (article_hash for chunks, doc_type for documents); without a payload
+        # index those are unindexed scans. Qdrant treats re-creating an
+        # existing index as a no-op, so this is safe to run on every startup.
+        for field_name in self.index_fields:
             try:
                 await self.client.create_payload_index(
                     collection_name=self.collection,
-                    field_name=field,
+                    field_name=field_name,
                     field_schema=models.PayloadSchemaType.KEYWORD,
                 )
             except Exception as e:
-                logger.debug(f"Payload index for '{field}' not created: {e}")
+                logger.debug(f"Payload index for '{field_name}' not created: {e}")
 
         self._collection_ready = True
 
@@ -250,15 +289,233 @@ class VectorStore:
             ),
         )
 
+    # ── Document-level vectors ──────────────────────────────────────
+    # One vector per incident / overview, keyed on (doc_type, doc_id). Used for
+    # cross-document similarity (duplicate detection, clustering), never for
+    # extraction-time retrieval.
 
-# Process-wide singleton so the Qdrant client and embedder are reused across
-# requests. The client connects lazily, so constructing this is cheap and safe
+    @staticmethod
+    def _doc_type_filter(doc_types: Iterable[str] | None):
+        from qdrant_client import models
+
+        if not doc_types:
+            return None
+        return models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="doc_type", match=models.MatchAny(any=list(doc_types))
+                )
+            ]
+        )
+
+    async def upsert_documents(
+        self, items: Sequence[tuple[str, str, str, dict]]
+    ) -> int:
+        """Embed and upsert ``(doc_type, doc_id, text, extra_payload)`` items.
+
+        Idempotent: the point id is derived from (doc_type, doc_id), so
+        re-indexing a document overwrites its previous vector.
+        """
+        if not items:
+            return 0
+
+        from qdrant_client import models
+
+        await self._ensure_ready()
+        vectors = await self._embed([text for _, _, text, _ in items])
+        points = [
+            models.PointStruct(
+                id=document_point_id(doc_type, doc_id),
+                vector=vectors[i],
+                payload={**extra, "doc_type": doc_type, "doc_id": doc_id},
+            )
+            for i, (doc_type, doc_id, _, extra) in enumerate(items)
+        ]
+        await self.client.upsert(collection_name=self.collection, points=points)
+        return len(points)
+
+    async def upsert_vectors(
+        self, items: Sequence[tuple[str, str, Sequence[float], dict]]
+    ) -> int:
+        """Upsert precomputed ``(doc_type, doc_id, vector, extra_payload)`` items.
+
+        Used for vectors that are not embeddings of text, e.g. cluster centroids.
+        """
+        if not items:
+            return 0
+
+        from qdrant_client import models
+
+        await self._ensure_ready()
+        points = [
+            models.PointStruct(
+                id=document_point_id(doc_type, doc_id),
+                vector=list(map(float, vector)),
+                payload={**extra, "doc_type": doc_type, "doc_id": doc_id},
+            )
+            for doc_type, doc_id, vector, extra in items
+        ]
+        await self.client.upsert(collection_name=self.collection, points=points)
+        return len(points)
+
+    async def get_document_vector(
+        self, doc_type: str, doc_id: str
+    ) -> list[float] | None:
+        """Return the stored vector for a document, or ``None`` if not indexed."""
+        await self._ensure_ready()
+        records = await self.client.retrieve(
+            collection_name=self.collection,
+            ids=[document_point_id(doc_type, doc_id)],
+            with_vectors=True,
+            with_payload=False,
+        )
+        if not records:
+            return None
+        vector = records[0].vector
+        return list(map(float, vector)) if vector is not None else None
+
+    async def get_document_vectors(
+        self, keys: Sequence[tuple[str, str]]
+    ) -> dict[tuple[str, str], list[float]]:
+        """Return stored vectors for ``(doc_type, doc_id)`` keys (missing ones omitted)."""
+        if not keys:
+            return {}
+        await self._ensure_ready()
+        by_point = {document_point_id(t, i): (t, i) for t, i in keys}
+        records = await self.client.retrieve(
+            collection_name=self.collection,
+            ids=list(by_point),
+            with_vectors=True,
+            with_payload=False,
+        )
+        return {
+            by_point[str(record.id)]: list(map(float, record.vector))
+            for record in records
+            if record.vector is not None and str(record.id) in by_point
+        }
+
+    async def similar_to_vector(
+        self,
+        vector: Sequence[float],
+        k: int = 10,
+        *,
+        doc_types: Iterable[str] | None = None,
+        score_threshold: float | None = None,
+        exclude: tuple[str, str] | None = None,
+    ) -> list[DocumentHit]:
+        """Return the top-``k`` documents nearest ``vector``.
+
+        ``exclude`` is a ``(doc_type, doc_id)`` pair to leave out (typically the
+        query document itself).
+        """
+        from qdrant_client import models
+
+        query_filter = self._doc_type_filter(doc_types)
+        if exclude is not None:
+            query_filter = query_filter or models.Filter()
+            query_filter.must_not = [
+                models.HasIdCondition(has_id=[document_point_id(*exclude)])
+            ]
+
+        response = await self.client.query_points(
+            collection_name=self.collection,
+            query=list(vector),
+            query_filter=query_filter,
+            limit=k,
+            score_threshold=score_threshold,
+            with_payload=True,
+        )
+        hits = []
+        for point in response.points:
+            payload = point.payload or {}
+            hits.append(
+                DocumentHit(
+                    doc_type=payload.get("doc_type", ""),
+                    doc_id=payload.get("doc_id", ""),
+                    score=float(getattr(point, "score", 0.0) or 0.0),
+                    payload=payload,
+                )
+            )
+        return hits
+
+    async def similar_to_document(
+        self,
+        doc_type: str,
+        doc_id: str,
+        k: int = 10,
+        *,
+        doc_types: Iterable[str] | None = None,
+        score_threshold: float | None = None,
+    ) -> list[DocumentHit]:
+        """Return the top-``k`` documents nearest an already-indexed document.
+
+        Returns an empty list when the query document has no stored vector.
+        """
+        vector = await self.get_document_vector(doc_type, doc_id)
+        if vector is None:
+            return []
+        return await self.similar_to_vector(
+            vector,
+            k,
+            doc_types=doc_types,
+            score_threshold=score_threshold,
+            exclude=(doc_type, doc_id),
+        )
+
+    async def scroll_vectors(
+        self, doc_types: Iterable[str] | None = None, batch_size: int = 256
+    ) -> list[DocumentVector]:
+        """Return every stored document vector (optionally filtered by type)."""
+        await self._ensure_ready()
+        scroll_filter = self._doc_type_filter(doc_types)
+        results: list[DocumentVector] = []
+        offset = None
+        while True:
+            records, offset = await self.client.scroll(
+                collection_name=self.collection,
+                scroll_filter=scroll_filter,
+                limit=batch_size,
+                offset=offset,
+                with_payload=True,
+                with_vectors=True,
+            )
+            for record in records:
+                payload = record.payload or {}
+                if record.vector is None:
+                    continue
+                results.append(
+                    DocumentVector(
+                        doc_type=payload.get("doc_type", ""),
+                        doc_id=payload.get("doc_id", ""),
+                        vector=list(map(float, record.vector)),
+                        payload=payload,
+                    )
+                )
+            if offset is None:
+                break
+        return results
+
+    async def delete_document(self, doc_type: str, doc_id: str) -> None:
+        """Remove a document-level vector (no-op if it was never indexed)."""
+        from qdrant_client import models
+
+        await self.client.delete(
+            collection_name=self.collection,
+            points_selector=models.PointIdsList(
+                points=[document_point_id(doc_type, doc_id)]
+            ),
+        )
+
+
+# Process-wide singletons so the Qdrant client and embedder are reused across
+# requests. The client connects lazily, so constructing these is cheap and safe
 # even when Qdrant is unavailable.
 _default_store: VectorStore | None = None
+_document_store: VectorStore | None = None
 
 
 def get_vector_store() -> VectorStore:
-    """Return the shared :class:`VectorStore` built from environment config."""
+    """Return the shared chunk :class:`VectorStore` built from environment config."""
     global _default_store
     if _default_store is None:
         from qdrant_client import AsyncQdrantClient
@@ -269,3 +526,21 @@ def get_vector_store() -> VectorStore:
         client = AsyncQdrantClient(url=url)
         _default_store = VectorStore(client, make_embedder())
     return _default_store
+
+
+def get_document_store() -> VectorStore:
+    """Return the shared document-level :class:`VectorStore`.
+
+    Shares the Qdrant client and embedder with the chunk store; only the
+    collection and its payload indexes differ.
+    """
+    global _document_store
+    if _document_store is None:
+        chunk_store = get_vector_store()
+        _document_store = VectorStore(
+            chunk_store.client,
+            chunk_store.embedder,
+            collection=DOCUMENT_COLLECTION,
+            index_fields=("doc_type", "doc_id"),
+        )
+    return _document_store

@@ -58,6 +58,11 @@ class IncidentReport(AuditedDocument):
     incident_fingerprint: str | None = Field(
         default=None, description="Unique fingerprint for the incident report"
     )
+    embedding_text_hash: str | None = Field(
+        default=None,
+        description="SHA-256 of the text last embedded into the document vector "
+        "index; used to skip re-embedding unchanged incidents.",
+    )
 
     sources: List[Link["Source"]] = Field(default_factory=list)
     primary_source: Link["Source"] | None = Field(
@@ -201,21 +206,37 @@ class IncidentReport(AuditedDocument):
 
             self.sources = []
             self.primary_source = None
+            incident_id = self.id
             await super().delete()
         except Exception as e:
             raise Exception(f"Failed to delete incident report: {e}")
 
-    @classmethod
-    async def find_potential_duplicates(
-        cls, incident_data: "ExtractedIncidentData", threshold: float = 0.8
-    ):
-        # Could use vessel name, location proximity, date proximity, etc.
-        # TODO
-        """Find potential duplicate incidents based on similarity"""
-        vessel_name = getattr(incident_data.catchSourceInformation, "vesselName", None)
-        if vessel_name:
-            return await cls.find(
-                cls.extracted_information.catchSourceInformation.vesselName
-                == vessel_name
-            ).to_list()
-        return []
+        await self._cleanup_similarity_data(incident_id)
+
+    @staticmethod
+    async def _cleanup_similarity_data(incident_id) -> None:
+        """Drop the incident's vector, duplicate candidates and cluster links.
+
+        Best-effort: the incident is already deleted, so failures are logged by
+        the helpers rather than raised.
+        """
+        if incident_id is None:
+            return
+        from app.rag.document_index import remove_document
+        from app.rag.vector_store import DOC_TYPE_INCIDENT
+        from app.service.cluster_service import ClusterService
+        from app.service.dedup_service import DedupService
+
+        await remove_document(DOC_TYPE_INCIDENT, str(incident_id))
+        await DedupService.remove_candidates_for(incident_id)
+        await ClusterService.remove_document_everywhere(DOC_TYPE_INCIDENT, incident_id)
+
+    async def find_potential_duplicates(self, k: int = 10, min_vector: float = 0.80):
+        """Find and store likely duplicates of this incident.
+
+        Thin wrapper over :meth:`DedupService.find_candidates`; returns the
+        stored ``DuplicateCandidate`` documents.
+        """
+        from app.service.dedup_service import DedupService
+
+        return await DedupService.find_candidates(self, k=k, min_vector=min_vector)
