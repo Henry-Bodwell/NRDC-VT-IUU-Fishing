@@ -15,7 +15,13 @@ from app.dspy_files.news_analysis import (
 import logging
 from app.dspy_files.content_extraction import ContentExtractor
 from app.service.service import Service
+from app.service.dedup_service import DedupService
 from app.audit.context import AuditContext
+from app.rag.document_index import (
+    index_and_assign_incident,
+    index_and_assign_incidents,
+    index_and_assign_overview,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +158,22 @@ class IncidentService(Service):
             industry.source = source
             await industry.save()
 
+        await IncidentService._index_saved_documents(output)
         return output
+
+    @staticmethod
+    async def _index_saved_documents(output: PipelineOutput) -> None:
+        """Embed newly saved incidents/overviews, assign them to clusters and
+        look for duplicates.
+
+        Every step is best-effort; failures are logged and never fail the save.
+        """
+        if output.has_incident and output.incidents:
+            await index_and_assign_incidents(output.incidents)
+            for incident in output.incidents:
+                await DedupService.find_candidates_safe(incident)
+        if output.has_overview and output.industry_overview:
+            await index_and_assign_overview(output.industry_overview)
 
     @staticmethod
     def _get_orchestrator() -> AnalysisOrchestrator:
@@ -258,12 +279,15 @@ class IncidentService(Service):
 
     @staticmethod
     async def update_report(report_id: str, update_data: dict) -> IncidentReport:
-        return await Service.update_model(
+        report = await Service.update_model(
             model_cls=IncidentReport,
             model_id=report_id,
             update_data=update_data,
             model_name="report",
         )
+        # Re-embeds only if the embedded KDE text actually changed.
+        await index_and_assign_incident(report)
+        return report
 
     @staticmethod
     async def delete_report(report_id: str) -> bool:

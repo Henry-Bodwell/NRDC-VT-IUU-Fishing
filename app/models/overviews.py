@@ -35,6 +35,11 @@ class IndustryOverview(AuditedDocument):
 
     source: Link["Source"] | None = None
     extracted_information: IndustryOverviewExtract
+    embedding_text_hash: str | None = Field(
+        default=None,
+        description="SHA-256 of the text last embedded into the document vector "
+        "index; used to skip re-embedding unchanged overviews.",
+    )
 
     class Settings:
         name = "industry_overviews"
@@ -57,8 +62,19 @@ class IndustryOverview(AuditedDocument):
                 self.source.overviews = None
 
             self.source = None
+            overview_id = self.id
 
             # Call the parent delete method
             await super().delete()
         except Exception as e:
             raise Exception(f"Failed to delete industry report: {e}")
+
+        if overview_id is not None:
+            from app.rag.document_index import remove_document
+            from app.rag.vector_store import DOC_TYPE_OVERVIEW
+            from app.service.cluster_service import ClusterService
+
+            await remove_document(DOC_TYPE_OVERVIEW, str(overview_id))
+            await ClusterService.remove_document_everywhere(
+                DOC_TYPE_OVERVIEW, overview_id
+            )
