@@ -17,7 +17,10 @@ from app.models.overviews import IndustryOverviewExtract
 from app.models.sources import ArticleScopeClassification, Source
 from app.models.task import TaskStatus
 from app.models.users import User
-from app.rag.document_index import index_incident, index_overview
+from app.rag.document_index import (
+    index_and_assign_incident,
+    index_and_assign_overview,
+)
 from app.models.validation import (
     ACTIVE_VALIDATION_STATUSES,
     EXPIRABLE_VALIDATION_STATUSES,
@@ -771,7 +774,7 @@ class ValidationService:
         overview.extracted_information = extracted_information
         overview.source = source
         await overview.save()
-        await index_overview(overview)
+        await index_and_assign_overview(overview)
         ValidationService._touch(session)
         await session.save()
         return _dump(overview)
@@ -1073,7 +1076,7 @@ class ValidationService:
         incident.incident_classification = incident_classification
         incident.verified = False
         await incident.save()
-        await index_incident(incident)
+        await index_and_assign_incident(incident)
         ValidationService._touch(session)
         await session.save()
         return await ValidationService.incident_workspace(incident_id, user)
@@ -1121,7 +1124,7 @@ class ValidationService:
             reviewed_sections.discard(section_name)
         session.reviewed_sections[str(incident.id)] = sorted(reviewed_sections)
         await incident.save()
-        await index_incident(incident)
+        await index_and_assign_incident(incident)
         ValidationService._touch(session)
         await session.save()
         return await ValidationService.incident_workspace(incident_id, user)

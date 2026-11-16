@@ -7,7 +7,7 @@ import logging
 import os
 from collections import Counter
 from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Literal, Optional
 
 import numpy as np
 from beanie import PydanticObjectId
@@ -18,6 +18,7 @@ from app.clustering.engine import (
     DEFAULT_MEMBERSHIP_THRESHOLD,
     DEFAULT_MIN_CLUSTER_SIZE,
     ExistingCluster,
+    ProposedCluster,
     centroid_of,
     find_clusters,
     normalize_rows,
@@ -42,12 +43,61 @@ SYSTEM_USER = "system:clustering"
 SUMMARY_MAX_MEMBERS = 15
 SUMMARY_MAX_CHARS = 600
 
+# Most clusters a single document is checked against during incremental
+# assignment (nearest centroids first).
+ASSIGN_MAX_CLUSTERS = 20
+
+# Member-score changes smaller than this are not worth a save (and audit entry).
+SCORE_EPSILON = 0.01
+
 Summarizer = Callable[[list[str], str], Awaitable[dict]]
 
 
 def _split_key(key: str) -> tuple[str, str]:
     doc_type, doc_id = key.split(":", 1)
     return doc_type, doc_id
+
+
+def _apply_proposal(
+    cluster: Cluster,
+    proposal: ProposedCluster,
+    vectors_by_key: dict[str, list[float]],
+) -> tuple[list[float], bool]:
+    """Apply a matched rebuild proposal to an existing automatic cluster.
+
+    Members a user excluded are dropped (by :meth:`Cluster.set_members`). If any
+    of them were HDBSCAN core members, the centroid is recomputed from the
+    remaining core so the excluded documents no longer pull it, and member
+    scores are re-measured against the new centroid.
+
+    Returns ``(centroid, needs_save)``. ``needs_save`` is False when neither the
+    member set nor any member score moved by ``SCORE_EPSILON``, so an unchanged
+    cluster does not get an audit entry on every rebuild.
+    """
+    excluded = set(cluster.excluded_ids)
+    scores = proposal.scores
+    centroid = proposal.centroid
+
+    core = [k for k in proposal.core_keys if k not in excluded and k in vectors_by_key]
+    if core and excluded & set(proposal.core_keys):
+        centroid_vec = centroid_of(
+            normalize_rows(np.asarray([vectors_by_key[k] for k in core]))
+        )
+        members = [k for k in scores if k not in excluded and k in vectors_by_key]
+        sims = (
+            normalize_rows(np.asarray([vectors_by_key[k] for k in members]))
+            @ centroid_vec
+        )
+        scores = {k: float(s) for k, s in zip(members, sims)}
+        centroid = centroid_vec.tolist()
+
+    old_scores = dict(cluster.member_scores)
+    changed = cluster.set_members(scores)
+    moved = any(
+        k not in old_scores or abs(old_scores[k] - v) >= SCORE_EPSILON
+        for k, v in cluster.member_scores.items()
+    )
+    return centroid, changed or moved
 
 
 async def _dspy_summarizer(member_descriptions: list[str], aggregates: str) -> dict:
@@ -216,6 +266,99 @@ class ClusterService:
         ][:k]
 
     @staticmethod
+    async def set_status(
+        cluster: Cluster, status: Literal["active", "archived"]
+    ) -> Cluster:
+        """Archive or restore a cluster, keeping its centroid vector in step.
+
+        Archived clusters have no centroid, so they are invisible to
+        suggestions and incremental assignment. Saving is left to the caller.
+        """
+        if status == cluster.status:
+            return cluster
+        cluster.status = status
+        if status == "archived":
+            try:
+                await get_document_store().delete_document(
+                    DOC_TYPE_CLUSTER, str(cluster.id)
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Could not delete centroid for cluster {cluster.id}: {e}"
+                )
+        else:
+            await ClusterService._refresh_centroid(cluster)
+        return cluster
+
+    # ── Incremental assignment ─────────────────────────────────────
+
+    @staticmethod
+    async def assign_document(
+        doc_type: str,
+        doc_id: str,
+        threshold: float = DEFAULT_MEMBERSHIP_THRESHOLD,
+        max_clusters: int = ASSIGN_MAX_CLUSTERS,
+    ) -> list[str]:
+        """Add a freshly (re)embedded document to every nearby automatic cluster.
+
+        Compares the document's vector with the stored cluster centroids and
+        joins each active automatic cluster whose centroid similarity is at
+        least ``threshold`` -- the same rule a rebuild uses for overlapping
+        membership. Centroids are left alone so clusters stay stable between
+        rebuilds; summaries are only marked stale (see :meth:`summarize_stale`).
+
+        User clusters are never changed automatically, and a member a user
+        removed is never re-added. Returns the ids of clusters joined.
+        """
+        store = get_document_store()
+        vector = await store.get_document_vector(doc_type, doc_id)
+        if vector is None:
+            return []
+        hits = await store.similar_to_vector(
+            vector,
+            k=max_clusters,
+            doc_types=[DOC_TYPE_CLUSTER],
+            score_threshold=threshold,
+        )
+        scores = {
+            h.doc_id: h.score for h in hits if PydanticObjectId.is_valid(h.doc_id)
+        }
+        if not scores:
+            return []
+
+        clusters = await Cluster.find(
+            In(Cluster.id, [PydanticObjectId(i) for i in scores]),
+            Cluster.status == "active",
+            Cluster.origin == "auto",
+            fetch_links=False,
+        ).to_list()
+
+        key = member_key(doc_type, doc_id)
+        joined = []
+        with AuditContext.with_user(SYSTEM_USER):
+            for cluster in clusters:
+                if key in cluster.excluded_ids:
+                    continue
+                score = scores[str(cluster.id)]
+                previous = cluster.member_scores.get(key)
+                if cluster.add_member(doc_type, doc_id, score=score):
+                    joined.append(str(cluster.id))
+                elif previous is not None and abs(previous - score) < SCORE_EPSILON:
+                    continue  # already a member, score unchanged: skip the audit
+                await cluster.save()
+        if joined:
+            logger.info(f"{key} joined clusters {joined}")
+        return joined
+
+    @staticmethod
+    async def assign_document_safe(doc_type: str, doc_id) -> None:
+        """Ingestion/edit hook: :meth:`assign_document`, logging any failure."""
+        try:
+            await ClusterService.assign_document(doc_type, str(doc_id))
+        except Exception as e:
+            logger.warning(f"Cluster assignment failed for {doc_type} {doc_id}: {e}")
+
+    @staticmethod
     async def delete(cluster: Cluster) -> None:
         await cluster.delete()
         try:
@@ -348,7 +491,9 @@ class ClusterService:
         if not descriptions:
             return cluster
         result = await (summarizer or _dspy_summarizer)(descriptions, aggregates)
-        if cluster.origin == "auto" or cluster.title in ("", "Untitled cluster"):
+        if not cluster.title_locked and (
+            cluster.origin == "auto" or cluster.title in ("", "Untitled cluster")
+        ):
             cluster.title = result["title"].strip()
         cluster.summary = result["summary"].strip()
         cluster.keywords = [k.strip() for k in result["keywords"] if k.strip()]
@@ -356,6 +501,33 @@ class ClusterService:
         cluster.summary_generated_at = datetime.now(timezone.utc)
         await cluster.save()
         return cluster
+
+    @staticmethod
+    async def summarize_stale(
+        summarizer: Optional[Summarizer] = None,
+        progress_callback: Optional[Callable[[str, int], Awaitable[None]]] = None,
+    ) -> dict[str, int]:
+        """Summarise every active cluster whose membership changed since its summary.
+
+        Incremental assignment marks clusters stale without calling the LLM;
+        this catches them up in one batch.
+        """
+        stale = await Cluster.find(
+            Cluster.status == "active",
+            Cluster.summary_stale == True,  # noqa: E712 (Beanie query expression)
+            fetch_links=False,
+        ).to_list()
+        summarized = failed = 0
+        for i, cluster in enumerate(stale):
+            try:
+                await ClusterService.summarize(cluster, summarizer)
+                summarized += 1
+            except Exception as e:
+                failed += 1
+                logger.warning(f"Summary failed for cluster {cluster.id}: {e}")
+            if progress_callback:
+                await progress_callback("summarizing", int(100 * (i + 1) / len(stale)))
+        return {"stale": len(stale), "summarized": summarized, "failed": failed}
 
     # ── Automatic rebuild ──────────────────────────────────────────
 
@@ -409,6 +581,7 @@ class ClusterService:
             "documents": len(vectors),
             "clusters_found": len(proposals),
             "updated": len(plan.updates),
+            "saved": 0,
             "created": len(plan.creates),
             "archived": len(plan.archives),
             "summarized": 0,
@@ -424,14 +597,15 @@ class ClusterService:
 
         touched: list[tuple[Cluster, list[float]]] = []
         with AuditContext.with_user(user_id):
+            by_key = {k: v.vector for k, v in zip(keys, vectors)}
             for cluster_id, proposal in plan.updates:
                 cluster = existing_by_id[cluster_id]
-                changed = cluster.set_members(proposal.scores)
-                await cluster.save()
-                touched.append((cluster, proposal.centroid))
-                logger.info(
-                    f"Cluster {cluster_id} updated (membership changed: {changed})"
-                )
+                centroid, needs_save = _apply_proposal(cluster, proposal, by_key)
+                if needs_save:
+                    await cluster.save()
+                    stats["saved"] += 1
+                touched.append((cluster, centroid))
+                logger.info(f"Cluster {cluster_id} matched (saved: {needs_save})")
             for proposal in plan.creates:
                 cluster = Cluster(origin="auto")
                 cluster.set_members(proposal.scores)

@@ -41,14 +41,23 @@ async def index_incidents(
     incidents: Iterable["IncidentReport"], *, force: bool = False
 ) -> int:
     """Embed incidents whose embedded text changed; returns the number indexed."""
+    return len(await _index_incidents_safe(incidents, force=force))
+
+
+async def _index_incidents_safe(
+    incidents: Iterable["IncidentReport"], force: bool
+) -> list[str]:
+    """Like :func:`_index_incidents` but logs failures; returns ids indexed."""
     try:
         return await _index_incidents(incidents, force=force)
     except Exception as e:
         logger.warning(f"Document vector indexing failed for incidents: {e}")
-        return 0
+        return []
 
 
-async def _index_incidents(incidents: Iterable["IncidentReport"], force: bool) -> int:
+async def _index_incidents(
+    incidents: Iterable["IncidentReport"], force: bool
+) -> list[str]:
     pending = []
     for incident in incidents:
         if incident.id is None:
@@ -61,14 +70,14 @@ async def _index_incidents(incidents: Iterable["IncidentReport"], force: bool) -
         pending.append((incident, text, text_hash, {"event_date": event_date or None}))
 
     if not pending:
-        return 0
+        return []
 
     await get_document_store().upsert_documents(
         [(DOC_TYPE_INCIDENT, str(i.id), t, extra) for i, t, _, extra in pending]
     )
     for incident, _, text_hash, _ in pending:
         await _store_hash(incident, text_hash)
-    return len(pending)
+    return [str(incident.id) for incident, _, _, _ in pending]
 
 
 async def index_incident(incident: "IncidentReport", *, force: bool = False) -> bool:
@@ -95,6 +104,41 @@ async def index_overview(overview: "IndustryOverview", *, force: bool = False) -
         )
         return False
     return True
+
+
+# ── Index + cluster assignment ─────────────────────────────────────
+# Used wherever a single document is created or edited. Cluster assignment runs
+# only for documents whose vector was actually (re)written, so saving an
+# incident without touching its embedded KDEs does not touch any cluster.
+# Backfills use the plain index_* functions and follow up with a rebuild.
+
+
+async def _assign(doc_type: str, doc_ids: Iterable[str]) -> None:
+    # Imported lazily: the cluster service imports the models, which import this.
+    from app.service.cluster_service import ClusterService
+
+    for doc_id in doc_ids:
+        await ClusterService.assign_document_safe(doc_type, doc_id)
+
+
+async def index_and_assign_incidents(incidents: Iterable["IncidentReport"]) -> int:
+    """Embed changed incidents and add them to nearby automatic clusters."""
+    ids = await _index_incidents_safe(incidents, force=False)
+    await _assign(DOC_TYPE_INCIDENT, ids)
+    return len(ids)
+
+
+async def index_and_assign_incident(incident: "IncidentReport") -> bool:
+    """Single-incident form of :func:`index_and_assign_incidents`."""
+    return await index_and_assign_incidents([incident]) == 1
+
+
+async def index_and_assign_overview(overview: "IndustryOverview") -> bool:
+    """Embed an overview if it changed and add it to nearby automatic clusters."""
+    indexed = await index_overview(overview)
+    if indexed:
+        await _assign(DOC_TYPE_OVERVIEW, [str(overview.id)])
+    return indexed
 
 
 async def remove_document(doc_type: str, doc_id: str) -> None:

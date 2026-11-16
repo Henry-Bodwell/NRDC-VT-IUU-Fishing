@@ -65,6 +65,7 @@ def cluster_out(cluster: Cluster) -> dict:
         "member_scores": cluster.member_scores,
         "excluded_ids": cluster.excluded_ids,
         "summary_stale": cluster.summary_stale,
+        "title_locked": cluster.title_locked,
         "summary_generated_at": cluster.summary_generated_at,
         "created_at": cluster.created_at,
         "updated_at": cluster.updated_at,
@@ -164,6 +165,42 @@ async def rebuild_clusters(
     return {"task_id": task.task_id}
 
 
+@router.post("/clusters/summarize-stale", status_code=status.HTTP_202_ACCEPTED)
+async def summarize_stale_clusters(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Regenerate summaries for clusters whose membership changed since the last one.
+
+    Incremental assignment of new documents marks clusters stale without
+    calling the LLM; this catches them up as a background task.
+    """
+    task = TaskStatus(
+        task_type="cluster_summarize_stale",
+        user_id=str(current_user.id),
+        input_params={},
+    )
+    await task.insert()
+
+    async def run():
+        async def progress(stage: str, percent: int):
+            await task.update_progress(stage, percent)
+
+        try:
+            await task.update_progress("summarizing", 0)
+            with AuditContext.with_user(str(current_user.id)):
+                result = await ClusterService.summarize_stale(
+                    progress_callback=progress
+                )
+            await task.mark_completed(result)
+        except Exception as e:
+            logger.error(f"Stale summary task {task.task_id} failed: {e}")
+            await task.mark_failed(str(e))
+
+    background_tasks.add_task(run)
+    return {"task_id": task.task_id}
+
+
 @router.get("/clusters/{cluster_id}")
 async def get_cluster(cluster_id: str, expand: bool = False):
     """A cluster; ``expand=true`` adds member labels, most central first."""
@@ -180,9 +217,16 @@ async def update_cluster(
     body: ClusterUpdate,
     current_user: User = Depends(get_current_user),
 ):
+    """Edit a cluster. A title set here is never replaced by generated summaries."""
     cluster = await _get_or_404(cluster_id)
-    for field, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    new_status = changes.pop("status", None)
+    for field, value in changes.items():
         setattr(cluster, field, value)
+    if "title" in changes:
+        cluster.title_locked = True
+    if new_status is not None:
+        await ClusterService.set_status(cluster, new_status)
     with AuditContext.with_user(str(current_user.id)):
         await cluster.save()
     return cluster_out(cluster)

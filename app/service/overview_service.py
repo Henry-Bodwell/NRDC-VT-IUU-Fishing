@@ -4,7 +4,7 @@ import logging
 from app.models.sources import Source
 from app.models.incidents import IndustryOverview
 from app.service.service import Service
-from app.rag.document_index import index_overview
+from app.rag.document_index import index_and_assign_overview
 
 logger = logging.getLogger(__name__)
 
@@ -27,5 +27,5 @@ class OverviewService(Service):
             model_name="industry_overviews",
         )
         # Re-embeds only if the embedded summary/KDE text actually changed.
-        await index_overview(overview)
+        await index_and_assign_overview(overview)
         return overview

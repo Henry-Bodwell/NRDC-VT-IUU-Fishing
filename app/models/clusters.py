@@ -74,6 +74,10 @@ class Cluster(AuditedDocument):
 
     summary_stale: bool = True
     summary_generated_at: datetime | None = None
+    title_locked: bool = Field(
+        default=False,
+        description="A user set the title; generated summaries never replace it.",
+    )
 
     class Settings:
         name = "clusters"

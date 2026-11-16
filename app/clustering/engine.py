@@ -33,6 +33,7 @@ class ProposedCluster:
     scores: dict[str, float]  # member_key -> cosine similarity to centroid
     centroid: list[float]
     core_size: int
+    core_keys: list[str] = field(default_factory=list)  # HDBSCAN core members
 
     @property
     def members(self) -> set[str]:
@@ -107,6 +108,7 @@ def find_clusters(
                 scores={keys[i]: float(sims[i]) for i in sorted(member_idx)},
                 centroid=centroid.tolist(),
                 core_size=len(core_idx),
+                core_keys=[keys[i] for i in core_idx.tolist()],
             )
         )
     return proposals

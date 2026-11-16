@@ -17,7 +17,11 @@ from app.dspy_files.content_extraction import ContentExtractor
 from app.service.service import Service
 from app.service.dedup_service import DedupService
 from app.audit.context import AuditContext
-from app.rag.document_index import index_incident, index_incidents, index_overview
+from app.rag.document_index import (
+    index_and_assign_incident,
+    index_and_assign_incidents,
+    index_and_assign_overview,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -159,16 +163,17 @@ class IncidentService(Service):
 
     @staticmethod
     async def _index_saved_documents(output: PipelineOutput) -> None:
-        """Embed newly saved incidents/overviews and look for duplicates.
+        """Embed newly saved incidents/overviews, assign them to clusters and
+        look for duplicates.
 
         Every step is best-effort; failures are logged and never fail the save.
         """
         if output.has_incident and output.incidents:
-            await index_incidents(output.incidents)
+            await index_and_assign_incidents(output.incidents)
             for incident in output.incidents:
                 await DedupService.find_candidates_safe(incident)
         if output.has_overview and output.industry_overview:
-            await index_overview(output.industry_overview)
+            await index_and_assign_overview(output.industry_overview)
 
     @staticmethod
     def _get_orchestrator() -> AnalysisOrchestrator:
@@ -281,7 +286,7 @@ class IncidentService(Service):
             model_name="report",
         )
         # Re-embeds only if the embedded KDE text actually changed.
-        await index_incident(report)
+        await index_and_assign_incident(report)
         return report
 
     @staticmethod

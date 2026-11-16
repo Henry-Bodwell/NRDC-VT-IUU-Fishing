@@ -46,9 +46,10 @@ from app.models.incidents import (
 from app.models.users import User
 from app.models.task import TaskStatus
 from app.models.validation import ValidationSession
+from app.models.clusters import Cluster
+from app.models.duplicates import DuplicateCandidate
 from app.audit.models import AuditLog
 from app.dspy_files.news_analysis import PipelineOutput, PipelineResult
-
 
 # ---------------------------------------------------------------------------
 # Factories -- lightweight builders that reduce boilerplate across tests.
@@ -176,6 +177,8 @@ async def test_db() -> AsyncGenerator[None, None]:
             TaskStatus,
             AuditLog,
             ValidationSession,
+            Cluster,
+            DuplicateCandidate,
         ],
     )
 
